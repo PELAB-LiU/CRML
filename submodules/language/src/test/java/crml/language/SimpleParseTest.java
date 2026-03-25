@@ -1,28 +1,40 @@
 package crml.language;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 
-import org.antlr.v4.runtime.CharStreams;
-import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.tree.ParseTree;
 import org.junit.jupiter.api.Test;
 
-import crml.language.grammar.crmlLexer;
-import crml.language.grammar.crmlParser;
+import crml.language.util.Parser;
 
 public class SimpleParseTest {
     String model = """
-model is ???
+model BasicOperators is {
+    class ApplicationType is {
+        String exeFileLocation;
+        String exeType;
+        String zipFileUrl;
+        ApplicationInstance {} instances;
+    };
+    class ApplicationInstance is {
+        Real foo is 0;
+        ApplicationType appType;
+    };
+    class HostType is {
+        String nodeIP;
+        Integer availableCpu is 10;
+        Integer availableRam is 128;
+        Integer availableHdd is 
+    };
+};
 """;
 
     @Test
     public void test(){
-        crmlLexer lexer = new crmlLexer(CharStreams.fromString(model));
-        CommonTokenStream tokens = new CommonTokenStream( lexer );
-        crmlParser parser = new crmlParser( tokens );
-        //List<String> ruleNamesList = Arrays.asList(parser.getRuleNames());
-        ParseTree tree = parser.definition();
+        Parser parser = new Parser();
+        var result = parser.parse(model);
 
-        assertNotNull(tree);
+        result.syntax().errors().forEach(System.out::println);
+
+        assertFalse(result.syntax().hasErrors());
     }    
 }
