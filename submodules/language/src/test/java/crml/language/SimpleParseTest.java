@@ -1,6 +1,10 @@
 package crml.language;
 
+<<<<<<< HEAD
 import static org.junit.jupiter.api.Assertions.assertFalse;
+=======
+import static org.junit.jupiter.api.Assertions.*;
+>>>>>>> 1fd54df (Streamline error detection from code)
 
 import org.junit.jupiter.api.Test;
 
@@ -8,6 +12,7 @@ import crml.language.util.Parser;
 
 public class SimpleParseTest {
     String model = """
+<<<<<<< HEAD
 model TestModel is {
     partial type Quantity is (Real q is rate*u + offset)  {  
         String SIUnit; // SI unit for quantity q 
@@ -36,13 +41,41 @@ model Example is {
 	Boolean lessOrEq is 3 <= 5;
 	Real magnitude is 'abs' -2.7;
 	String result is "hello" 'joinWith' "world";
+=======
+model BasicOperators is {
+    class ApplicationType is {
+        String exeFileLocation;
+        String exeType;
+        String zipFileUrl;
+        ApplicationInstance {} instances;
+    };
+    class ApplicationInstance is {
+        Real foo is 0;
+        ApplicationType appType;
+    };
+    class HostType is {
+        String nodeIP;
+        Integer availableCpu is 10;
+        Integer availableRam is 128;
+        Integer availableHdd is 
+    };
+>>>>>>> 1fd54df (Streamline error detection from code)
 };
 """;
 
     @Test
     public void test(){
+<<<<<<< HEAD
         var parsed = new Parser().parse(model);
         parsed.syntax().errors().forEach(System.out::println);
         assertFalse(parsed.syntax().hasErrors());
+=======
+        Parser parser = new Parser();
+        var result = parser.parse(model);
+
+        result.syntax().errors().forEach(System.out::println);
+
+        assertFalse(result.syntax().hasErrors());
+>>>>>>> 1fd54df (Streamline error detection from code)
     }    
 }
