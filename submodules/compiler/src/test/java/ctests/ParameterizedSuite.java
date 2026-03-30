@@ -13,10 +13,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
+import crml.compiler.util.CSVListener;
 import crml.compiler.util.SharedParameter;
 import crml.compiler.util.TestListener;
 
-@ExtendWith({TestListener.class, SharedParameter.class}) // a hook for catching succesful test results in the test report
+@ExtendWith({TestListener.class, SharedParameter.class, CSVListener.class}) // a hook for catching succesful test results in the test report
 public class ParameterizedSuite {
 	public static final Path RESOURCES;
 	public static final Path OUT;
