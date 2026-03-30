@@ -27,7 +27,7 @@ public class SyntaxCRMLHandler implements HttpHandler {
 
             result.syntax().errors().forEach(System.out::println);
 
-            String response = objectMapper.writeValueAsString(result);
+            String response = objectMapper.writeValueAsString(result.syntax());
     
             System.out.println("Response: "+response);
             exchange.sendResponseHeaders(200, response.getBytes().length);

@@ -1,0 +1,22 @@
+> Task :language:generateGrammarSource UP-TO-DATE
+> Task :language:compileJava UP-TO-DATE
+> Task :language:processResources UP-TO-DATE
+> Task :language:classes UP-TO-DATE
+> Task :language:jar UP-TO-DATE
+> Task :server:compileJava
+> Task :server:processResources NO-SOURCE
+> Task :server:classes
+
+> Task :server:startServer
+Server started at http://localhost:63028
+Hello CRML handler.
+ERROR (line 2:0): missing {'model', 'package', 'library'} at 'This'
+ERROR (line 2:13): missing 'union' at 'one'
+ERROR (line 3:0): missing 'union' at 'This'
+ERROR (line 3:5): mismatched input 'is' expecting 'union'
+ERROR (line 3:13): missing 'union' at 'two'
+ERROR (line 4:0): missing 'union' at 'This'
+ERROR (line 4:5): mismatched input 'is' expecting 'union'
+ERROR (line 4:13): missing 'union' at 'three'
+ERROR (line 5:0): mismatched input '<EOF>' expecting 'union'
+Response: {"errors":[{"line":2,"charPosition":0,"message":"missing {'model', 'package', 'library'} at 'This'"},{"line":2,"charPosition":13,"message":"missing 'union' at 'one'"},{"line":3,"charPosition":0,"message":"missing 'union' at 'This'"},{"line":3,"charPosition":5,"message":"mismatched input 'is' expecting 'union'"},{"line":3,"charPosition":13,"message":"missing 'union' at 'two'"},{"line":4,"charPosition":0,"message":"missing 'union' at 'This'"},{"line":4,"charPosition":5,"message":"mismatched input 'is' expecting 'union'"},{"line":4,"charPosition":13,"message":"missing 'union' at 'three'"},{"line":5,"charPosition":0,"message":"mismatched input '<EOF>' expecting 'union'"}]}

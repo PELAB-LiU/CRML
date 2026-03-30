@@ -26,5 +26,8 @@ gradle.properties
 # ignore generated antlr files
 src/main/antlr/grammar/.antlr/
 
-# ignore VSCode
+# ignore notebook
+.ipynb_checkpoints/
+
+# ignore vscode
 .vscode/
