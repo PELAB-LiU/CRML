@@ -29,5 +29,5 @@ src/main/antlr/grammar/.antlr/
 # ignore notebook
 .ipynb_checkpoints/
 
-# ignore vscode
+# ignore VSCode
 .vscode/

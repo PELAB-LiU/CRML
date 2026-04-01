@@ -168,11 +168,8 @@ model AviationFMS is {
 
     @Test
     public void test(){
-        Parser parser = new Parser();
-        var result = parser.parse(model);
-
-        result.syntax().errors().forEach(System.out::println);
-
-        assertFalse(result.syntax().hasErrors());
+        var parsed = new Parser().parse(model);
+        parsed.syntax().errors().forEach(System.out::println);
+        assertFalse(parsed.syntax().hasErrors());
     }    
 }
