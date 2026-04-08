@@ -1,4 +1,4 @@
-package crml.language.specification.util;
+package crml.language.util;
 
 import static j2html.TagCreator.a;
 import static j2html.TagCreator.br;
@@ -207,6 +207,11 @@ public class SpecificationTestListener implements TestExecutionListener, AfterEa
                     node.info(details(
                         summary(entry.getKey()),
                         pre(code(ast))
+                    ).render());
+            } else if (entry.getValue() instanceof String model && "CRML model".equals(entry.getKey())) {
+                    node.info(details(
+                        summary(entry.getKey()),
+                        pre(code(model))
                     ).render());
             } else {
                 node.info(join(p(join(entry.getKey(), br())),

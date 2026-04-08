@@ -1,0 +1,12 @@
+model RealConstructors is {
+    // Decimal literals
+    Real x1 is -28.775E+3;
+    Real x2 is 0.28e-7;
+    Real x3 is +3.E10;
+    Real x4 is 25;
+    constant Real pi is 3.141592;
+
+    // Convert from Integer
+    Integer n is 2;
+    Real x5 is new Real n;
+};

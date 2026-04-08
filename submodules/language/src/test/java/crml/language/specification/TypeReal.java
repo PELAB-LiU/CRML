@@ -10,7 +10,7 @@ import java.util.List;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import crml.language.specification.util.BaseSpecificationTest;
+import crml.language.util.BaseSpecificationTest;
 
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.params.ParameterizedTest;
