@@ -163,13 +163,15 @@ model AviationFMS is {
   );
 
 }; /* end model AviationFMS */
-
 """;
 
     @Test
     public void test(){
-        var parsed = new Parser().parse(model);
-        parsed.syntax().errors().forEach(System.out::println);
-        assertFalse(parsed.syntax().hasErrors());
+        Parser parser = new Parser();
+        var result = parser.parse(model);
+
+        result.syntax().errors().forEach(System.out::println);
+
+        assertFalse(result.syntax().hasErrors());
     }    
 }

@@ -3,7 +3,6 @@ package crml.language.specification;
 import static org.junit.jupiter.api.Assertions.*;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -13,12 +12,9 @@ import crml.language.util.BaseSpecificationTest;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.params.ParameterizedTest;
 
-public class TypeEvent extends BaseSpecificationTest {
+public class TypeClass extends BaseSpecificationTest {
     static List<Arguments> fileNameSource() {
-        List<Arguments> tests = new ArrayList<>();
-        tests.addAll(BaseSpecificationTest.fileNameSourceHelper2(RESOURCES.resolve("event")));
-        tests.addAll(BaseSpecificationTest.fileNameSourceHelper2(RESOURCES.resolve("event").resolve("docs")));
-        return tests;
+        return BaseSpecificationTest.fileNameSourceHelper2(RESOURCES.resolve("class"));
     }
 
     @ParameterizedTest

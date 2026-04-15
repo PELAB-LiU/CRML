@@ -1,4 +1,4 @@
-package crml.language.specification.util;
+package crml.language.util;
 
 import java.nio.file.Path;
 import java.util.ArrayList;

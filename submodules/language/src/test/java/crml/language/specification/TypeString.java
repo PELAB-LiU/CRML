@@ -4,12 +4,13 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import crml.language.specification.util.BaseSpecificationTest;
+import crml.language.util.BaseSpecificationTest;
 
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -18,7 +19,10 @@ import org.junit.jupiter.params.ParameterizedTest;
 public class TypeString extends BaseSpecificationTest {
 
     static List<Arguments> fileNameSource() {
-        return BaseSpecificationTest.fileNameSourceHelper2(RESOURCES.resolve("string"));
+        List<Arguments> tests = new ArrayList<>();
+        tests.addAll(BaseSpecificationTest.fileNameSourceHelper2(RESOURCES.resolve("string")));
+        tests.addAll(BaseSpecificationTest.fileNameSourceHelper2(RESOURCES.resolve("string").resolve("docs")));
+        return tests;
     }
 
     @ParameterizedTest
@@ -30,6 +34,7 @@ public class TypeString extends BaseSpecificationTest {
         var parsed = parse(fileName);
 
         emit(parsed.syntax(), "Syntax Errors");
+        emit(parsed.toPrettyTree(), "AST");
         assertEquals(isValid, !parsed.syntax().hasErrors());
     }
 }

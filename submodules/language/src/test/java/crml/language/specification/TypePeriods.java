@@ -3,16 +3,22 @@ package crml.language.specification;
 import static org.junit.jupiter.api.Assertions.*;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import crml.language.specification.util.BaseSpecificationTest;
+
+import crml.language.util.BaseSpecificationTest;
+
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.params.ParameterizedTest;
 
 public class TypePeriods extends BaseSpecificationTest {
     static List<Arguments> fileNameSource() {
-        return BaseSpecificationTest.fileNameSourceHelper2(RESOURCES.resolve("periods"));
+        List<Arguments> tests = new ArrayList<>();
+        tests.addAll(BaseSpecificationTest.fileNameSourceHelper2(RESOURCES.resolve("periods")));
+        tests.addAll(BaseSpecificationTest.fileNameSourceHelper2(RESOURCES.resolve("real").resolve("docs")));
+        return tests;
     }
 
     @ParameterizedTest
@@ -21,7 +27,9 @@ public class TypePeriods extends BaseSpecificationTest {
         emit(fileName, "CRML model");
         Assumptions.assumeFalse(isDisabled);
         var parsed = parse(fileName);
+
         emit(parsed.syntax(), "Syntax Errors");
+        emit(parsed.toPrettyTree(), "AST");
         assertEquals(isValid, !parsed.syntax().hasErrors());
     }
 }

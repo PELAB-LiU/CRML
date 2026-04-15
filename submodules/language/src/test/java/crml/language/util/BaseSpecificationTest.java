@@ -1,4 +1,4 @@
-package crml.language.specification.util;
+package crml.language.util;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -53,7 +53,10 @@ public class BaseSpecificationTest {
     protected Parser.ParserResult parse(Path model) throws IOException {
         return new Parser().parse(model);
     }
-
+	protected Parser.ParserResult parse(String model) throws IOException {
+        return new Parser().parse(model);
+    }
+	
 	public static List<Arguments> fileNameSourceHelper2(Path source) {
 		try (Stream<Path> list = Files.list(source)) {
 			return list

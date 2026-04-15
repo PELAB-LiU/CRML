@@ -1,0 +1,34 @@
+model RealOperators is {
+    Real x1 is external;
+    Real x2 is external;
+    Boolean b is external;
+    Clock c is external;
+
+    // Arithmetic
+    Real r_add  is x1 + x2;
+    Real r_sub  is x1 - x2;
+    Real r_upos is +x1;
+    Real r_uneg is -x1;
+    Real r_mul  is x1 * x2;
+    Real r_div  is x1 / x2;
+    Real r_exp  is x1 ^ x2;
+
+    // Comparison (return Boolean)
+    Boolean b_ge is x1 >= x2;
+    Boolean b_le is x1 <= x2;
+    Boolean b_gt is x1 > x2;
+    Boolean b_lt is x1 < x2;
+
+    // Math functions
+    Real r_sin   is sin x1;
+    Real r_cos   is cos x1;
+    Real r_asin  is asin x1;
+    Real r_acos  is acos x1;
+    Real r_expf  is exp x1;
+    Real r_log   is log x1;
+    Real r_log10 is log10 x1;
+
+    // Conditional and clock-sampled
+    Real r_ite is if b then x1 else x2;
+    Real r_at  is x1 at c;
+};
