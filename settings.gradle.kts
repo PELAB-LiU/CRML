@@ -13,7 +13,8 @@ include(
         "language",
         "compiler",
         //"emfutil",
-        "server"
+        "server"//,
+        //"mcp"
 )
 for (project in rootProject.children) {
     val projectName = project.name

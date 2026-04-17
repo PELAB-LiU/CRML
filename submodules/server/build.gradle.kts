@@ -24,10 +24,26 @@ tasks.test {
     useJUnitPlatform()
 }
 
-tasks.register<JavaExec>("startServer") {
+tasks.register<JavaExec>("startHttpServer") {
     group = "syntax check"
     description = "Starts HTTP Server for syntax check"
 
     classpath = sourceSets.main.get().runtimeClasspath
     mainClass.set("crml.server.ServerMain")
+}
+
+// There is some concern that gradle build messages might interfere with the RPC, but it seems to work just fine.
+tasks.register<JavaExec>("startMcpConsoleServer") {
+    group = "mcp"
+    description = "Starts the MCP server for CRML syntax checking (stdio transport)"
+    classpath = sourceSets.main.get().runtimeClasspath
+    mainClass.set("crml.server.mcp.McpConsoleServerMain")
+    standardInput = System.`in`
+}
+
+tasks.register<JavaExec>("startMcpHttpServer") {
+    group = "mcp"
+    description = "Starts the MCP server for CRML syntax checking (HTTP transport, default port 63029)"
+    classpath = sourceSets.main.get().runtimeClasspath
+    mainClass.set("crml.server.mcp.McpHttpServerMain")
 }

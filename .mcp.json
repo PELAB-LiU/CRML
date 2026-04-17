@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "crml-docs": {
+      "command": "/home/ubuntu/crml/CRML/mcp-server/.venv/bin/python",
+      "args": ["/home/ubuntu/crml/CRML/mcp-server/server.py"]
+    },
+    "crml-syntax": {
+      "command": "/home/ubuntu/crml/CRML/gradlew",
+      "args": ["-q", "-p", "/home/ubuntu/crml/CRML", ":server:startMcpConsoleServer"]
+    }
+  }
+}
