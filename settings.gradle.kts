@@ -10,6 +10,7 @@
 rootProject.name = "crml-compiler"
 
 include(
+        "model",
         "language",
         "compiler"
 )
