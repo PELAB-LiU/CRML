@@ -17,6 +17,23 @@ all: build
 tests:
 	$(GRADLE_CMD) test
 
+##########################
+# Langauge related tests #
+##########################
+
+test-language:
+	$(GRADLE_CMD) :language:test
+
+test-language-specification:
+	$(GRADLE_CMD) :language:test --tests "crml.language.specification.*"
+
+test-language-hints:
+	$(GRADLE_CMD) :language:test --tests "crml.language.hints.*"
+
+
+#########
+# Other #
+#########
 build:
 	$(GRADLE_CMD) build
 
