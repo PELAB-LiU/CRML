@@ -42,7 +42,7 @@ tasks.register<JavaExec>("startHttpServer") {
 
 tasks.shadowJar {
     manifest {
-        attributes["Main-Class"] = "crml.server.mcp.McpHttpServerMain"
+        attributes["Main-Class"] = "crml.server.run.HttpServerMain"
     }
     archiveFileName.set("crml-mcp-server.jar")
 }
