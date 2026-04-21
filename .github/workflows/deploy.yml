@@ -41,10 +41,10 @@ jobs:
         run: |
           curl -fsSL -X POST "${{ secrets.WEBHOOK_HOST }}" \
             -H "Content-Type: application/json" \
-            -H "X-Webhook-Secret: ${{ secrets.WEBHOOK_TOKEN }}" \
+            -H "X-Webhook-Token: ${{ secrets.WEBHOOK_TOKEN }}" \
             -d '{
               "event": "deploy",
-              "image": "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}",
+              "image": "${{ secrets.REGISTRY_HOST }}/${{ env.IMAGE_NAME }}:${{ github.sha }}",
               "ref": "${{ github.ref }}",
               "sha": "${{ github.sha }}"
             }'
