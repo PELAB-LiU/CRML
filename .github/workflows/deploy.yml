@@ -39,7 +39,7 @@ jobs:
 
       - name: Trigger deploy webhook
         run: |
-          curl -fsSL -X POST ${{ secrets.WEBHOOK_HOST }}" \
+          curl -fsSL -X POST "${{ secrets.WEBHOOK_HOST }}" \
             -H "Content-Type: application/json" \
             -H "X-Webhook-Secret: ${{ secrets.WEBHOOK_TOKEN }}" \
             -d '{
