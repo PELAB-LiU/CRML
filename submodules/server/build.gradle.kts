@@ -11,6 +11,9 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-databind:2.20.0")
     implementation(project(":language"))
     
+    testImplementation(project(":util"))
+    testImplementation(project(":util-test"))
+
     //compileOnly("org.eclipse.xtext:org.eclipse.xtext:2.36.0")
     //implementation("org.eclipse.emf:org.eclipse.emf.codegen.ecore:2.39.0")
     //implementation("org.apache.commons:commons-csv:1.13.0")
@@ -20,30 +23,27 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
-tasks.test {
-    useJUnitPlatform()
-}
-
-tasks.register<JavaExec>("startHttpServer") {
-    group = "syntax check"
-    description = "Starts HTTP Server for syntax check"
-
-    classpath = sourceSets.main.get().runtimeClasspath
-    mainClass.set("crml.server.ServerMain")
-}
-
 // There is some concern that gradle build messages might interfere with the RPC, but it seems to work just fine.
-tasks.register<JavaExec>("startMcpConsoleServer") {
+tasks.register<JavaExec>("startConsoleServer") {
     group = "mcp"
-    description = "Starts the MCP server for CRML syntax checking (stdio transport)"
+    description = "Starts the MCP server for CRML (stdio transport)"
     classpath = sourceSets.main.get().runtimeClasspath
-    mainClass.set("crml.server.mcp.McpConsoleServerMain")
+    mainClass.set("crml.server.run.ConsoleServerMain")
     standardInput = System.`in`
 }
 
-tasks.register<JavaExec>("startMcpHttpServer") {
+tasks.register<JavaExec>("startHttpServer") {
     group = "mcp"
-    description = "Starts the MCP server for CRML syntax checking (HTTP transport, default port 63029)"
+    description = "Starts the MCP server for CRML (HTTP transport, default port 63029)"
     classpath = sourceSets.main.get().runtimeClasspath
-    mainClass.set("crml.server.mcp.McpHttpServerMain")
+    mainClass.set("crml.server.run.HttpServerMain")
+}
+
+tasks.test {
+    useJUnitPlatform()
+
+    testLogging {
+        events("passed", "skipped", "failed")
+    }
+    ignoreFailures = true
 }
