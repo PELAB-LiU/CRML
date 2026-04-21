@@ -5,8 +5,8 @@
       "args": ["/home/ubuntu/crml/CRML/mcp-server/server.py"]
     },
     "crml-syntax": {
-      "command": "/home/ubuntu/crml/CRML/gradlew",
-      "args": ["-q", "-p", "/home/ubuntu/crml/CRML", ":server:startMcpConsoleServer"]
+      "type": "http",
+      "url": "https://crml-mcp.narancsle.cc/mcp"
     }
   }
 }
