@@ -1,5 +1,6 @@
 plugins {
     id("java")
+    id("com.gradleup.shadow") version "9.2.0"
     //id("org.xtext.xtend") version "4.0.0"
 }
 
@@ -46,4 +47,11 @@ tasks.register<JavaExec>("startMcpHttpServer") {
     description = "Starts the MCP server for CRML syntax checking (HTTP transport, default port 63029)"
     classpath = sourceSets.main.get().runtimeClasspath
     mainClass.set("crml.server.mcp.McpHttpServerMain")
+}
+
+tasks.shadowJar {
+    manifest {
+        attributes["Main-Class"] = "crml.server.mcp.McpHttpServerMain"
+    }
+    archiveFileName.set("crml-mcp-server.jar")
 }
