@@ -18,9 +18,9 @@ public class McpServer {
         this.mapper = mapper;
         this.reporter = new McpCapabilityReporter(mapper);
         reporter.register(new McpSyntaxCheckService(mapper));
-        reporter.registerResource(new McpListResourceFilesService(mapper));
-        reporter.registerResource(new McpReadResourceFileService(mapper));
-        reporter.registerResource(new McpSearchHintsService(mapper));
+        reporter.register(new McpListResourceFilesService(mapper));
+        reporter.register(new McpReadResourceFileService(mapper));
+        reporter.register(new McpSearchHintsService(mapper));
     }
 
     public ObjectMapper getMapper() {
@@ -48,13 +48,6 @@ public class McpServer {
                 JsonNode result = reporter.callTool(name, req.path("params").path("arguments"));
                 if (result != null) resp.set("result", result);
                 else setError(resp, -32601, "Unknown tool: " + name);
-            }
-            case "resources/list" -> resp.set("result", reporter.buildResourceList());
-            case "resources/call" -> {
-                String name = req.path("params").path("name").asText();
-                JsonNode result = reporter.callResource(name, req.path("params").path("arguments"));
-                if (result != null) resp.set("result", result);
-                else setError(resp, -32601, "Unknown resource tool: " + name);
             }
             default -> setError(resp, -32601, "Method not found: " + method);
         }

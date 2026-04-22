@@ -14,7 +14,6 @@ public class McpCapabilityReporter {
 
     private final ObjectMapper mapper;
     private final List<McpTool> tools = new ArrayList<>();
-    private final List<McpTool> resourceTools = new ArrayList<>();
 
     public McpCapabilityReporter(ObjectMapper mapper) {
         this.mapper = mapper;
@@ -24,16 +23,11 @@ public class McpCapabilityReporter {
         tools.add(tool);
     }
 
-    public void registerResource(McpTool tool) {
-        resourceTools.add(tool);
-    }
-
     public JsonNode buildInitializeResult() {
         ObjectNode result = mapper.createObjectNode();
         result.put("protocolVersion", "2024-11-05");
         ObjectNode caps = result.putObject("capabilities");
         if (!tools.isEmpty()) caps.putObject("tools");
-        if (!resourceTools.isEmpty()) caps.putObject("resources");
         ObjectNode info = result.putObject("serverInfo");
         info.put("name", "crml-syntax");
         info.put("version", "1.0.0");
@@ -52,18 +46,6 @@ public class McpCapabilityReporter {
         return result;
     }
 
-    public JsonNode buildResourceList() {
-        ObjectNode result = mapper.createObjectNode();
-        ArrayNode docsArray = result.putArray("resources");
-        for (McpTool tool : resourceTools) {
-            ObjectNode t = docsArray.addObject();
-            t.put("name", tool.name());
-            t.put("description", tool.description());
-            t.set("inputSchema", tool.inputSchema(mapper));
-        }
-        return result;
-    }
-
     public JsonNode callTool(String name, JsonNode arguments) {
         for (McpTool tool : tools) {
             if (tool.name().equals(name)) return tool.call(arguments);
@@ -71,10 +53,4 @@ public class McpCapabilityReporter {
         return null;
     }
 
-    public JsonNode callResource(String name, JsonNode arguments) {
-        for (McpTool tool : resourceTools) {
-            if (tool.name().equals(name)) return tool.call(arguments);
-        }
-        return null;
-    }
 }
