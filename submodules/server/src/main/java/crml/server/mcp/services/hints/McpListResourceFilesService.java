@@ -10,22 +10,22 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.stream.Stream;
 
-public class McpListDocumentationFilesService implements McpTool {
-    
+public class McpListResourceFilesService implements McpTool {
+
     private final ObjectMapper mapper;
 
-    public McpListDocumentationFilesService(ObjectMapper mapper) {
+    public McpListResourceFilesService(ObjectMapper mapper) {
         this.mapper = mapper;
     }
 
     @Override
     public String name() {
-        return "list_CRML_documentation_files";
+        return "list_CRML_resource_files";
     }
 
     @Override
     public String description() {
-        return "List all available CRML language documentation files.";
+        return "List all available CRML language resource files.";
     }
 
     @Override

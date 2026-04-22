@@ -10,11 +10,11 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-public class McpReadDocumentationFileService implements McpTool {
+public class McpReadResourceFileService implements McpTool {
 
     private final ObjectMapper mapper;
 
-    public McpReadDocumentationFileService(ObjectMapper mapper) {
+    public McpReadResourceFileService(ObjectMapper mapper) {
         this.mapper = mapper;
     }
 
@@ -25,7 +25,7 @@ public class McpReadDocumentationFileService implements McpTool {
 
     @Override
     public String description() {
-        return "Get the content of CRML language documentation file. Call list_CRML_documentation_files first to see which files are available.";
+        return "Get the content of CRML language resource file. Call list_CRML_resource_files first to see which files are available.";
     }
 
     @Override

@@ -28,7 +28,7 @@ public class McpSearchHintsService implements McpTool {
 
     @Override
     public String description() {
-        return "Search for a keyword (langauge features) across all CRML language documentation files. Returns matching file names with the lines that contain the query.";
+        return "Search for a keyword (langauge features) across all CRML language resource files. Returns matching file names with the lines that contain the query.";
     }
 
     @Override
