@@ -12,6 +12,7 @@ rootProject.name = "crml-compiler"
 include(
         "model",
         "language",
+        "language-xtext",
         "compiler"
 )
 for (project in rootProject.children) {
