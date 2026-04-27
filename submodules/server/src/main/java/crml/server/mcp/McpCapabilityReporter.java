@@ -30,7 +30,7 @@ public class McpCapabilityReporter {
         if (!tools.isEmpty()) caps.putObject("tools");
         ObjectNode info = result.putObject("serverInfo");
         info.put("name", "crml-syntax");
-        info.put("version", "1.0.0");
+        info.put("version", "1.0.1");
         return result;
     }
 
