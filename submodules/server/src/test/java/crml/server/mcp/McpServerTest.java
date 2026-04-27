@@ -72,7 +72,7 @@ public class McpServerTest {
         JsonNode result = resp.path("result");
         assertEquals("2024-11-05", result.path("protocolVersion").asText());
         assertEquals("crml-syntax", result.path("serverInfo").path("name").asText());
-        assertEquals("1.0.0", result.path("serverInfo").path("version").asText());
+        assertEquals("1.0.1", result.path("serverInfo").path("version").asText());
     }
 
     @Test
