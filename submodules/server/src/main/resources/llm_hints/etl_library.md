@@ -86,7 +86,7 @@ These three operators form the core evaluation chain. They decide whether a Bool
 
 #### `decide`
 
-```crml
+```crml-snippet
 Operator decide is Operator [ Boolean ] decide Boolean phi over Period P = phi or (P end);
 ```
 
@@ -94,7 +94,7 @@ Returns `true` as soon as a *decision event* occurs — either `phi` becomes `tr
 
 #### `evaluate`
 
-```crml
+```crml-snippet
 Operator [ Boolean ] evaluate Boolean phi over Period P = integrate ((decide phi over P) * phi) on P;
 ```
 
@@ -102,7 +102,7 @@ Formally: `∫ a(φ, P) × φ` over `P`, where the filter `a(φ, P) = a'(φ) ∨
 
 #### `check`
 
-```crml
+```crml-snippet
 Operator [ Boolean ] check Boolean phi over Periods P = and (evaluate phi over P);
 ```
 
@@ -130,7 +130,7 @@ Categories allow the `decide` operator to be specialised based on the monotonici
 
 Applies to comparisons where an integer quantity is known to be non-decreasing (e.g. a counter). The decision can be made before period end once the comparison outcome is certain.
 
-```crml
+```crml-snippet
 Category c1 is Category increasing1 = { (>, >), (>=, >=), (<, >=), (<=, >), (==, >), (<>, >) };
 Category {} C1 is associate increasing1 with decide;
 ```
@@ -139,7 +139,7 @@ Category {} C1 is associate increasing1 with decide;
 
 Same idea as `increasing1` but for real-valued comparisons (excludes `==` and `<>` which are not robust for reals).
 
-```crml
+```crml-snippet
 Category c2 is Category increasing2 = { (>, >), (>=, >=), (<, >=), (<=, >) };
 Category {} C2 is associate increasing2 with decide;
 ```
@@ -148,7 +148,7 @@ Category {} C2 is associate increasing2 with decide;
 
 For signals that can vary arbitrarily; the decision is deferred until the period ends. `phi` is observed as-is at the end.
 
-```crml
+```crml-snippet
 Operator [ Boolean ] id       Boolean b = b;
 Operator [ Boolean ] cte_false Boolean b = false;
 Category c3 is Category varying1 = { (id, cte_false) };
@@ -159,7 +159,7 @@ Category {} C3 is associate varying1 with decide;
 
 For Boolean signals where any change is significant; a decision is raised immediately whenever `phi` changes value (as well as at period end).
 
-```crml
+```crml-snippet
 Operator [ Boolean ] cte_true Boolean b = true;
 Category c4 is Category varying2 = { (id, cte_true) };
 Category {} C4 is associate varying2 with decide;

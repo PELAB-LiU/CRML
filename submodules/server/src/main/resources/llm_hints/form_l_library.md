@@ -70,69 +70,84 @@ The following model illustrates all major FORM-L operators applied to a district
 **Scenario:** A district-heating pump transfers hot water during *heating seasons*. The requirements cover count limits, temperature bounds, cumulated over-temperature duration, and a post-startup recovery check.
 
 ```crml
-model HeatingCircuit is flatten {Units, FORM_L}
+model HeatingCircuit is {
 
-    union {
+    // ---- Units expressed as Integer constants (seconds) ----
+    Integer mn is 60;
+    Integer h  is 3600;
 
-        // ---- External signals ----
-        Boolean season.heating    is external;   // true during the heating season
-        Boolean pump.running      is external;   // true while the pump is active
-        Real    pump.temperature  is external;   // pump body temperature (°C)
-        Real    outlet.temp       is external;   // water outlet temperature (°C)
-        Boolean fault.detected    is external;   // true when a fault is signalled
+    // ---- External signals ----
+    Boolean season_heating   is external;
+    Boolean pump_running     is external;
+    Real    pump_temperature is external;
+    Real    outlet_temp      is external;
+    Boolean fault_detected   is external;
 
-        // ---- System object ----
-        class HeatingSystem is {
-            Boolean season.heating   is external;
-            Boolean pump.running     is external;
-            Real    pump.temperature is external;
-            Real    outlet.temp      is external;
-            Boolean fault.detected   is external;
+    // ---- Derived clocks for rising/falling edges ----
+    Clock pump_starts   is new Clock pump_running;
+    Clock pump_stops    is new Clock not pump_running;
+    Clock season_starts is new Clock season_heating;
+    Clock season_ends   is new Clock not season_heating;
 
-            // R1: During the heating season the pump must be started at most 5 times.
-            Requirement R1 is
-                'during' season.heating
-                    'check count' (pump.running 'becomes true') '<=' 5;
+    // ---- Time period collections (FORM-L desugared) ----
 
-            // R2: At least 30 minutes must separate two consecutive pump startups —
-            //     i.e. in the 30-minute window after each startup, no new startup occurs.
-            Requirement R2 is
-                'after' pump.running 'for' 30*mn
-                    'check count' (pump.running 'becomes true') '==' 0;
+    // during season_heating
+    Periods during_season is [ season_starts, season_ends ];
 
-            // R3: While the pump is running, its body temperature must stay below 80 °C.
-            Requirement R3 is
-                'during' pump.running
-                    'ensure' pump.temperature < 80*degC;
+    // during pump_running
+    Periods during_pump is [ pump_starts, pump_stops ];
 
-            // R4: During the heating season, after the outlet temperature exceeds 70 °C,
-            //     the cumulated over-temperature duration must be less than 5 minutes
-            //     within any subsequent 1-hour window.
-            Requirement R4 is
-                'during' season.heating
-                    'after' outlet.temp > 70*degC 'for' 1*h
-                        'check duration' (outlet.temp > 70*degC) '<' 5*mn;
+    // after pump_running for 30 mn: 30-minute window after each startup
+    Periods after_pump_30mn is [ pump_starts, pump_starts + (30 * mn) ];
 
-            // R5: At the end of each pump run the outlet temperature must be above 55 °C
-            //     (legionella prevention: the circuit must have been fully heated).
-            Requirement R5 is
-                'during' pump.running
-                    'check at end' (outlet.temp >= 55*degC);
+    // after pump_running for 10 mn: 10-minute warm-up window after each startup
+    Periods after_pump_10mn is [ pump_starts, pump_starts + (10 * mn) ];
 
-            // R6: Within the first 10 minutes of each pump startup, the outlet
-            //     temperature must reach 55 °C at least once (warm-up check).
-            Requirement R6 is
-                'after' pump.running 'for' 10*mn
-                    'check anytime' (outlet.temp >= 55*degC);
+    // after (outlet_temp > 70 °C) for 1 h, restricted to the heating season:
+    // the window opens only when the threshold is crossed during the season
+    Clock   outlet_exceeds_70 is (new Clock outlet_temp > 70.0)
+                                    filter (time >= during_season start)
+                                       and (time <= during_season end);
+    Periods R4_periods is [ outlet_exceeds_70, outlet_exceeds_70 + (1 * h) ];
 
-            // R7: No fault must be detected during the heating season.
-            Requirement R7 is
-                'during' season.heating
-                    'ensure' (not fault.detected);
-        };
+    // ---- R1: During the heating season, pump started at most 5 times ----
+    Clock   pump_starts_in_season is pump_starts
+                                      filter (time >= during_season start)
+                                         and (time <= during_season end);
+    Integer pump_start_count      is card pump_starts_in_season;
+    Boolean R1 is integrate (pump_start_count <= 5) on during_season;
 
-        HeatingSystem circuit is new HeatingSystem;
-    };
+    // ---- R2: In the 30-min window after each startup, no new startup occurs ----
+    Clock   starts_in_30mn_window is pump_starts
+                                      filter (time >= after_pump_30mn start)
+                                         and (time <= after_pump_30mn end);
+    Integer starts_in_30mn_count  is card starts_in_30mn_window;
+    Boolean R2 is integrate (starts_in_30mn_count == 0) on after_pump_30mn;
+
+    // ---- R3: While pump running, body temperature must stay below 80 °C ----
+    Boolean R3 is integrate (pump_temperature < 80.0) on during_pump;
+
+    // ---- R4: Within each 1-h post-threshold window, outlet must not exceed 70 °C ----
+    // Note: the original "check duration < 5 mn" requires the 'duration' operator,
+    // which is not yet supported by the checker. This uses Boolean accumulation
+    // (phi + false) as an approximation: true iff the condition never occurs.
+    Boolean outlet_over_70      is outlet_temp > 70.0;
+    Boolean outlet_over_70_ever is outlet_over_70 + false;
+    Boolean R4 is integrate (not outlet_over_70_ever) on R4_periods;
+
+    // ---- R5: At the end of each pump run, outlet temp must be >= 55 °C ----
+    Boolean outlet_ge_55        is outlet_temp >= 55.0;
+    Boolean outlet_ge_55_at_end is outlet_ge_55 at new Clock during_pump end;
+    Boolean R5 is integrate outlet_ge_55_at_end on during_pump;
+
+    // ---- R6: Within 10-min startup window, outlet must reach 55 °C at least once ----
+    Boolean outlet_ge_55_ever is outlet_ge_55 + false;
+    Boolean R6 is integrate outlet_ge_55_ever on after_pump_10mn;
+
+    // ---- R7: No fault must be detected during the heating season ----
+    Boolean R7 is integrate (not fault_detected) on during_season;
+
+};
 ```
 
 **Key points illustrated:**
@@ -149,7 +164,7 @@ model HeatingCircuit is flatten {Units, FORM_L}
 
 **FORM-L to ETL correspondence (R3 as example):**
 
-```crml
+```crml-snippet
 // FORM-L (authored form):
 'during' pump.running 'ensure' pump.temperature < 80*degC
 
