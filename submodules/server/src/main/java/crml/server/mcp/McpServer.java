@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import crml.server.mcp.services.McpSyntaxCheckService;
+import crml.server.mcp.services.hints.McpGetCodingInstructionsService;
 import crml.server.mcp.services.hints.McpListDocumentationFilesService;
 import crml.server.mcp.services.hints.McpReadDocumentationFileService;
 import crml.server.mcp.services.hints.McpSearchHintsService;
@@ -18,6 +19,7 @@ public class McpServer {
         this.mapper = mapper;
         this.reporter = new McpCapabilityReporter(mapper);
         reporter.register(new McpSyntaxCheckService(mapper));
+        reporter.registerDocumentation(new McpGetCodingInstructionsService(mapper));
         reporter.registerDocumentation(new McpListDocumentationFilesService(mapper));
         reporter.registerDocumentation(new McpReadDocumentationFileService(mapper));
         reporter.registerDocumentation(new McpSearchHintsService(mapper));
