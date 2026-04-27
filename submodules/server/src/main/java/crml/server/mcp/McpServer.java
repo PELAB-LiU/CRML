@@ -21,8 +21,8 @@ public class McpServer {
         reporter.register(new McpSyntaxCheckService(mapper));
         reporter.register(new McpListResourceFilesService(mapper));
         reporter.register(new McpReadResourceFileService(mapper));
-        reporter.registerDocumentation(new McpGetCodingInstructionsService(mapper));
-        reporter.registerDocumentation(new McpSearchHintsService(mapper));
+        reporter.register(new McpGetCodingInstructionsService(mapper));
+        reporter.register(new McpSearchHintsService(mapper));
     }
 
     public ObjectMapper getMapper() {
