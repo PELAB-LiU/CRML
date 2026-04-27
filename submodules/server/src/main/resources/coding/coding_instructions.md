@@ -99,11 +99,55 @@ type PressureBar is Pressure (userUnit = "bar", rate = 1.e5, offset = 0) alias b
 type Requirement is Boolean forbid { *, +, integrate };
 ```
 
+## ETL Library
+
+The **ETL (Evaluation and Time Logic) Library** provides the standard operators for evaluating whether a CRML requirement is satisfied over a given time period.
+
+Key operators:
+- `b1 implies b2`, `b1 xor b2` — Boolean connectives
+- `Clock C inside Period P` / `count Clock C inside Period P` — filter or count clock ticks within a period
+- `Boolean b becomes true` / `becomes false` — derive a `Clock` from a Boolean signal
+- `decide Boolean phi over Period P` — resolves when the outcome of `phi` is known (or at period end)
+- `evaluate Boolean phi over Period P` — returns `true` iff `phi` held at the decision point
+- `check Boolean phi over Periods P` — top-level requirement check: `true` iff every period passed
+
+Use `evaluate` for individual periods; use `check` to aggregate over a `Periods` collection.
+
+For the full operator definitions, category mechanism, and a worked example read hint file `etl_library.md`.
+
+## FORM-L Library
+
+The **FORM-L Library** provides high-level, human-readable operators for authoring time-bounded requirements. It builds on top of ETL and is the preferred authoring interface.
+
+A model that uses FORM-L must import both libraries: `model M is flatten {Units, FORM_L} union { … }`.
+
+**Time period constructors** (produce `Periods`):
+
+| Operator | Meaning |
+|---|---|
+| `during b` | Each interval while `b` is `true` |
+| `after b for d` | Window of length `d` starting each time `b` becomes `true` |
+| `before b for d` | Window of length `d` ending each time `b` becomes `true` |
+| `until b` | From evaluation start until `b` first becomes `true` |
+| `from b1 until b2` | Each interval from `b1` to `b2` becoming `true` |
+
+**Requirement operators** (combine a `Periods` with a condition):
+
+| Operator | Meaning |
+|---|---|
+| `P 'check count' (C) op n` | Count of clock ticks inside each period satisfies `op n` |
+| `P 'ensure' phi` | `phi` holds throughout every period |
+| `P 'check duration' phi op d` | Cumulated duration of `phi` inside each period satisfies `op d` |
+| `P 'check at end' phi` | `phi` holds at the end of every period |
+| `P 'check anytime' phi` | `phi` holds at least once inside every period |
+
+For the full operator definitions, desugaring to ETL, and a worked example read hint file `form_l_library.md`.
+
 ## Working with hints
 
 For detailed syntax, operator tables, and more examples call the documentation tools:
 - `list_CRML_documentation_files` — list all available hint files
-- `read_hint_file` with a filename — read a specific hint file (e.g. `boolean_type.md`, `clock_type.md`)
+- `read_hint_file` with a filename — read a specific hint file (e.g. `boolean_type.md`, `clock_type.md`, `etl_library.md`, `form_l_library.md`)
 - `search_hints` with a keyword — find the hint files relevant to a topic
 
 
