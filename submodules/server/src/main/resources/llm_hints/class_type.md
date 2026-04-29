@@ -39,7 +39,7 @@ model ClassPumpSystem is {
         Real efficiency is external;
         Boolean cav is external;
         // Derived attribute: requirement expressed as a formula
-        Boolean nocav = during inOperation ensure not cav;
+        Boolean nocav is during inOperation ensure not cav;
     } extends Equipment;
 
     // CoolingSystem groups three pumps, itself extending Equipment
@@ -64,7 +64,7 @@ model ClassInstantiation is {
         Real c is external;
         Real efficiency is external;
         Boolean cav is external;
-        Boolean nocav = during inOperation ensure not cav;
+        Boolean nocav is during inOperation ensure not cav;
     } extends Equipment;
 
     // Instantiate a Pump object, binding the 'id' external attribute
