@@ -1,17 +1,10 @@
 ## Operators
 
 Operators are named functions mapping typed inputs to a typed output (`f: T1 × T2 × ... × Tn → T`). 
-They are the primary abstraction mechanism for reusable computations in CRML. No categories are associated by default (C(f) = ∅).
+They are the primary abstraction mechanism for reusable computations in CRML. No categories (monotonity) are associated by default (C(f) = ∅).
 
-Avaialble syntax styles:
-* Natural language — the function name is interleaved with its arguments as readable keywords:
+Syntax:
 `Operator [ ReturnType ] keyword1 Type1 arg1 keyword2 Type2 arg2 = expr;`
-
-* Mathematical — standard functional notation with a single name and parenthesised arguments:
-`Operator f = new Operator [ ReturnType ] (Type1 arg1, Type2 arg2) = expr;`
-
-* Mixed — named with natural language syntax but also bound to an identifier for mathematical-style calls:
-`Operator f is new Operator [ ReturnType ] keyword1 Type1 arg1 keyword2 Type2 arg2 = expr;`
 
 Operator overloading is supported: two operators sharing the same keyword(s) but with different argument types have distinct signatures.
 
@@ -38,7 +31,7 @@ model Example is {
 Templates are a restricted form of operator that work exclusively on Boolean arguments and return a Boolean. 
 They are syntactically identical to operators, but with no type annotations on the arguments.
 
-Syntax styles mirror those of Operator (natural language, mathematical, mixed), simply omitting all type keywords.
+Syntax mirrors the Operator's, simply omitting all type keywords.
 
 ```crml
 model Example is {

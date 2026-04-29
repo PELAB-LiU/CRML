@@ -1,28 +1,29 @@
 # CRML — High-Level Coding Instructions
 
-CRML (Contract Requirements Modeling Language) is a declarative language that aims to formalize requirements and connect their evaluation to simulation models of physical systems.
+CRML (Common Requirement Modeling Language) is a declarative language that aims to capture requirements in a formalism similar to natural languge. The CRML models can be compiled into Modelica models to evaluate the requirements over models of physical systems.
+
 It is preferred to have some isolation between the requirements and system models. For example, requirements should be formalized without direct access to system variables and instead access them via a parameter.
 
 ## Top-level structure
 
-Every CRML file contains one or more `model` declarations:
+Every CRML file contains a root element that is typically a `model`:
 
 ```crml
 model MyModel is {
-    // attribute and operator declarations
+    // class, attribute and operator declarations
 };
 ```
 
-Attributes are declared as `Type name is <expression>;` or `Type name is external;` (value supplied by binding). Semicolons terminate every declaration.
-Generally, values that are part of the requirement shall be set in the CRML model, while variables that are from the simulated system (and monitored via the CRML model) shall be declared as `external`.
+Attributes are declared as `<Type> <name> is <expression>;` or `<Type> <name> is external;` (value supplied by binding to a Modelica model). Semicolons terminate every declaration.
+Generally, values that are part of the requirement shall be set in the CRML model, while variables that are part of the simulated system (and monitored via the CRML model) shall be declared as `external`.
 
 ## Primitive types
 
 | Type | Description |
 |---|---|
-| `Boolean` | 4-valued: `true`, `false`, `undecided`, `undefined` |
-| `Integer` | Arbitrary-precision integer |
 | `Real` | Continuous real number |
+| `Integer` | Arbitrary-precision integer |
+| `Boolean` | 4-valued: `true`, `false`, `undecided`, `undefined` |
 | `String` | Text value |
 | `Clock` | Discrete sequence of time instants (ticks) |
 | `Event` | A single time instant (rising edge of a Boolean) |

@@ -1,6 +1,6 @@
 ## Boolean Type
 
-The `Boolean` type is 4-valued: `{true, false, undecided, undefined}`. This extends classical logic to handle partial knowledge and undefined signals.
+The `Boolean` type is 4-valued: `{true, false, undecided, undefined}`. This extends classical logic to handle partial knowledge.
 
 ### Constructors
 
@@ -13,8 +13,8 @@ The `Boolean` type is 4-valued: `{true, false, undecided, undefined}`. This exte
 model BooleanConstructors is {
     Boolean b1 is true;
     Boolean b2 is false;
-    Boolean b3 is undecided;
-    Boolean b4 is undefined;
+    Boolean b3 is undecided; // The value is not yet known
+    Boolean b4 is undefined; // The value does not influence the results or not applicable
 
     Clock c is external;
     Boolean b5 is new Boolean c;

@@ -1,6 +1,6 @@
 ## Clock Type
 
-A `Clock` (also called a *discrete clock* or *multiple event*) represents an ordered set of time instants called *ticks*. Clocks are used to synchronize and sample signals. A clock is constructed from a Boolean expression: a new tick is added each time the Boolean becomes `true`.
+A `Clock` (*discrete* or *continuous* clock) represents the Newtonian time. Clocks generate time instants called *ticks* and can be used to measure time or sample variables. A clock is constructed from a Boolean expression: a new tick is added each time the Boolean becomes `true`.
 
 ### Constructors
 

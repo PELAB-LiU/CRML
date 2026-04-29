@@ -1,6 +1,6 @@
 ## ETL Library
 
-The **ETL (Evaluation and Time Logic) Library** provides the standard operators for deciding whether a CRML requirement is satisfied over a given time period. It complements the FORM-L library (which expresses *what* must hold) by providing the machinery for *evaluating* whether it does.
+The **ETL (Extended Temporal Language) Library** provides the standard operators for deciding whether a CRML requirement is satisfied over a given time period. It complements the FORM-L library.
 
 ---
 
@@ -124,7 +124,7 @@ model RequirementEvaluationOperators is {
 
 ### Categories for Automated Decision Detection
 
-Categories allow the `decide` operator to be specialised based on the monotonicity or variability properties of `phi`. Four standard categories are provided, each controlling *when* a decision event is raised.
+Categories allow the `decide` operator to be specialised based on the monotonicity or variability properties of `phi`. Four standard categories are provided, each controlling *when* a decision event is raised enagbling the termination of a simulation early when the result is conclusive.
 
 #### `increasing1` — Integer comparisons with early decision
 

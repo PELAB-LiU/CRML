@@ -1,6 +1,6 @@
 ## Class
 
-In CRML, a **class** is a domain of all objects sharing the same set of named attributes. Unlike primitive types or simple domains, a class groups multiple attributes (which may themselves be of any CRML type, including other classes) under a single named entity. Instances of a class are called **objects** and are created with the `new` keyword. Classes support **inheritance** via `extends`, **multiple inheritance**, `partial` (abstract) classes, and **attribute redeclaration** with `redeclare`.
+In CRML, a **class** is a domain of all objects sharing the same set of named attributes. Unlike primitive types, a class groups multiple attributes (which may themselves be of any CRML type, including other classes) under a single named entity. Instances of a class are called **objects** and are created with the `new` keyword. Classes support **inheritance** via `extends`, **multiple inheritance**, `partial` (abstract) classes, and **attribute redeclaration** with `redeclare`.
 
 ### Syntax forms
 
@@ -19,9 +19,9 @@ In CRML, a **class** is a domain of all objects sharing the same set of named at
 
 - **`partial`** — marks a class that cannot be instantiated directly; it must be extended before use. Useful for defining shared attribute sets.
 - **`extends`** — a subclass inherits all attributes of its parent class(es). Multiple parent classes can be listed in braces.
-- **`external`** — an attribute whose value is not defined inside the class but must be supplied via binding at instantiation or usage site.
+- **`external`** — an attribute whose value is not defined inside the class and will be supplied by a Modelica model.
 - **`redeclare`** — allows a subclass to rename or retype an inherited attribute, provided the new type is compatible with the original.
-- **Object (`new`)** — creates an instance of a class, binding external and value attributes to concrete expressions.
+- **Object (`new`)** — creates an instance of a class.
 
 ### Examples
 

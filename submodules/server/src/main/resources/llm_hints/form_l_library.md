@@ -1,8 +1,6 @@
 ## FORM-L Library
 
-The **FORM-L Library** provides a vocabulary of high-level, human-readable operators for expressing time-bounded requirements in CRML. It is inspired by work of Thuy Nguyen (EDF Lab Chatou) and is the primary authoring interface on top of the lower-level ETL machinery.
-
-A FORM-L model must import both `ETL` and `FORM_L` (or use `flatten {Units, FORM_L}`).
+The **FORM-L Library** (Formal Requirements Modelling Language) provides a vocabulary of high-level, human-readable operators for expressing time-bounded requirements in CRML.
 
 ---
 
@@ -12,12 +10,20 @@ These operators construct `Period` or `Periods` values from Boolean signals and 
 
 | Operator | Return type | Meaning |
 |---|---|---|
+| `from Clock e` | `Periods` | From `e` (inclusive) until the end of time |
+| `after Clock e` | `Periods` | After `e` (exclusive) until the end of time |
+| `before Clock e` | `Periods` | From the beginning of time, but before `e` (exclusive) |
+| `until Clock e` | `Periods` | From the beginning of time until `e` (inclusive) |
 | `during Boolean b` | `Periods` | Each interval while `b` is continuously `true` |
-| `after Boolean b for Duration d` | `Periods` | An interval of length `d` starting each time `b` becomes `true` |
-| `before Boolean b for Duration d` | `Periods` | An interval of length `d` ending each time `b` becomes `true` |
-| `until Boolean b` | `Periods` | The interval from the start of evaluation until `b` first becomes `true` |
-| `from Boolean b1 until Boolean b2` | `Periods` | Each interval from `b1` becoming `true` to `b2` becoming `true` |
-| `when Boolean b` | `Periods` | Alias for `during b`; emphasises point-in-time conditions |
+| `after Clock e1 before Clock e2` | `Periods` | A combination of `after` and `before`, end is exclusive
+| `after Clock e1 until Clock e2` | `Periods` | A combination of `after` and `until`, end is inclusive
+| `after Clock e for Real d` | `Periods` | After `e` for the duration of `d`, end is inclusive
+| `after Clock e within Real d` | `Periods` | After `e` for the duration of `d`, end is exclusive
+| `from Clock e1 before Clock e2` | `Periods` | A combination of `from` and `before`, end is exclusive
+| `from Clock e1 until Clock e2` | `Periods` | A combination of `from` and `until`, end is inclusive
+| `from Clock e for Real d` | `Periods` | From `e` for the duration of `d`, end is inclusive
+| `from Clock e within Real d` | `Periods` | From `e` for the duration of `d`, end is exclusive
+| `when Clock e` | `Periods` | Alias for `during b`; emphasises point-in-time conditions |
 
 ```crml
 model FORML_OperatorDefinitions is {
@@ -32,10 +38,10 @@ model FORML_OperatorDefinitions is {
 
     // after b for d: interval of length d starting at each rising edge of b
     Clock   b_rises       is new Clock b;
-    Periods after_b_for_d is [ b_rises, b_rises + d ];
+    Periods after_b_for_d is ] b_rises, b_rises + d ];
 
-    // before b for d: interval of length d ending at each rising edge of b
-    Periods before_b_for_d is [ b_rises + (- d), b_rises ];
+    // from b for d: interval of length d ending at each rising edge of b
+    Periods from_b_for_d is [ b_rises + (- d), b_rises ];
 
     // from b1 until b2: each interval from b1 rising to b2 rising
     Periods from_b1_until_b2 is [ new Clock b1, new Clock b2 ];
@@ -98,17 +104,17 @@ model HeatingCircuit is {
     Periods during_pump is [ pump_starts, pump_stops ];
 
     // after pump_running for 30 mn: 30-minute window after each startup
-    Periods after_pump_30mn is [ pump_starts, pump_starts + (30 * mn) ];
+    Periods after_pump_30mn is ] pump_starts, pump_starts + (30 * mn) ];
 
     // after pump_running for 10 mn: 10-minute warm-up window after each startup
-    Periods after_pump_10mn is [ pump_starts, pump_starts + (10 * mn) ];
+    Periods after_pump_10mn is ] pump_starts, pump_starts + (10 * mn) ];
 
     // after (outlet_temp > 70 °C) for 1 h, restricted to the heating season:
     // the window opens only when the threshold is crossed during the season
     Clock   outlet_exceeds_70 is (new Clock outlet_temp > 70.0)
                                     filter (time >= during_season start)
                                        and (time <= during_season end);
-    Periods R4_periods is [ outlet_exceeds_70, outlet_exceeds_70 + (1 * h) ];
+    Periods R4_periods is ] outlet_exceeds_70, outlet_exceeds_70 + (1 * h) ];
 
     // ---- R1: During the heating season, pump started at most 5 times ----
     Clock   pump_starts_in_season is pump_starts
