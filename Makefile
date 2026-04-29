@@ -14,6 +14,8 @@ endif
 
 all: build
 
+test: tests
+
 tests:
 	$(GRADLE_CMD) test
 
@@ -34,6 +36,12 @@ test-language-hints:
 #########
 # Other #
 #########
+test-etl:
+	$(GRADLE_CMD) test --tests "ctests.ETLTests*"
+
+test-forml:
+	$(GRADLE_CMD) test --tests "ctests.FORMLTests*"
+
 build:
 	$(GRADLE_CMD) build
 
