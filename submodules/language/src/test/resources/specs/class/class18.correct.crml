@@ -4,6 +4,10 @@ model PumpSystem is {
         Real c;
         Boolean cav;
     };
+<<<<<<< HEAD
     // This is (probably) not expected from the specification, but makes sense (at least as a test)
+=======
+
+>>>>>>> pr
     Pump pump1 is new Pump (c = 1.0, cav = false);
 };

@@ -1,6 +1,4 @@
 model CoolingSystem is {
-
-    // Pump class: monitors cavitation during operation
     class Pump is {
         Boolean inOperation is external;
         Boolean cav is external;
@@ -10,13 +8,11 @@ model CoolingSystem is {
         Boolean nocav is integrate not cav on s;
     };
 
-    // CoolingSystem class: aggregates three pumps, requires none cavitate
     class CoolingSystemClass is {
         Pump {} pumps;
         //Boolean nocav is P1.nocav and P2.nocav and P3.nocav;
     };
 
-    // Declare the three pump instances (externals supplied by binding)
     Pump pump1;
     Pump pump2;
     Pump pump3;
