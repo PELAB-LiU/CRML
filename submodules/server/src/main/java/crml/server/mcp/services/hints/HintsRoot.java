@@ -5,7 +5,7 @@ import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Map;
+import java.util.Collections;
 
 public class HintsRoot {
     public static final Path ROOT;
@@ -17,7 +17,7 @@ public class HintsRoot {
             URI uri = Thread.currentThread().getContextClassLoader()
                 .getResource("llm_hints/_llm_docs_marker").toURI();
             if ("jar".equals(uri.getScheme())) {
-                jarFs = FileSystems.newFileSystem(uri, Map.of());
+                jarFs = FileSystems.newFileSystem(uri, Collections.emptyMap());
                 ROOT = jarFs.getPath("llm_hints");
             } else {
                 ROOT = Paths.get(uri).getParent();

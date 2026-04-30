@@ -10,9 +10,9 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import crml.language.util.Parser;
 import crml.server.util.MarkdownExtractor;
-import crml.test.BaseSpecificationTest;
+import crml.test.ReportedTest;
 
-public class IntegerHint extends BaseSpecificationTest {
+public class IntegerHint extends ReportedTest {
 
     static List<String> fileNameSource() throws IOException {
         return MarkdownExtractor.extractCrmlBlocks(HintsRoot.ROOT.resolve("integer_type.md"));
@@ -23,7 +23,7 @@ public class IntegerHint extends BaseSpecificationTest {
     public void simulateTestFile(final String model) throws IOException {
         emit(model, "CRML model");
 
-        var parsed = new Parser().parse(model);
+        Parser.ParserResult parsed = new Parser().parse(model);
 
         emit(parsed.syntax(), "Syntax Errors");
         emit(parsed.toPrettyTree(), "AST");

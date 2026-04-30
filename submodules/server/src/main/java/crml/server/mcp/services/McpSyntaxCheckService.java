@@ -5,7 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import crml.language.util.ErrorListener.CRMLSyntaxError;
+import crml.language.util.ErrorListener.CRMLSyntaxResults;
 import crml.language.util.Parser;
+import crml.language.util.Parser.ParserResult;
 
 public class McpSyntaxCheckService implements McpTool {
 
@@ -39,8 +41,8 @@ public class McpSyntaxCheckService implements McpTool {
 
     @Override
     public JsonNode call(JsonNode arguments) {
-        var result = new Parser().parse(arguments.path("model").asText());
-        var syntax = result.syntax();
+        ParserResult result = new Parser().parse(arguments.path("model").asText());
+        CRMLSyntaxResults syntax = result.syntax();
 
         String text;
         if (!syntax.hasErrors()) {

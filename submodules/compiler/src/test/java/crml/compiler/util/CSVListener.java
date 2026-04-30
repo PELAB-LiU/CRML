@@ -1,6 +1,7 @@
 package crml.compiler.util;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,9 +18,11 @@ import org.junit.platform.launcher.TestExecutionListener;
 import org.junit.platform.launcher.TestIdentifier;
 import org.junit.platform.launcher.TestPlan;
 
+import crml.test.SharedParameter;
+
 public class CSVListener implements TestExecutionListener, AfterEachCallback  {
   private static final CsvLogger logger = new CsvLogger("build"+ java.io.File.separator+ "files.csv", 
-      List.<String>of("Test", "Index", "Name", "Pass", "Element", "File"));
+      Arrays.asList("Test", "Index", "Name", "Pass", "Element", "File"));
 
   private static final Map<TestIdentifier, TestExecutionResult> RESULTS = new HashMap<>();
   private static final Map<TestIdentifier, String> SKIPPED = new HashMap<>();

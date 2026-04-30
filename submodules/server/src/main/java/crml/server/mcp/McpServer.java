@@ -42,16 +42,25 @@ public class McpServer {
         resp.set("id", id);
 
         switch (method) {
-            case "initialize"         -> resp.set("result", reporter.buildInitializeResult());
-            case "ping"               -> resp.set("result", mapper.createObjectNode());
-            case "tools/list"         -> resp.set("result", reporter.buildToolsList());
-            case "tools/call"         -> {
+            case "initialize":
+                resp.set("result", reporter.buildInitializeResult());
+                break;
+            case "ping":
+                resp.set("result", mapper.createObjectNode());
+                break;
+            case "tools/list":
+                resp.set("result", reporter.buildToolsList());
+                break;
+            case "tools/call": {
                 String name = req.path("params").path("name").asText();
                 JsonNode result = reporter.callTool(name, req.path("params").path("arguments"));
                 if (result != null) resp.set("result", result);
                 else setError(resp, -32601, "Unknown tool: " + name);
+                break;
             }
-            default -> setError(resp, -32601, "Method not found: " + method);
+            default:
+                setError(resp, -32601, "Method not found: " + method);
+                break;
         }
 
         return resp;

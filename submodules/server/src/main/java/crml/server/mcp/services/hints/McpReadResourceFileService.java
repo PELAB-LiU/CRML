@@ -53,7 +53,7 @@ public class McpReadResourceFileService implements McpTool {
         try {
             Path file = HintsRoot.ROOT.resolve(filename);
             String text = Files.exists(file)
-                ? Files.readString(file, StandardCharsets.UTF_8)
+                ? new String(Files.readAllBytes(file), StandardCharsets.UTF_8)
                 : "File '" + filename + "' not found.";
             result.putArray("content").addObject().put("type", "text").put("text", text);
         } catch (Exception e) {

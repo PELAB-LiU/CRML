@@ -40,7 +40,7 @@ public class McpGetCodingInstructionsService implements McpTool {
     public JsonNode call(JsonNode arguments) {
         ObjectNode result = mapper.createObjectNode();
         try {
-            String text = Files.readString(HintsRoot.ROOT.resolve("../coding/coding_instructions.md"), StandardCharsets.UTF_8);
+            String text = new String(Files.readAllBytes(HintsRoot.ROOT.resolve("../coding/coding_instructions.md")), StandardCharsets.UTF_8);
             result.putArray("content").addObject().put("type", "text").put("text", text);
         } catch (Exception e) {
             result.putArray("content").addObject().put("type", "text").put("text", "Error: " + e.getMessage());

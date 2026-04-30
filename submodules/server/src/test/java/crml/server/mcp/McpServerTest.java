@@ -101,7 +101,7 @@ public class McpServerTest {
         assertNoError(resp);
         JsonNode tools = resp.path("result").path("tools");
         assertTrue(tools.isArray());
-        assertEquals(4, tools.size());
+        assertEquals(5, tools.size());
     }
 
     @Test
@@ -109,6 +109,7 @@ public class McpServerTest {
         JsonNode tools = handle("tools/list", null).path("result").path("tools");
         List<String> names = new java.util.ArrayList<>();
         tools.forEach(t -> names.add(t.path("name").asText()));
+        assertTrue(names.contains("get_coding_instructions"));
         assertTrue(names.contains("check_syntax"));
         assertTrue(names.contains("list_CRML_resource_files"));
         assertTrue(names.contains("read_hint_file"));
@@ -120,8 +121,8 @@ public class McpServerTest {
         JsonNode tools = handle("tools/list", null).path("result").path("tools");
         for (JsonNode tool : tools) {
             String name = tool.path("name").asText();
-            assertFalse(tool.path("name").asText().isBlank(), name + ": missing name");
-            assertFalse(tool.path("description").asText().isBlank(), name + ": missing description");
+            assertFalse(tool.path("name").asText().trim().isEmpty(), name + ": missing name");
+            assertFalse(tool.path("description").asText().trim().isEmpty(), name + ": missing description");
             assertTrue(tool.path("inputSchema").isObject(), name + ": missing inputSchema");
         }
     }
@@ -171,7 +172,7 @@ public class McpServerTest {
         assertTrue(content.isArray());
         assertEquals(1, content.size());
         assertEquals("text", content.get(0).path("type").asText());
-        assertFalse(content.get(0).path("text").asText().isBlank());
+        assertFalse(content.get(0).path("text").asText().trim().isEmpty());
     }
 
     // === list_CRML_resource_files tool ===
@@ -204,7 +205,7 @@ public class McpServerTest {
         JsonNode resp = handle("tools/call", params);
         assertNoError(resp);
         String text = getToolResultText(resp);
-        assertFalse(text.isBlank());
+        assertFalse(text.trim().isEmpty());
         assertFalse(text.startsWith("Error:"));
     }
 

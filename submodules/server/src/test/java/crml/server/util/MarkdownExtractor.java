@@ -13,7 +13,7 @@ public class MarkdownExtractor {
 
     public static List<String> extractCrmlBlocks(Path markdownFile) throws IOException {
         List<String> examples = new ArrayList<>();
-        Matcher matcher = RX_CRML.matcher(Files.readString(markdownFile));
+        Matcher matcher = RX_CRML.matcher(new String(Files.readAllBytes(markdownFile), java.nio.charset.StandardCharsets.UTF_8));
         while (matcher.find()) {
             examples.add(matcher.group(1));
         }
