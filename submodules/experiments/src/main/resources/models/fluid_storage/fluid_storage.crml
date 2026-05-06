@@ -1,0 +1,16 @@
+model SafeLevelRequirement is {
+
+    class TankModel is {
+        Real waterLevel is external;
+        Real maxVolume is external;
+
+        // Level stays within 80% of tank volume
+        Boolean levelSafe is waterLevel < (0.8 * maxVolume);
+    };
+
+    TankModel tank1;
+    TankModel tank2;
+
+    Boolean tanksAreSafe is tank1.levelSafe and tank2.levelSafe;
+
+};
