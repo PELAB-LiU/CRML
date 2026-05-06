@@ -72,7 +72,7 @@ class AgentBase:
         self.messages.append({"role": "user", "content": user_message})
 
         if self.verbose:
-            print(f"{'='*60}")
+            print(f"{'='*100}")
             print(f"User: {user_message}")
             print(f"Tools available: {self._tool_names}\n")
 
@@ -88,6 +88,7 @@ class AgentBase:
             if not msg.tool_calls:
                 self.messages.append({"role": "assistant", "content": msg.content})
                 if self.verbose:
+                    print(f"{'-'*100}")
                     print(f"Assistant: {msg.content}")
                 return msg.content
 
