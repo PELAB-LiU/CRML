@@ -14,7 +14,7 @@ include(
         "util-test",
         "test-resources",
         "language",
-        "compiler",
+        "compiler", 
         "server",
         "experiments"
 )

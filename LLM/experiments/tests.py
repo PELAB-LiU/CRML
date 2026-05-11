@@ -1,0 +1,139 @@
+import textwrap
+from types import SimpleNamespace
+import json
+import os
+import sys
+from experiments.util import AttrDict
+
+#TEXT2VQL_ROOT = os.path.abspath(os.path.dirname(__file__))
+
+while True:
+    if os.path.basename(TEXT2VQL_ROOT) == "Text2VQL":
+        sys.path.append(os.path.join(TEXT2VQL_ROOT, "dataset_construction"))
+        break
+    new = os.path.dirname(TEXT2VQL_ROOT)
+    if new == TEXT2VQL_ROOT:
+        raise FileNotFoundError("Could not find a parent directory named 'Text2VQL'.")
+    TEXT2VQL_ROOT = new
+
+#
+# Structure
+# References:
+#   * https://github.com/OpenModelica/CRML/blob/main/resources/use_cases/cooling_system/ics_reqs.crml
+SEED = AttrDict({
+    "SRI": {
+        "temp": {
+            "seed": textwrap.dedent(
+                        """\
+                        model ics_reqs is {
+                            Real T is external;
+                        }"""),
+            "interactions":[
+                {
+                    "req": {
+                        "nl": {
+                            "en": "The temperature of the SRI must be maintained between 16°C and 30°C.",
+                            "fr": "La température du SRI doit être maintenue entre 16°C et 30°C."
+                        },
+                        "snl": {
+                            "en": "In normal operation, the SRI system shall have a temperature between 16°C and 30°C.",
+                            "fr": "En fonctionnement normal, le système SRI doit avoir une température entre 16°C et 30°C."
+                        }
+                    }
+                },
+                {
+                    "req": {
+                        "nl": {
+                            "en": "If the temperature exceeds these limits, it must return to the acceptable range within one minute.",
+                            "fr": "Si la température dépasse ces limites, elle doit être revenue dans l'intervalle au bout d'une minute."
+                        },
+                        "snl": {
+                            "en": "When the SRI system temperature exceeds the normal operating limits, the SRI system temperature shall return to the normal operating range within one minute.",
+                            "fr": "Lorsque le système SRI a une température qui dépasse les limites du fonctionnement normal, le système SRI doit avoir une température à nouveau dans l'intervalle autorisé en fonctionnement normal au bout d'une minute."
+                        }
+                    }
+                }
+            ]
+        },
+        "speed": {
+            "seed": textwrap.dedent(
+                        """\
+                        model ics_reqs is {
+                            class Req_speed is {
+		                        Real v is external;
+		                        Boolean v_too_high is (v > 6.0) ; // m/s
+		                        Clock v_too_high_clock is (new Clock v_too_high) ;
+		                        Boolean R1_v is ('from' v_too_high_clock 'for' 3600.0) 'check duration' v_too_high '<=_real' 10.0 ;
+		                        Boolean R2_v is ('from' v_too_high_clock 'for' 3600.0) 'check count' v_too_high_clock '<=_int' 2 ;
+		                        Boolean R_v is R1_v and R2_v ;
+	                        };
+                        }"""),
+            "interactions":[
+                {
+                    "req": {
+                        "nl": {
+                            "en": "To limit erosion and corrosion phenomena, the fluid velocity in the heat exchangers must not exceed 6 m/s.",
+                            "fr": "Afin de limiter les phénomènes d'érosion et de corrosion, la vitesse du fluide dans les échangeurs ne doit pas dépasser 6 m/s."
+                        },
+                        "snl": {
+                            "en": "To limit erosion and corrosion phenomena, the fluid velocity in the heat exchangers shall not exceed 6 m/s.",
+                            "fr": "Afin de limiter les phénomènes d'érosion et de corrosion, la vitesse du fluide dans les échangeurs ne doit pas dépasser 6 m/s."
+                        }
+                    }
+                }
+            ]
+        }
+    },
+    "trafic": {
+        "t1": {            
+            "seed": textwrap.dedent(
+                        """\
+                        model TrafficLightSpecification_article is 
+                            // Import of libraries
+                            flatten {ETL, FORM_L}
+                            union {
+                                // List of external variables
+                                Boolean red is external;
+                                Boolean yellow is external;
+                                Boolean green is external;
+ 
+                                Boolean operation is external;
+                                Boolean night_mode is external;
+                                Boolean day_mode is not night_mode;
+                            }
+                        };"""),
+            "interactions": [
+                {
+                    "req": {
+                        "en": "During operation, no more than one light should be on (a flashing mode could be specified later)."
+                    }
+                },
+                {
+                    "req": {
+                        "en": "During day, after green, next step is yellow."
+                    }
+                },
+                {
+                    "req": {
+                        "en": "During day, step green should stay active for at least 30 seconds."
+                    }
+                },
+                {
+                    "req": {
+                        "en": "During day, after green becomes active + 30 seconds, next step should turn yellow within 0.2 seconds."
+                    }
+                },
+                {
+                    "req": {
+                        "en": "During night, yellow should only be used."
+                    }
+                },
+                {
+                    "req": {
+                        "en": "During night, yellow should flash every 2 seconds."
+                    }
+                }
+            ]
+        }
+    }
+})
