@@ -15,8 +15,8 @@ include(
         "test-resources",
         "language",
         "compiler",
-        "server"
-        
+        "server",
+        "experiments"
 )
 for (project in rootProject.children) {
     val projectName = project.name
