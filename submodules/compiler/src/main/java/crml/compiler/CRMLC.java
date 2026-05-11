@@ -6,8 +6,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 
@@ -15,8 +13,7 @@ import crml.compiler.omc.CompileSettings;
 import crml.compiler.omc.ModelicaSimulationException;
 import crml.compiler.omc.OMCUtil;
 import crml.compiler.omc.OMCmsg;
-import crml.compiler.translation.Value;
-import crml.compiler.translation.crmlVisitorImpl;
+import crml.compiler.omc.OMGenerator;
 import crml.language.util.Parser;
 import crml.language.util.Parser.ParserResult;
 
@@ -56,49 +53,39 @@ public class CRMLC {
       // remove quotes if they exist
       Path path = Paths.get(f.replace("\"", ""));
       File file = path.toFile();
-      String[] testFiles;
       if (file.isDirectory()) {
-        testFiles = file.list();
-        for (String test : testFiles) {
-          if (test.endsWith(".crml")) {
-            logger.trace("Translating test: " + test);
-            parse_file(Paths.get(test), cmd.outputDir, cmd.stacktrace, cmd.printAST,
-                cmd.generateExternal, cmd.within, cmd.causal);
-            if (cmd.simulate != null) {
-              OMCmsg msg;
-              try {
-                msg = OMCUtil.compile(test, path, cs);
-                if (msg.msg.contains("false"))
-                  logger.error("Unable to load Modelica model " + test +
-                      "\n omc fails with the following message: \n" + msg);
-              } catch (ModelicaSimulationException e) {
-                logger.error("Unable to simulate: " + file + "\n");
-              }
-            }
+        String[] entries = file.list();
+        if (entries != null) {
+          for (String entry : entries) {
+            if (entry.endsWith(".crml"))
+              processFile(path.resolve(entry), cmd, cs);
           }
         }
       } else if (file.isFile()) {
-        logger.trace("Translating file: " + file);
-        String stripped_file_name = Utilities.stripNameEndingAndPath(path);
-        Path outputDir = cmd.outputDir.resolve(stripped_file_name);
-        parse_file(path, outputDir, cmd.stacktrace,
-            cmd.printAST, cmd.generateExternal, cmd.within, cmd.causal);
-        if (cmd.simulate != null) {
-          OMCmsg msg;
-          try {
-            msg = OMCUtil.compile(file.getPath(), cmd.outputDir, cs);// TODO: Why does it get path for Stripped file
-                                                                     // name?
-            if (msg.msg.contains("false"))
-              logger.error("Unable to load Modelica model " + file +
-                  "\n omc fails with the following message: \n" + msg);
-          } catch (ModelicaSimulationException e) {
-            logger.error("Unable to simulate: " + file + "\n");
-          }
-        }
-      } else
+        processFile(path, cmd, cs);
+      } else {
         logger.error("Translation error : " + path + " is not a correct path");
+      }
     }
 
+  }
+
+  private static void processFile(Path path, CommandLineArgs cmd, CompileSettings cs) throws Exception {
+    logger.trace("Translating file: " + path);
+    String stripped_file_name = Utilities.stripNameEndingAndPath(path);
+    Path outputDir = cmd.outputDir.resolve(stripped_file_name);
+    parse_file(path, outputDir, cmd.stacktrace, cmd.printAST, cmd.generateExternal, cmd.within, cmd.causal);
+    if (cmd.simulate != null) {
+      OMCmsg msg;
+      try {
+        msg = OMCUtil.compile(path.toString(), outputDir, cs);
+        if (msg.msg.contains("false"))
+          logger.error("Unable to load Modelica model " + path +
+              "\n omc fails with the following message: \n" + msg);
+      } catch (ModelicaSimulationException e) {
+        logger.error("Unable to simulate: " + path + "\n");
+      }
+    }
   }
 
   public static void parse_file(
@@ -118,40 +105,24 @@ public class CRMLC {
         logger.trace("\nThe AST for the program: \n" + model.toPrettyTree());
       }
 
-      List<String> external_var = new ArrayList<String>();
-      crmlVisitorImpl visitor;
-
-      if (generateExternal)
-        visitor = new crmlVisitorImpl(model.parser(), external_var, causal);
-      else
-        visitor = new crmlVisitorImpl(model.parser(), causal);
-
       try {
-        Value result = visitor.visit(model.ast());
 
-        if (result != null) {
-          File out_file = gen_dir.resolve(Utilities.stripNameEndingAndPath(fullName) + ".mo").toFile();
-          out_file.getParentFile().mkdirs();
+        OMGenerator codegen = new OMGenerator(model, causal);
 
-          System.out.println("File : " + out_file.toString() + " within : " + within);
-          writeToFile(out_file, "\n", "within " + within + ";", result.toModelica());
-          logger.trace("Translated: " + fullName);
-          logger.trace("Output Modelica file: " + out_file.getAbsolutePath());
+        File out_file = gen_dir.resolve(Utilities.stripNameEndingAndPath(fullName) + ".mo").toFile();
+        out_file.getParentFile().mkdirs();
 
-          if (generateExternal && !external_var.isEmpty()) {
-            File ext_file = new File(gen_dir + java.io.File.separator +
-                Utilities.stripNameEndingAndPath(fullName) + "_external.txt");
-            writeToFile(ext_file, "\n", external_var.toArray());
-            logger.trace("External variables saved in: " + ext_file);
-          }
-        } else {
-          logger.error("Unable to translate: " + fullName + "\n");
-          if (printAST) {
-            logger.trace("\nThe AST for the program: \n" + model.toPrettyTree());
-          }
-          if (testMode)
-            throw new Exception("Translation error");
+        System.out.println("File : " + out_file.toString() + " within : " + within);
+        writeToFile(out_file, codegen.getModelicaCode(within));
 
+        logger.trace("Translated: " + fullName);
+        logger.trace("Output Modelica file: " + out_file.getAbsolutePath());
+
+        if (generateExternal && codegen.hasExternals()) {
+          File ext_file = new File(gen_dir + java.io.File.separator +
+              Utilities.stripNameEndingAndPath(fullName) + "_external.txt");
+          writeToFile(ext_file, codegen.externals());
+          logger.trace("External variables saved in: " + ext_file);
         }
 
       } catch (ParseCancellationException e) {
@@ -176,11 +147,11 @@ public class CRMLC {
     }
   }
 
-  private static void writeToFile(File output, String separator, Object... blocks) throws IOException {
+  private static void writeToFile(File output, Object... blocks) throws IOException {
     BufferedWriter writer = new BufferedWriter(new FileWriter(output));
     for (Object block : blocks) {
       if (block != null) {
-        writer.write(block.toString() + separator);
+        writer.write(block.toString());
       }
     }
     writer.close();
