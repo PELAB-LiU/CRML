@@ -8,12 +8,17 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.Comparator;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import crml.compiler.CRMLC;
 import crml.compiler.Utilities;
+import crml.compiler.omc.OMGenerator;
+import crml.language.util.Parser;
+import crml.language.util.Parser.ParserResult;
+import crml.util.IOUtil;
 import crml.util.SafeResource;
 
 public class TwoTanksExperimentTest {
@@ -51,20 +56,15 @@ public class TwoTanksExperimentTest {
     @Test
     void compileRequirements() throws Exception {
         Path crmlFile = SafeResource.get("models/fluid_storage/fluid_storage.crml");
-        String fileName = Utilities.stripNameEndingAndPath(crmlFile);
+        String fileName = IOUtil.strip(crmlFile,".crml");
 
-        CRMLC.parse_file(crmlFile, PKG_DIR, true, false, true, fileName, false);
+        ParserResult result = new Parser().parse(crmlFile);
+        OMGenerator code = new OMGenerator(result, false);
 
-        // Modelica requires filename == class name; rename the compiler-generated file accordingly
-        Path generated = PKG_DIR.resolve(fileName + ".mo");
-        String className = Files.readAllLines(generated).stream()
-                .filter(l -> l.startsWith("model "))
-                .findFirst()
-                .map(l -> l.split("\\s+")[1])
-                .orElseThrow(() -> new IllegalStateException("No model declaration found in " + generated));
-        Files.move(generated, PKG_DIR.resolve(className + ".mo"), StandardCopyOption.REPLACE_EXISTING);
+        
+        IOUtil.write(PKG_DIR.resolve(code.filename()), code.getModelicaCode(fileName));
 
-        assertTrue(Files.exists(PKG_DIR.resolve(className + ".mo")));
+        assertTrue(Files.exists(PKG_DIR.resolve(code.filename())));
     }
 
     @Test

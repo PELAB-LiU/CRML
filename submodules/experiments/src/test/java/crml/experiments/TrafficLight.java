@@ -14,8 +14,13 @@ import org.junit.jupiter.api.Test;
 
 import crml.compiler.CRMLC;
 import crml.compiler.Utilities;
+import crml.compiler.omc.OMGenerator;
 import crml.test.ReportedTest;
+import crml.util.IOUtil;
 import crml.util.SafeResource;
+
+import crml.language.util.Parser;
+import crml.language.util.Parser.ParserResult;
 
 public class TrafficLight extends ReportedTest {
 
@@ -51,21 +56,20 @@ public class TrafficLight extends ReportedTest {
 
     @Test
     void compileRequirements() throws Exception {
-        Path crmlFile = SafeResource.get("models/traffic/reference.crml");
-        String fileName = Utilities.stripNameEndingAndPath(crmlFile);
+        Path crmlFile = SafeResource.get("models/traffic/reference.crml");        
+        String fileName = IOUtil.strip(crmlFile,".crml");
 
-        CRMLC.parse_file(crmlFile, PKG_DIR, true, false, true, fileName, false);
+        emit(crmlFile, "CRML file");
+        
+        ParserResult result = new Parser().parse(crmlFile);
+        emit(result.toPrettyTree(), "AST");
 
-        // Modelica requires filename == class name; rename the compiler-generated file accordingly
-        Path generated = PKG_DIR.resolve(fileName + ".mo");
-        String className = Files.readAllLines(generated).stream()
-                .filter(l -> l.startsWith("model "))
-                .findFirst()
-                .map(l -> l.split("\\s+")[1])
-                .orElseThrow(() -> new IllegalStateException("No model declaration found in " + generated));
-        Files.move(generated, PKG_DIR.resolve(className + ".mo"), StandardCopyOption.REPLACE_EXISTING);
+        OMGenerator code = new OMGenerator(result, false);
 
-        assertTrue(Files.exists(PKG_DIR.resolve(className + ".mo")));
+        
+        IOUtil.write(PKG_DIR.resolve(code.filename()), code.getModelicaCode(fileName));
+
+        assertTrue(Files.exists(PKG_DIR.resolve(code.filename())));
     }
 
     /*

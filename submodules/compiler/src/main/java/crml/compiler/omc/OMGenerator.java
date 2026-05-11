@@ -2,6 +2,7 @@ package crml.compiler.omc;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -50,10 +51,20 @@ public class OMGenerator {
         return builder.toString();
     }
 
+    public String filename(){
+        return Stream.<String>of(genericModelCode.split("\n"))
+                .filter(l -> l.startsWith("model "))
+                .findFirst()
+                .map(l -> l.split("\\s+")[1]+".mo")
+                .orElseThrow(() -> new IllegalStateException("No model declaration found."));
+    }
+
     public static class OMGeneratorException extends RuntimeException {
         public OMGeneratorException(String message) {
             super(message);
         }
     }
+
+    
 
 }
