@@ -15,8 +15,10 @@ import crml.compiler.omc.CompileSettings;
 import crml.compiler.omc.ModelicaSimulationException;
 import crml.compiler.omc.OMCUtil;
 import crml.compiler.omc.OMCmsg;
+import crml.compiler.translation.LibraryRegistry;
 import crml.compiler.translation.Value;
 import crml.compiler.translation.crmlVisitorImpl;
+import crml.language.grammar.crmlParser;
 import crml.language.util.Parser;
 import crml.language.util.Parser.ParserResult;
 
@@ -125,6 +127,15 @@ public class CRMLC {
         visitor = new crmlVisitorImpl(model.parser(), external_var, causal);
       else
         visitor = new crmlVisitorImpl(model.parser(), causal);
+
+      // Pre-load declared library dependencies and merge them into the visitor
+      // before translation begins, so operator signatures are available.
+      crmlParser.DefinitionContext def = (crmlParser.DefinitionContext) model.ast();
+      for (crmlParser.DependencyContext d : def.dependency()) {
+        for (crmlParser.IdContext libId : d.id()) {
+          visitor.mergeLibrary(LibraryRegistry.getLibrary(libId.getText()));
+        }
+      }
 
       try {
         Value result = visitor.visit(model.ast());

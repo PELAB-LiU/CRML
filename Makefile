@@ -25,6 +25,9 @@ test-etl:
 test-forml:
 	$(GRADLE_CMD) test --tests "ctests.FORMLTests*"
 
+test-lib:
+	$(GRADLE_CMD) :compiler:test --tests "ctests.ETLLibraryTest" --tests "ctests.FORMLLibraryTest"
+
 build:
 	$(GRADLE_CMD) build
 

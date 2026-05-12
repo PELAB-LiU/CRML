@@ -43,6 +43,8 @@ public class crmlVisitorImpl extends crmlBaseVisitor<Value> {
 		private String current_category=null;
 		crmlParser parser;
 		
+		private boolean processingLibrary = false;
+
 		private String prefix= ""; //to keep track of variable prefix
 
 		private String input_prefix;
@@ -105,15 +107,13 @@ public class crmlVisitorImpl extends crmlBaseVisitor<Value> {
 		@Override public Value visitDefinition(crmlParser.DefinitionContext ctx) {
 			StringBuffer buffer = new StringBuffer();
 
-				//TODO support for library and package
-				if (!ctx.definition_type().getText().equals("model"))
-					throw new ParseCancellationException("library and package not implemented yet");
-				
-				// load libraries and packages
-				if (!ctx.dependency().isEmpty()){
-					for (DependencyContext d:ctx.dependency()){
-						
-					}
+				processingLibrary = ctx.definition_type().getText().equals("library");
+
+				if (processingLibrary) {
+					// Extract operator signatures and categories; do not emit Modelica.
+					for (Element_defContext e : ctx.element_def())
+						visit(e);
+					return new Value("", "Library");
 				}
 
 				buffer.append("model " + ctx.id().getText() + " \n");
@@ -124,7 +124,7 @@ public class crmlVisitorImpl extends crmlBaseVisitor<Value> {
 					buffer.append(visit(e).toModelica());
 
 				buffer.append(localFunctionCalls);
-				
+
 				buffer.append("end " + ctx.id().getText()+ ";\n");
 
 				return new Value (buffer.toString(), "Program");
@@ -343,7 +343,13 @@ public class crmlVisitorImpl extends crmlBaseVisitor<Value> {
 	
 			user_operators.put(modelName.toString(), sig);
 
-			
+			if (processingLibrary) {
+				variableTable.cleanLocalVariables();
+				localFunctionCalls = store_localFunctionCalls;
+				current_category = null;
+				return new Value("", "Operator");
+			}
+
 			// append body
 			Value exp = visit(ctx.operator_def().exp());
 			definition.append(localFunctionCalls + "\n");
@@ -403,6 +409,12 @@ public class crmlVisitorImpl extends crmlBaseVisitor<Value> {
 			}
 
 			user_operators.put(modelName.toString(), sig);
+
+			if (processingLibrary) {
+				variableTable.cleanLocalVariables();
+				localFunctionCalls = store_localFunctionCalls;
+				return new Value("", "Template");
+			}
 
 			definition.append(output_prefix + bType + " out; \n");
 
@@ -1049,5 +1061,19 @@ public class crmlVisitorImpl extends crmlBaseVisitor<Value> {
 				System.out.println("operator " + e.getKey() + "\n");
 			}
 		}
-				
+
+		/** Merge operator signatures and categories from a pre-loaded library. */
+		public void mergeLibrary(LibraryDefinition lib) {
+			user_operators.putAll(lib.operators);
+			category_map.merge(lib.categories);
+		}
+
+		public HashMap<String, Signature> getUserOperators() {
+			return user_operators;
+		}
+
+		public CategoryMapping getCategoryMap() {
+			return category_map;
+		}
+
 }

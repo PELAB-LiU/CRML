@@ -20,5 +20,16 @@ public class CategoryMapping {
 		return categoryMap.get(name);
 	}
 
+	public void merge(CategoryMapping other) {
+		categoryMap.putAll(other.categoryMap);
+	}
+
+	public int size() {
+		return categoryMap.size();
+	}
+
+	public java.util.Set<String> names() {
+		return categoryMap.keySet();
+	}
 
 }
