@@ -135,5 +135,52 @@ SEED = AttrDict({
                 }
             ]
         }
+    },
+    "pumpsystem": {
+        "t1": {            
+            "seed": textwrap.dedent(
+                        """\
+                        model PumpingSystem is flatten {Units, FORM_L}
+	                        
+	                        union {
+		                        // type Requirement is Boolean forbid { *, +, integrate };
+		                        
+		                        class Pump is {
+			                        String ident;
+			                        Boolean isStarted is external;
+			                        Real temperature is external;
+                        			
+		                        };
+                        		
+		                        class System is {
+			                        Pump {} pumps;
+			                        Boolean inOperation is external;
+		                        };
+		                        
+		                        System system is System{ Pump (ident = "PO1"),  Pump (ident = "PO2"), Pump (ident = "PO3") };
+                        };"""),
+            "interactions": [
+                {
+                    "req": {
+                        "en": "R1: While the system is in operation, the pump must not be started more than twice."
+                    }
+                },
+                {
+                    "req": {
+                        "en": "R2: At least one hour must separate two consecutive pump startups."
+                    }
+                },
+                {
+                    "req": {
+                        "en": "R3: While the pump is in operation (i.e. started), its temperature must always stay below 50°C."
+                    }
+                },
+                {
+                    "req": {
+                        "en": "R4: While the system is in operation, after the pump temperature rises above 40 °C, the temperature must not stay above for a duration of more than 1 mn cumulated over the next 15 mn."
+                    }
+                }
+            ]
+        }
     }
 })

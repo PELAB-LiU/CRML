@@ -8,9 +8,9 @@ from mcp.client.stdio import stdio_client
 from mcp.client.streamable_http import streamablehttp_client
 
 
-async def create_client(host: str, model: str | None = None) -> ollama.AsyncClient:
-    client = ollama.AsyncClient(host=host)
-    async with httpx.AsyncClient() as http:
+async def create_client(host: str, model: str | None = None, headers: dict | None = None) -> ollama.AsyncClient:
+    client = ollama.AsyncClient(host=host, headers=headers)
+    async with httpx.AsyncClient(headers=headers) as http:
         r = await http.get(f"{host}/api/tags")
         models = [m["name"] for m in r.json().get("models", [])]
         print(f"Ollama is up. Available models: {models}")
