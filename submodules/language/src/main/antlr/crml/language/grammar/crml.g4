@@ -13,7 +13,7 @@ definition_type : 'model' | 'package' | 'library'; // should we keep library?
 
 element_def : comment | template | class_def | uninstantiated_def | type_def | operator | var_def | category;
 	
-class_def : 'class' id 'is' ('{' class_var_def+ '}' ('extends' type class_params? id? )?)';' ;
+class_def : 'partial'? 'class' id 'is' ('{' class_var_def+ '}' ('extends' type class_params? id? )?)';' ;
 
 uninstantiated_def : static_qualifier (type id (',' id)* | structure_type id (',' id)* )';' ;
 
@@ -37,7 +37,7 @@ operator_def :  (type id | user_keyword)+ '=' apply_category? exp ;
 
 apply_category : 'apply' assoc=id 'on';
 	 
-type_def : 'type' id ('extends' type  arg_list? id?)?  ('{' class_var_def * '}' )? ;
+type_def : 'partial'? 'type' id ('extends' type  arg_list? id?)?  ('{' class_var_def * '}' )? ;
 	 
 class_var_def : ( var_def )|'alias' id ';'| comment
 			| 'forbid' (op| op) (',' (op| op))* ';' | uninstantiated_def ;
@@ -95,7 +95,7 @@ iterator : name= ITERATOR;
 
 if_exp : 'if' if_e=exp 'then' then_e=exp ('else' else_e=exp);
 
-constructor : 'new' type exp;
+constructor : 'new' type (arg_list |exp);
 	
 period_op : lb=('['| ']') exp ',' exp rb=('['| ']') ; 
 
