@@ -6,28 +6,28 @@ import sys
 from experiments.util import AttrDict
 
 #TEXT2VQL_ROOT = os.path.abspath(os.path.dirname(__file__))
-
-while True:
-    if os.path.basename(TEXT2VQL_ROOT) == "Text2VQL":
-        sys.path.append(os.path.join(TEXT2VQL_ROOT, "dataset_construction"))
-        break
-    new = os.path.dirname(TEXT2VQL_ROOT)
-    if new == TEXT2VQL_ROOT:
-        raise FileNotFoundError("Could not find a parent directory named 'Text2VQL'.")
-    TEXT2VQL_ROOT = new
+#
+#while True:
+#    if os.path.basename(TEXT2VQL_ROOT) == "Text2VQL":
+#        sys.path.append(os.path.join(TEXT2VQL_ROOT, "dataset_construction"))
+#        break
+#    new = os.path.dirname(TEXT2VQL_ROOT)
+#    if new == TEXT2VQL_ROOT:
+#        raise FileNotFoundError("Could not find a parent directory named 'Text2VQL'.")
+#    TEXT2VQL_ROOT = new
 
 #
 # Structure
 # References:
 #   * https://github.com/OpenModelica/CRML/blob/main/resources/use_cases/cooling_system/ics_reqs.crml
-SEED = AttrDict({
+TESTS = AttrDict({
     "SRI": {
         "temp": {
             "seed": textwrap.dedent(
                         """\
                         model ics_reqs is {
                             Real T is external;
-                        }"""),
+                        };"""),
             "interactions":[
                 {
                     "req": {
@@ -67,7 +67,7 @@ SEED = AttrDict({
 		                        Boolean R2_v is ('from' v_too_high_clock 'for' 3600.0) 'check count' v_too_high_clock '<=_int' 2 ;
 		                        Boolean R_v is R1_v and R2_v ;
 	                        };
-                        }"""),
+                        };"""),
             "interactions":[
                 {
                     "req": {
@@ -84,13 +84,14 @@ SEED = AttrDict({
             ]
         }
     },
+    # https://github.com/PELAB-LiU/CRML/blob/upstream/resources/crml_tutorial/traffic_light/TrafficLightSpecification_articleModelicaConf2025.crml
     "trafic": {
         "t1": {            
             "seed": textwrap.dedent(
                         """\
-                        model TrafficLightSpecification_article is 
+                        model TrafficLightSpecification_article is flatten {ETL, FORM_L}
                             // Import of libraries
-                            flatten {ETL, FORM_L}
+                            
                             union {
                                 // List of external variables
                                 Boolean red is external;
@@ -100,7 +101,6 @@ SEED = AttrDict({
                                 Boolean operation is external;
                                 Boolean night_mode is external;
                                 Boolean day_mode is not night_mode;
-                            }
                         };"""),
             "interactions": [
                 {
@@ -136,6 +136,7 @@ SEED = AttrDict({
             ]
         }
     },
+    # https://github.com/PELAB-LiU/CRML/blob/upstream/resources/crml_tutorial/pumping_system/pumping_system.crml
     "pumpsystem": {
         "t1": {            
             "seed": textwrap.dedent(
@@ -156,8 +157,13 @@ SEED = AttrDict({
 			                        Pump {} pumps;
 			                        Boolean inOperation is external;
 		                        };
-		                        
-		                        System system is System{ Pump (ident = "PO1"),  Pump (ident = "PO2"), Pump (ident = "PO3") };
+		                        Pump p1;
+                                Pump p2;
+                                Pump p3;// is new Pump(ident = "PO1");
+                                Pump {} pumps is {p1, p2, p3};
+                                System system;
+
+		                        //System system( pumps = {Pump (ident = "PO1"),  Pump (ident = "PO2"), Pump (ident = "PO3")} );
                         };"""),
             "interactions": [
                 {
