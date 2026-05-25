@@ -124,7 +124,7 @@ public class crmlVisitorImpl extends crmlBaseVisitor<Value> {
 					buffer.append(visit(e).toModelica());
 
 				buffer.append(localFunctionCalls);
-				
+
 				buffer.append("end " + ctx.id().getText()+ ";\n");
 
 				return new Value (buffer.toString(), "Program");
@@ -234,38 +234,46 @@ public class crmlVisitorImpl extends crmlBaseVisitor<Value> {
 		@Override public Value visitClass_def(crmlParser.Class_defContext ctx) {
 			StringBuffer buffer = new StringBuffer();
 			Value val;
-			
+
 			String prefixTemp = prefix;
-			
+
 			if(prefix!="")
 				prefix+=".";
-			
+
 			prefix += ctx.id(0).getText();
-						
+
+			// Scope localFunctionCalls so generated components stay inside this
+			// class body rather than leaking into the enclosing model (same
+			// pattern as visitOperator).
+			StringBuffer store_localFunctionCalls = new StringBuffer(localFunctionCalls);
+			localFunctionCalls = new StringBuffer();
+
 			buffer.append("model "+ ctx.id(0).getText());
-			
-			if (ctx.class_var_def()!= null)// parse class variables
+
+			if (ctx.class_var_def()!= null)
 				buffer.append("\n");
 				for (Class_var_defContext e : ctx.class_var_def()) {
 					val = visitClass_var_def(e);
-					
 					buffer.append(val.toModelica());
 				}
-			
+
 			if (ctx.type()!=null) {
 				buffer.append(" extends " + ctx.type().getText());
-				
+
 				// TODO translate class parameters
 				if(ctx.class_params()!= null)
 					throw new ParseCancellationException("class parameters not implemented yet");
-				
+
 				buffer.append(";\n");
 			}
+			buffer.append(localFunctionCalls);
 			buffer.append("end "+ ctx.id(0).getText() + "; \n");
-			
+
 			prefix= prefixTemp;
 			variableTable.cleanLocalVariables();
-			
+
+			localFunctionCalls = store_localFunctionCalls;
+
 			return new Value (buffer.toString(), "Class_Definition");
 		}
 
@@ -455,9 +463,24 @@ public class crmlVisitorImpl extends crmlBaseVisitor<Value> {
 		variableTable.putVariable(ctx.id().getText(), var_t, isSet, prefix);
 		variableTable.putlocalVariable(ctx.id().getText(), var_t, isSet);
 
-		if(ctx.exp()!=null) {
-			v=visit(ctx.exp());
-			if(!v.type.equals("new")) // check that it is not a constructor
+		if (ctx.arg_list() != null) {
+			crmlParser.Arg_listContext args = ctx.arg_list();
+			List<crmlParser.Named_argContext> namedArgs = args.named_arg();
+			if (!namedArgs.isEmpty()) {
+				buffer.append("(");
+				for (int i = 0; i < namedArgs.size(); i++) {
+					if (i > 0) buffer.append(", ");
+					crmlParser.Named_argContext namedArg = namedArgs.get(i);
+					if (namedArg.arg_list() != null)
+						throw new ParseCancellationException("nested arg_list in constructor not implemented yet");
+					v = visit(namedArg.exp());
+					buffer.append(namedArg.id().getText() + " = " + v.toModelica());
+				}
+				buffer.append(")");
+			}
+		} else if (ctx.exp() != null) {
+			v = visit(ctx.exp());
+			if (!v.type.equals("new")) // check that it is not a constructor
 				buffer.append(" = " + v.toModelica());
 		}
 		buffer.append(";\n");
@@ -533,8 +556,12 @@ public class crmlVisitorImpl extends crmlBaseVisitor<Value> {
 			}
 	
 		// if the expression is in parenthesis
-		if(ctx.sub_exp()!=null)
-			return visit(ctx.sub_exp().exp());
+		if (ctx.sub_exp() != null) {
+			crmlParser.Sub_expContext sub = ctx.sub_exp();
+			if (sub.user_keyword() != null)
+				return apply_user_operator(sub.user_keyword().getText(), new ArrayList<>());
+			return visit(sub.exp());
+		}
 		
 		if(ctx.period_op()!=null)
 			return visit(ctx.period_op());

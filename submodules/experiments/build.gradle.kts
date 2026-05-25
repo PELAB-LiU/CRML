@@ -10,6 +10,8 @@ dependencies {
     implementation(project(":compiler"))
     implementation(project(":language"))
 
+    testImplementation("com.j2html:j2html:1.6.0")
+
     testImplementation(project(":util"))
     testImplementation(project(":util-test"))
     testImplementation(platform("org.junit:junit-bom:5.10.1"))
