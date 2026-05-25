@@ -97,7 +97,7 @@ iterator : name= ITERATOR;
 
 if_exp : 'if' if_e=exp 'then' then_e=exp ('else' else_e=exp);
 
-constructor : 'new' type exp;
+constructor : 'new' type (arg_list | exp);
 	
 period_op : lb=('['| ']') exp ',' exp rb=('['| ']') ; 
 

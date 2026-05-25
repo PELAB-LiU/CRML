@@ -711,20 +711,20 @@ public class crmlVisitorImpl extends crmlBaseVisitor<Value> {
 		
 	@Override
 	public Value visitConstructor(crmlParser.ConstructorContext ctx) {
-		
+
 		if(ctx.type().getText().equals("Clock")) { // Clock constructor
 		String varName = "c" + counter++;
 		String clockType = types_mapping.get("Clock");
-		
+
 		//TODO add return type checking
 		Value v = visit(ctx.exp());
-		
+
 		localFunctionCalls.append(clockType + " " + varName + "(b=" + v.toModelica() + ");\n");
 		localFunctionCalls.append("CRMLtoModelica.Types.CRMLClock_build " + varName+"_init(clock =" + varName + ");\n");
 		return new Value (varName, "Clock");
 		}
 
-		// if the constructor is for Periods 
+		// if the constructor is for Periods
 		if(ctx.type().getText().equals("Periods")){
 			String periodsType = types_mapping.get("Periods");
 			String varName = "ps" + counter++;
@@ -735,43 +735,59 @@ public class crmlVisitorImpl extends crmlBaseVisitor<Value> {
 			Boolean lborder = (period.lb.getText().equals("["));
 			Boolean rborder = (period.rb.getText().equals("]"));
 
-			String code = 
+			String code =
 			periodsType + " " + varName +
-			"(isLeftBoundaryIncluded=" + lborder.toString() + 
-		    ", isRightBoundaryIncluded=" + rborder.toString() + 
-			", start_event=" + left.toModelica() + 
+			"(isLeftBoundaryIncluded=" + lborder.toString() +
+		    ", isRightBoundaryIncluded=" + rborder.toString() +
+			", start_event=" + left.toModelica() +
 			", close_event=" + right.toModelica() +");\n";
-			
+
 			localFunctionCalls.append(code);
 			localFunctionCalls.append("CRMLtoModelica.Types.CRMLPeriods_build " + varName +"_init(ps =" + varName + ");\n");
-		
-		
+
+
 			return new Value (varName, "Periods");
 		}
 
 		// Constructor for events
 		if(ctx.type().getText().equals("Event")){
-		
+
 			String eventType = types_mapping.get("Event");
 			String e = "e" + counter++;
 			Value v = visit(ctx.exp());
-		
+
 			localFunctionCalls.append(eventType + " " + e + "(b=" + v.toModelica() + ");\n");
 			localFunctionCalls.append("CRMLtoModelica.Types.CRMLEvent_build " + e +"_init(E =" + e + ");\n");
-		
-		
+
+
 			return new Value (e, eventType);
 		}
-		
-		// Constructor with no expression - translates to nothing in Modelica
-		
-		if(ctx.exp()==null)
+
+		// Constructor with no args - translates to nothing in Modelica
+		if(ctx.arg_list() == null && ctx.exp() == null)
 			return new Value ("", "new");
-		
+
+		// Constructor with named args (e.g., new Pump (ident = "PO1"))
+		if(ctx.arg_list() != null) {
+			crmlParser.Arg_listContext args = ctx.arg_list();
+			List<crmlParser.Named_argContext> namedArgs = args.named_arg();
+			StringBuilder argStr = new StringBuilder("(");
+			for (int i = 0; i < namedArgs.size(); i++) {
+				if (i > 0) argStr.append(", ");
+				crmlParser.Named_argContext namedArg = namedArgs.get(i);
+				if (namedArg.arg_list() != null)
+					throw new ParseCancellationException("nested arg_list in constructor not implemented yet");
+				Value v = visit(namedArg.exp());
+				argStr.append(namedArg.id().getText() + " = " + v.toModelica());
+			}
+			argStr.append(")");
+			return new Value(argStr.toString(), "new");
+		}
+
 		// Constructor with expression - call corresponding function
 		Value exp_val = visit(ctx.exp());
 		Value result = apply_lunary_op(ctx.type().getText(), exp_val);
-		return result;	
+		return result;
 	}
 		
 		
