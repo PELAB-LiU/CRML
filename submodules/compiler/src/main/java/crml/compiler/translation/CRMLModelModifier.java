@@ -7,8 +7,13 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Injects code into a CRML model string right after the opening brace of the
- * top-level union block.
+ * Injects code into a CRML model string while stripping the dependency clause
+ * from the header, turning e.g.:
+ *   model X is FORM_L union { ... }; -> model X is { <injected> ... };
+ *
+ * This prevents the compiler visitor from also calling visitLibrary for the
+ * same libraries, which would otherwise cause every library element to appear
+ * twice in the generated Modelica output.
  *
  * Recognised header forms (whitespace/newlines between tokens are allowed):
  *   model <name> is <LIBNAME> union {
@@ -23,18 +28,21 @@ public class CRMLModelModifier {
     /** Zero or more whitespace chars or // line comments. */
     private static final String SEP0 = "(?:\\s|//[^\\n]*\\n)*";
 
-    /** Captures a single library name: model X is LIB union { */
+    /**
+     * group(1) = "model X is" prefix, group(2) = library name.
+     * model X is LIB union {
+     */
     private static final Pattern SINGLE_LIB = Pattern.compile(
-        "^\\s*model" + SEP1 + IDENT + SEP1 + "is" + SEP1 + "(" + IDENT + ")" + SEP1 + "union" + SEP0 + "\\{",
+        "^(\\s*model" + SEP1 + IDENT + SEP1 + "is)" + SEP1 + "(" + IDENT + ")" + SEP1 + "union" + SEP0 + "\\{",
         Pattern.DOTALL
     );
 
     /**
-     * Captures the comma-separated lib list inside flatten { ... }:
+     * group(1) = "model X is" prefix, group(2) = comma-separated lib list.
      * model X is flatten { LIB1 , LIB2 } union {
      */
     private static final Pattern FLATTEN_LIBS = Pattern.compile(
-        "^\\s*model" + SEP1 + IDENT + SEP1 + "is" + SEP1 + "flatten" + SEP0 + "\\{([^}]*)" + "\\}" + SEP0 + "union" + SEP0 + "\\{",
+        "^(\\s*model" + SEP1 + IDENT + SEP1 + "is)" + SEP1 + "flatten" + SEP0 + "\\{([^}]*)" + "\\}" + SEP0 + "union" + SEP0 + "\\{",
         Pattern.DOTALL
     );
 
@@ -42,26 +50,29 @@ public class CRMLModelModifier {
     private List<String> foundLibNames = Collections.emptyList();
 
     /**
-     * Injects {@code code} immediately after the opening {@code {} of the
-     * top-level union block and returns the modified model string.
+     * Strips the dependency clause from the model header, injects {@code code}
+     * right after the opening brace, and returns the modified model string.
+     *
+     * Example: {@code model X is FORM_L union { ... };} becomes
+     * {@code model X is { <code> ... };}
      *
      * @param model  the raw CRML model text
-     * @param code   the snippet to insert (a trailing newline is added automatically)
-     * @return       modified model string
+     * @param code   the snippet to insert
+     * @return       modified model string with the dependency clause removed
      * @throws IllegalArgumentException if the header does not match either pattern
      */
     public String inject(String model, String code) {
         // Try flatten pattern first (it is more specific).
         Matcher m = FLATTEN_LIBS.matcher(model);
         if (m.find()) {
-            foundLibNames = parseLibList(m.group(1));
-            return insertAfter(model, m.end(), code);
+            foundLibNames = parseLibList(m.group(2));
+            return m.group(1) + " {\n" + code + model.substring(m.end());
         }
 
         m = SINGLE_LIB.matcher(model);
         if (m.find()) {
-            foundLibNames = Collections.singletonList(m.group(1));
-            return insertAfter(model, m.end(), code);
+            foundLibNames = Collections.singletonList(m.group(2));
+            return m.group(1) + " {\n" + code + model.substring(m.end());
         }
 
         throw new IllegalArgumentException(
@@ -88,9 +99,5 @@ public class CRMLModelModifier {
             }
         }
         return libs;
-    }
-
-    private static String insertAfter(String model, int pos, String code) {
-        return model.substring(0, pos) + "\n" + code + model.substring(pos);
     }
 }
