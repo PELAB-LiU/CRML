@@ -10,15 +10,13 @@ import java.nio.file.StandardCopyOption;
 import java.util.Comparator;
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-import crml.compiler.CRMLC;
-import crml.compiler.Utilities;
 import crml.compiler.omc.OMGenerator;
 import crml.test.ReportedTest;
 import crml.util.IOUtil;
 import crml.util.SafeResource;
-
 import crml.language.util.Parser;
 import crml.language.util.Parser.ParserResult;
 
@@ -39,6 +37,7 @@ public class TrafficLight extends ReportedTest {
     }
 
     @Test
+    @Disabled
     void exportCrmlLibrary() throws IOException {
         Path library = SafeResource.get("modelica_libraries/CRMLtoModelica.mo");
         Files.copy(library, OUTPUT_DIR.resolve("CRMLtoModelica.mo"), StandardCopyOption.REPLACE_EXISTING);
@@ -46,28 +45,41 @@ public class TrafficLight extends ReportedTest {
         assertTrue(Files.exists(OUTPUT_DIR.resolve("CRMLtoModelica.mo")));
     }
 
-    /*@Test
+    @Test
+    @Disabled
     void exportPackageDeclaration() throws IOException {
         Path packageFile = SafeResource.get("models/fluid_storage/package.mo");
         Files.copy(packageFile, PKG_DIR.resolve("package.mo"), StandardCopyOption.REPLACE_EXISTING);
 
         assertTrue(Files.exists(PKG_DIR.resolve("package.mo")));
-    }*/
+    }
 
     @Test
     void compileRequirements() throws Exception {
+        Path library = SafeResource.get("modelica_libraries/CRMLtoModelica.mo");
+        Files.copy(library, OUTPUT_DIR.resolve("CRMLtoModelica.mo"), StandardCopyOption.REPLACE_EXISTING);
+        assertTrue(Files.exists(OUTPUT_DIR.resolve("CRMLtoModelica.mo")));
+
         Path crmlFile = SafeResource.get("models/traffic/reference.crml");        
         String fileName = IOUtil.strip(crmlFile,".crml");
 
         emit(crmlFile, "CRML file");
         
-        ParserResult result = new Parser().parse(crmlFile);
-        emit(result.toPrettyTree(), "AST");
+        ParserResult result = null;
+        if(false){
+            String loaded = CRMLLibraryLoader.preprocessModel(crmlFile);
+            emit(loaded, "CRML loaded");
+            result = new Parser().parse(loaded);
+        } else {
+            result = new Parser().parse(crmlFile);
+        }
 
+        emit(result.toPrettyTree(), "AST");
+                
         OMGenerator code = new OMGenerator(result, false);
 
         
-        IOUtil.write(PKG_DIR.resolve(code.filename()), code.getModelicaCode(fileName));
+        IOUtil.write(PKG_DIR.resolve(code.filename()), code.getModelicaCode(null));
 
         assertTrue(Files.exists(PKG_DIR.resolve(code.filename())));
     }

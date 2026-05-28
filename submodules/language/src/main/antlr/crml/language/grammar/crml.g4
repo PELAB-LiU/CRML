@@ -106,7 +106,7 @@ op : builtin_op|user_keyword
 
 right_op : 'start' | 'end';
 		
-builtin_op : 'and' | '*' | '+' | '-' | '/' | 'with' | 'master' | 'on' | 'filter'
+builtin_op : 'and' | '*' | '+' | '-' | '/' | 'with' | 'while' | 'master' | 'on' | 'filter'
 				| '<=' | '<' | '>=' | '>' | '<>' | 'par' | '==' |
 				'pre' | 'not'| '-' | 'card' | 'or' | '^' |
 				'mod' |
