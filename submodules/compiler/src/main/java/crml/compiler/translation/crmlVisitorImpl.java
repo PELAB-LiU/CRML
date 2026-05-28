@@ -450,46 +450,79 @@ public class crmlVisitorImpl extends crmlBaseVisitor<Value> {
 		Boolean isSet = false;
 			
 
-		var_t = ctx.type().getText();
-							
+		var_t = ctx.type().builtin_type() != null
+				? ctx.type().builtin_type().getText()
+				: ctx.type().id().getText();
+
 		if(types_mapping.containsKey(var_t))
 			mapped_t= types_mapping.get(var_t);
 		else
 			mapped_t=var_t;
-				
+
 		isSet = (ctx.type().empty_set()!=null);
-		if(isSet)
-			mapped_t+= " [:] ";
+		String varName = ctx.id().getText();
 
-		buffer.append(mapped_t + " ");
-		buffer.append(ctx.id().getText());
-				
-
-		//TODO fix set variables
+		if (isSet) {
+			buffer.append("parameter Integer " + varName + "_n = 0;\n  ");
+			buffer.append(mapped_t + " " + varName + "[" + varName + "_n]");
+		} else {
+			buffer.append(mapped_t + " " + varName);
+		}
 
 		if(saveExtrnal && ctx.is_external!=null)
-			external_variables.add(mapped_t + " " +ctx.id().getText() + "\n");
-		
-				
-		variableTable.putVariable(ctx.id().getText(), var_t, isSet, prefix);
-		variableTable.putlocalVariable(ctx.id().getText(), var_t, isSet);
+			external_variables.add(mapped_t + " " + varName + "\n");
+
+		variableTable.putVariable(varName, var_t, isSet, prefix);
+		variableTable.putlocalVariable(varName, var_t, isSet);
 
 		if (ctx.arg_list() != null) {
 			crmlParser.Arg_listContext args = ctx.arg_list();
 			List<crmlParser.Named_argContext> namedArgs = args.named_arg();
 			if (!namedArgs.isEmpty()) {
-				buffer.append("(");
+				buffer.append("(\n  ");
 				for (int i = 0; i < namedArgs.size(); i++) {
-					if (i > 0) buffer.append(", ");
+					if (i > 0) buffer.append(",\n  ");
 					crmlParser.Named_argContext namedArg = namedArgs.get(i);
+					String argName = namedArg.id().getText();
+
+					// Set of constructors: transpose into size param + field arrays
+					if (namedArg.exp() != null
+							&& namedArg.exp().set_def() != null
+							&& namedArg.exp().set_def().empty_set() == null) {
+						List<crmlParser.ExpContext> elems = namedArg.exp().set_def().exp();
+						boolean allCtors = elems.stream()
+								.allMatch(e -> e.constructor() != null
+										&& e.constructor().arg_list() != null);
+						if (allCtors) {
+							buffer.append(argName + "_n = " + elems.size());
+							List<crmlParser.Named_argContext> fields =
+									elems.get(0).constructor().arg_list().named_arg();
+							buffer.append(",\n  " + argName + "(\n");
+							for (int j = 0; j < fields.size(); j++) {
+								if (j > 0) buffer.append(",\n");
+								String fieldName = fields.get(j).id().getText();
+								buffer.append("    " + fieldName + " = {");
+								for (int k = 0; k < elems.size(); k++) {
+									if (k > 0) buffer.append(", ");
+									v = visit(elems.get(k).constructor().arg_list()
+											.named_arg().get(j).exp());
+									buffer.append(v.toModelica());
+								}
+								buffer.append("}");
+							}
+							buffer.append("\n  )");
+							continue;
+						}
+					}
+
 					if (namedArg.arg_list() != null)
 						throw new ParseCancellationException("nested arg_list in constructor not implemented yet");
 					if (namedArg.exp() == null)
-						throw new ParseCancellationException("named argument '" + namedArg.id().getText() + "' has no value expression (parse error in model?)");
+						throw new ParseCancellationException("named argument '" + argName + "' has no value expression (parse error in model?)");
 					v = visit(namedArg.exp());
-					buffer.append(namedArg.id().getText() + " = " + v.toModelica());
+					buffer.append(argName + " = " + v.toModelica());
 				}
-				buffer.append(")");
+				buffer.append("\n)");
 			}
 		} else if (ctx.exp() != null) {
 			v = visit(ctx.exp());

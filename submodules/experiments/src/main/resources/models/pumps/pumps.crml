@@ -15,7 +15,7 @@ model PumpingSystem is FORM_L
 //				('during' system.inOperation) 'check count' (isStarted 'becomes true') '<=' 2;
 			// R2: At least one hour must separate two consecutive pump startups.
 			Requirement R2 is
-				('after' isStarted 'for' 1) 'check count' (isStarted 'becomes true') '==' 0;
+				('after' (isStarted 'becomes true') 'for' 1) 'check count' (isStarted 'becomes true') '==' 0;
 			// R3: While the pump is in operation (i.e. started), its temperature must always stay below 50°C.
 			Requirement R3 is
 				('during' isStarted) 'ensure' temperature < 50;
