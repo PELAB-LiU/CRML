@@ -42,11 +42,11 @@ Period P is [ e1, e2 ];            // closed interval between two events
 
 ## Boolean temporal operators
 
-Boolean supports logical operators (`and`, `or`, `not`), comparison (`==`, `<>`), 4-valued arithmetic (`+` accumulation, `*` filter), conditional (`if b then b1 else b2`), clock sampling (`b at c`), period restriction (`during P ensure b`), integration (`integrate b on P`), and duration (`duration b on P` → `Real`).
+Boolean supports logical operators (`and`, `or`, `not`), comparison (`==`, `<>`), 4-valued arithmetic (`+` accumulation, `*` filter), conditional (`if b then b1 else b2`), clock sampling (`b at c`), period restriction (`'during' P 'ensure' b`), integration (`integrate b on P`), and duration (`duration b on P` → `Real`).
 
 ## Clock temporal operators
 
-Clocks are built from Booleans (`new Clock b`), combined with `and`/`or`, sampled (`b at c`), filtered (`c when b`), counted (`count c on P` → `Integer`), and measured (`time of c` / `rate of c` / `period of c` → `Real`).
+Clocks are built from Booleans (`new Clock b`), combined with `and`/`or`, sampled (`b at c`), filtered (`c when b`), counted (`'count' c 'inside' P` → `Integer`), and measured (`time of c` / `rate of c` / `period of c` → `Real`).
 
 ## Event operators
 

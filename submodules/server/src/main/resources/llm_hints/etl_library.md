@@ -32,8 +32,8 @@ These operators work on `Clock` values and `Period`/`Periods` values.
 
 | Operator | Return type | Meaning |
 |---|---|---|
-| `Clock C inside Period P` | `Clock` | Filters `C` to ticks that fall within `P` |
-| `count Clock C inside Period P` | `Integer` | Number of ticks of `C` that fall within `P` |
+| `Clock C 'inside' Period P` | `Clock` | Filters `C` to ticks that fall within `P` |
+| `'count' Clock C 'inside' Period P` | `Integer` | Number of ticks of `C` that fall within `P` |
 
 ```crml
 model EventOperatorsETL is {
@@ -87,7 +87,7 @@ These three operators form the core evaluation chain. They decide whether a Bool
 #### `decide`
 
 ```crml-snippet
-Operator decide is Operator [ Boolean ] decide Boolean phi over Period P = phi or (P end);
+Operator decide is Operator [ Boolean ] 'decide' Boolean phi 'over' Period P = phi or new Boolean(P end);
 ```
 
 Returns `true` as soon as a *decision event* occurs — either `phi` becomes `true`, or the period ends. This is the lowest-level building block used by the category mechanism (see below) and by `evaluate`.
@@ -95,7 +95,7 @@ Returns `true` as soon as a *decision event* occurs — either `phi` becomes `tr
 #### `evaluate`
 
 ```crml-snippet
-Operator [ Boolean ] evaluate Boolean phi over Period P = integrate ((decide phi over P) * phi) on P;
+Operator [ Boolean ] 'evaluate' Boolean phi 'over' Period P = integrate (('decide' phi 'over' P) * phi) on P;
 ```
 
 Formally: `∫ a(φ, P) × φ` over `P`, where the filter `a(φ, P) = a'(φ) ∨ P↓` activates at the decision event or at the end of `P`. Returns `true` if `phi` holds when the decision is made.
@@ -103,7 +103,7 @@ Formally: `∫ a(φ, P) × φ` over `P`, where the filter `a(φ, P) = a'(φ) ∨
 #### `check`
 
 ```crml-snippet
-Operator [ Boolean ] check Boolean phi over Periods P = and (evaluate phi over P);
+Operator [ Boolean ] 'check' Boolean phi 'over' Periods P = and ('evaluate' phi 'over' P);
 ```
 
 Evaluates `phi` over every period in the `Periods` collection and returns `true` iff all individual evaluations are `true`. This is the top-level operator used to verify a requirement.
@@ -169,58 +169,58 @@ Category {} C4 is associate varying2 with decide;
 
 ### Example Model
 
-The following model illustrates the ETL library in a simple pump monitoring scenario. The requirement is: *"During every mission period, the pump must never cavitate."*
+The following model illustrates the ETL library in a simple battery monitoring scenario. The requirement is: *"During every charge session, the cell must never overheat."*
 
 ```crml
-model PumpMonitoring is {
+model BatteryMonitoring is {
 
     // --- External signals ---
-    Boolean pump_running   is external;
-    Boolean cavitation     is external;
-    Real    flow_rate      is external;
-    Real    flow_threshold is external;
+    Boolean cell_charging    is external;
+    Boolean overTemp         is external;
+    Real    terminal_voltage is external;
+    Real    voltage_min      is external;
 
-    // --- Mission period ---
-    // A mission starts when the pump starts and ends when it stops.
-    Event  mission_start is new Event pump_running;
-    Event  mission_end   is new Event not pump_running;
-    Period mission       is [ mission_start, mission_end ];
+    // --- Charge session period ---
+    // A session starts when charging begins and ends when it stops.
+    Clock  session_start is new Clock cell_charging;
+    Clock  session_end   is new Clock not cell_charging;
+    Period session       is [ session_start, session_end ];
 
     // --- ETL Boolean connectives ---
-    // "no cavitation AND adequate flow" must hold throughout the mission.
-    Boolean no_cavitation  is not cavitation;
-    Boolean adequate_flow  is flow_rate >= flow_threshold;
-    Boolean healthy        is no_cavitation and adequate_flow;
+    // "no over-temperature AND voltage within range" must hold throughout the session.
+    Boolean no_overTemp is not overTemp;
+    Boolean voltage_ok  is terminal_voltage >= voltage_min;
+    Boolean healthy     is no_overTemp and voltage_ok;
 
     // --- Event counting inside the period ---
-    // Count how many cavitation events occurred during the mission.
-    Clock   cavitation_events is new Clock cavitation;
-    Clock   cavitation_inside is cavitation_events filter (time >= mission start) and (time <= mission end);
-    Integer cavitation_count  is card cavitation_inside;
+    // Count how many over-temperature events occurred during the session.
+    Clock   overTemp_events is new Clock overTemp;
+    Clock   overTemp_inside is overTemp_events filter (time >= session start) and (time <= session end);
+    Integer overTemp_count  is card overTemp_inside;
 
     // --- Implication example ---
-    // If cavitation occurred, then flow must eventually recover.
-    Boolean flow_recovered              is flow_rate >= flow_threshold;
-    Boolean cavitation_implies_recovery is not cavitation or flow_recovered;
+    // If over-temperature occurred, then voltage must eventually stabilize.
+    Boolean voltage_stabilized        is terminal_voltage >= voltage_min;
+    Boolean overTemp_implies_recovery is not overTemp or voltage_stabilized;
 
     // --- Core ETL evaluation ---
-    // decide: resolves as soon as healthy is false, or at mission end.
-    Boolean health_decision is healthy or new Boolean mission end;
+    // decide: resolves as soon as healthy is false, or at session end.
+    Boolean health_decision is healthy or new Boolean session end;
 
     // evaluate: true iff healthy held at the decision point.
-    Boolean mission_ok is integrate (health_decision * healthy) on mission;
+    Boolean session_ok is integrate (health_decision * healthy) on session;
 
-    // check: verify over all missions defined by pump start/stop clocks.
-    Periods all_missions          is [ new Clock pump_running, new Clock not pump_running ];
-    Boolean requirement_satisfied is integrate healthy on all_missions;
+    // check: verify over all sessions defined by charge start/stop clocks.
+    Periods all_sessions          is [ new Clock cell_charging, new Clock not cell_charging ];
+    Boolean requirement_satisfied is integrate healthy on all_sessions;
 
 };
 ```
 
 **Trace through the evaluation:**
 
-1. `mission` opens at `pump_running↑` and closes at `pump_running↓`.
-2. `healthy = not cavitation and (flow_rate >= flow_threshold)` is evaluated continuously.
-3. `decide healthy over mission` fires `true` as soon as it is certain `healthy` cannot recover (here, immediately when `healthy` becomes `false`), or at mission end if `healthy` stayed `true`.
-4. `evaluate` returns the value of `healthy` at the decision point — `false` if cavitation occurred, `true` otherwise.
-5. `check` conjoins `evaluate` over all past missions; `true` only if every mission was healthy.
+1. `session` opens at `cell_charging↑` and closes at `cell_charging↓`.
+2. `healthy = not overTemp and (terminal_voltage >= voltage_min)` is evaluated continuously.
+3. `decide healthy over session` fires `true` as soon as it is certain `healthy` cannot recover (here, immediately when `healthy` becomes `false`), or at session end if `healthy` stayed `true`.
+4. `evaluate` returns the value of `healthy` at the decision point — `false` if over-temperature occurred, `true` otherwise.
+5. `check` conjoins `evaluate` over all past sessions; `true` only if every session was healthy.

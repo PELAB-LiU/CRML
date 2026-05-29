@@ -24,27 +24,27 @@ In CRML, a **class** is a domain of all objects sharing the same set of named at
 #### Partial base class and extension
 
 ```crml
-model ClassPumpSystem is {
+model ClassBatterySystem is {
     // Abstract base class — cannot be instantiated directly
     class Equipment is {
         String id;
         Boolean inOperation is external;
     };
 
-    // Pump extends Equipment, adding its own external attributes
-    class Pump is {
-        Real c is external;
-        Real efficiency is external;
-        Boolean cav is external;
+    // BatteryCell extends Equipment, adding its own external attributes
+    class BatteryCell is {
+        Real voltage is external;
+        Real temperature is external;
+        Boolean overTemp is external;
         // Derived attribute: requirement expressed as a formula
-        Boolean nocav is 'during' inOperation 'ensure' not cav;
+        Boolean safeTemp is 'during' inOperation 'ensure' not overTemp;
     } extends Equipment;
 
-    // CoolingSystem groups three pumps, itself extending Equipment
-    class CoolingSystem is {
-        Pump P1;
-        Pump P2;
-        Pump P3;
+    // BatteryPack groups three cells, itself extending Equipment
+    class BatteryPack is {
+        BatteryCell C1;
+        BatteryCell C2;
+        BatteryCell C3;
     } extends Equipment;
 };
 ```
@@ -58,14 +58,14 @@ model ClassInstantiation is {
         Boolean inOperation is external;
     };
 
-    class Pump is {
-        Real c is external;
-        Real efficiency is external;
-        Boolean cav is external;
-        Boolean nocav is 'during' inOperation 'ensure' not cav;
+    class BatteryCell is {
+        Real voltage is external;
+        Real temperature is external;
+        Boolean overTemp is external;
+        Boolean safeTemp is 'during' inOperation 'ensure' not overTemp;
     } extends Equipment;
 
-    // Instantiate a Pump object, binding the 'id' external attribute
-    Pump pump1 is new Pump (id = "Pump1");
+    // Instantiate a BatteryCell object, binding the 'id' external attribute
+    BatteryCell cell1 is new BatteryCell (id = "Cell1");
 };
 ```
