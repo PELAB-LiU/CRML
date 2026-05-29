@@ -59,7 +59,7 @@ model EventOperators is {
     Event projected is req_event proj base_clock;
 
     // Bounded projection: first tick within 10 ticks of base_clock
-    Event bounded is req_event proj(10) base_clock;
+//    Event bounded is req_event proj(10) base_clock;
 
     // Delay: response expected 5.0 time units after request
     Event expected_resp is req_event + 5.0;
@@ -68,7 +68,7 @@ model EventOperators is {
     Real latency is resp_event - req_event;
 
     // Time elapsed since the last request
-    Real age is time from req_event;
+//    Real age is time from req_event;
 
     // Ordering: check that request occurred before response
     Boolean ordered is req_event <= resp_event;

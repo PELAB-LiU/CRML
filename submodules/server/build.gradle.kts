@@ -15,6 +15,8 @@ dependencies {
     testImplementation(project(":util"))
     testImplementation(project(":util-test"))
 
+    testImplementation("com.j2html:j2html:1.6.0")
+
     //compileOnly("org.eclipse.xtext:org.eclipse.xtext:2.36.0")
     //implementation("org.eclipse.emf:org.eclipse.emf.codegen.ecore:2.39.0")
     //implementation("org.apache.commons:commons-csv:1.13.0")

@@ -9,6 +9,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import crml.language.util.Parser;
+import crml.server.util.CRMLSyntaxResultsWrapper;
 import crml.server.util.MarkdownExtractor;
 import crml.test.ReportedTest;
 
@@ -25,7 +26,7 @@ public class ETLHint extends ReportedTest {
 
         Parser.ParserResult parsed = new Parser().parse(model);
 
-        emit(parsed.syntax(), "Syntax Errors");
+        emit(CRMLSyntaxResultsWrapper.of(parsed.syntax()), "Syntax Errors");
         emit(parsed.toPrettyTree(), "AST");
         assertFalse(parsed.syntax().hasErrors());
     }

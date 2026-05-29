@@ -11,6 +11,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import crml.language.util.Parser;
+import crml.server.util.CRMLSyntaxResultsWrapper;
 import crml.server.util.MarkdownExtractor;
 import crml.test.ReportedTest;
 
@@ -24,7 +25,7 @@ public class TypeHint extends ReportedTest {
         List<String> models = MarkdownExtractor.extractCrmlBlocks(file);
         for (String model : models) {
             Parser.ParserResult parsed = new Parser().parse(model);
-            emit(parsed.syntax(), "Syntax Errors");
+            emit(CRMLSyntaxResultsWrapper.of(parsed.syntax()), "Syntax Errors");
             emit(parsed.toPrettyTree(), "AST");
             assertFalse(parsed.syntax().hasErrors(), "Syntax errors in model: " + model);
         }
