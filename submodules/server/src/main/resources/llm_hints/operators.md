@@ -39,10 +39,10 @@ model Example is {
 	//Template b1 'or' b2 = not (not b1 and not b2); // or is a built in keyword (ETL library also derives a definiton with De Morgan's Laws)
 	
 	// Logical inference (implication)
-	Template b1 implies b2 = not b1 or b2;
+	Template b1 'implies' b2 = not b1 or b2;
 
 	// Exclusive or
-	Template b1 xor b2 = (b1 or b2) and not (b1 and b2);
+	Template b1 'xor' b2 = (b1 or b2) and not (b1 and b2);
 	
 	// 'xor' template usage
 	Boolean modeA;

@@ -59,13 +59,13 @@ model ClockOperators is {
     Clock matched_ack is req_clock proj ack_clock;
 
     // Bounded projection: ack must follow within 5 ticks of req_clock
-    Clock bounded_ack is req_clock proj (5) ack_clock;
+//    Clock bounded_ack is req_clock proj (5) ack_clock;
 
     // Current tick as an event
     Event last_req is tick req_clock;
 
     // Filter: keep only ack ticks where valid is true
-    Clock valid_ack is ack_clock filter valid tick;
+//    Clock valid_ack is ack_clock filter valid tick;
 
     // Conjunction: ticks that are both a request and an ack
     Clock simultaneous is req_clock and ack_clock;

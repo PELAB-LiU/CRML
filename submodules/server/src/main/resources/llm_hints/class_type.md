@@ -1,6 +1,6 @@
 ## Class
 
-In CRML, a **class** is a domain of all objects sharing the same set of named attributes. Unlike primitive types, a class groups multiple attributes (which may themselves be of any CRML type, including other classes) under a single named entity. Instances of a class are called **objects** and are created with the `new` keyword. Classes support **inheritance** via `extends`, **multiple inheritance**, and **attribute redeclaration** with `redeclare`.
+In CRML, a **class** is a domain of all objects sharing the same set of named attributes. Unlike primitive types, a class groups multiple attributes (which may themselves be of any CRML type, including other classes) under a single named entity. Instances of a class are called **objects** and are created with the `new` keyword. Classes support **inheritance** via `extends`, and **multiple inheritance**.
 
 ### Syntax forms
 
@@ -11,14 +11,12 @@ In CRML, a **class** is a domain of all objects sharing the same set of named at
 | External attribute (value supplied by binding) | `Type a is external;` |
 | Class extending one parent | `class C2 is { ... } extends C1;` |
 | Class extending multiple parents | `class C is { ... } extends { C1, C2, ..., Cn };` |
-| Attribute redeclaration in subclass | `redeclare a1 Type b1 [ is [ value \| external ] ];` |
 | Object instantiation | `C obj is new C (attr1 = value1, ...);` |
 
 ### Key concepts
 
 - **`extends`** — a subclass inherits all attributes of its parent class(es). Multiple parent classes can be listed in braces.
 - **`external`** — an attribute whose value is not defined inside the class and will be supplied by a Modelica model.
-- **`redeclare`** — allows a subclass to rename or retype an inherited attribute, provided the new type is compatible with the original.
 - **Object (`new`)** — creates an instance of a class.
 
 ### Examples
@@ -39,7 +37,7 @@ model ClassPumpSystem is {
         Real efficiency is external;
         Boolean cav is external;
         // Derived attribute: requirement expressed as a formula
-        Boolean nocav is during inOperation ensure not cav;
+        Boolean nocav is 'during' inOperation 'ensure' not cav;
     } extends Equipment;
 
     // CoolingSystem groups three pumps, itself extending Equipment
@@ -64,44 +62,10 @@ model ClassInstantiation is {
         Real c is external;
         Real efficiency is external;
         Boolean cav is external;
-        Boolean nocav is during inOperation ensure not cav;
+        Boolean nocav is 'during' inOperation 'ensure' not cav;
     } extends Equipment;
 
     // Instantiate a Pump object, binding the 'id' external attribute
     Pump pump1 is new Pump (id = "Pump1");
-};
-```
-
-#### Multiple inheritance
-
-```crml
-model ClassMultipleInheritance is {
-    class Named is {
-        String name;
-    };
-
-    class Timed is {
-        Real startTime is external;
-    };
-
-    // Inherits attributes from both Named and Timed
-    class TimedDevice is {
-        Boolean active is external;
-    } extends { Named, Timed };
-};
-```
-
-#### Attribute redeclaration
-
-```crml
-model ClassRedeclare is {
-    class Sensor is {
-        Real rawValue is external;
-    };
-
-    // Subclass renames 'rawValue' to 'temperature' with a compatible type
-    class TemperatureSensor is {
-        redeclare rawValue Real temperature is external;
-    } extends Sensor;
 };
 ```

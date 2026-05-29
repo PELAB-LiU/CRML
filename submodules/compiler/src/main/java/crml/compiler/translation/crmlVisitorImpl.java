@@ -1,10 +1,16 @@
 package crml.compiler.translation;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Set;
 
+import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 
 import org.apache.logging.log4j.LogManager;
@@ -12,6 +18,8 @@ import org.apache.logging.log4j.Logger;
 
 import crml.language.grammar.crmlBaseVisitor;
 import crml.language.grammar.crmlParser;
+import crml.language.util.Parser;
+import crml.util.SafeResource;
 import crml.language.grammar.crmlParser.Category_pairContext;
 import crml.language.grammar.crmlParser.Class_var_defContext;
 import crml.language.grammar.crmlParser.DependencyContext;
@@ -43,6 +51,8 @@ public class crmlVisitorImpl extends crmlBaseVisitor<Value> {
 		private String current_category=null;
 		crmlParser parser;
 		
+		private final Set<String> loadedLibraries = new HashSet<>();
+
 		private String prefix= ""; //to keep track of variable prefix
 
 		private String input_prefix;
@@ -108,15 +118,16 @@ public class crmlVisitorImpl extends crmlBaseVisitor<Value> {
 				//TODO support for library and package
 				if (!ctx.definition_type().getText().equals("model"))
 					throw new ParseCancellationException("library and package not implemented yet");
-				
-				// load libraries and packages
-				if (!ctx.dependency().isEmpty()){
-					for (DependencyContext d:ctx.dependency()){
-						
-					}
-				}
 
 				buffer.append("model " + ctx.id().getText() + " \n");
+
+				if (!ctx.dependency().isEmpty()) {
+					for (DependencyContext d : ctx.dependency()) {
+						for (IdContext libId : d.id()) {
+							buffer.append(visitLibrary(libId.getText()));
+						}
+					}
+				}
 
 				List<Element_defContext> cL = ctx.element_def();
 
@@ -124,7 +135,7 @@ public class crmlVisitorImpl extends crmlBaseVisitor<Value> {
 					buffer.append(visit(e).toModelica());
 
 				buffer.append(localFunctionCalls);
-				
+
 				buffer.append("end " + ctx.id().getText()+ ";\n");
 
 				return new Value (buffer.toString(), "Program");
@@ -234,38 +245,46 @@ public class crmlVisitorImpl extends crmlBaseVisitor<Value> {
 		@Override public Value visitClass_def(crmlParser.Class_defContext ctx) {
 			StringBuffer buffer = new StringBuffer();
 			Value val;
-			
+
 			String prefixTemp = prefix;
-			
+
 			if(prefix!="")
 				prefix+=".";
-			
+
 			prefix += ctx.id(0).getText();
-						
+
+			// Scope localFunctionCalls so generated components stay inside this
+			// class body rather than leaking into the enclosing model (same
+			// pattern as visitOperator).
+			StringBuffer store_localFunctionCalls = new StringBuffer(localFunctionCalls);
+			localFunctionCalls = new StringBuffer();
+
 			buffer.append("model "+ ctx.id(0).getText());
-			
-			if (ctx.class_var_def()!= null)// parse class variables
+
+			if (ctx.class_var_def()!= null)
 				buffer.append("\n");
 				for (Class_var_defContext e : ctx.class_var_def()) {
 					val = visitClass_var_def(e);
-					
 					buffer.append(val.toModelica());
 				}
-			
+
 			if (ctx.type()!=null) {
 				buffer.append(" extends " + ctx.type().getText());
-				
+
 				// TODO translate class parameters
 				if(ctx.class_params()!= null)
 					throw new ParseCancellationException("class parameters not implemented yet");
-				
+
 				buffer.append(";\n");
 			}
+			buffer.append(localFunctionCalls);
 			buffer.append("end "+ ctx.id(0).getText() + "; \n");
-			
+
 			prefix= prefixTemp;
 			variableTable.cleanLocalVariables();
-			
+
+			localFunctionCalls = store_localFunctionCalls;
+
 			return new Value (buffer.toString(), "Class_Definition");
 		}
 
@@ -431,33 +450,83 @@ public class crmlVisitorImpl extends crmlBaseVisitor<Value> {
 		Boolean isSet = false;
 			
 
-		var_t = ctx.type().getText();
-							
+		var_t = ctx.type().builtin_type() != null
+				? ctx.type().builtin_type().getText()
+				: ctx.type().id().getText();
+
 		if(types_mapping.containsKey(var_t))
 			mapped_t= types_mapping.get(var_t);
 		else
 			mapped_t=var_t;
-				
+
 		isSet = (ctx.type().empty_set()!=null);
-		if(isSet)
-			mapped_t+= " [:] ";
+		String varName = ctx.id().getText();
 
-		buffer.append(mapped_t + " ");
-		buffer.append(ctx.id().getText());
-				
-
-		//TODO fix set variables
+		if (isSet) {
+			buffer.append("parameter Integer " + varName + "_n = 0;\n  ");
+			buffer.append(mapped_t + " " + varName + "[" + varName + "_n]");
+		} else {
+			buffer.append(mapped_t + " " + varName);
+		}
 
 		if(saveExtrnal && ctx.is_external!=null)
-			external_variables.add(mapped_t + " " +ctx.id().getText() + "\n");
-		
-				
-		variableTable.putVariable(ctx.id().getText(), var_t, isSet, prefix);
-		variableTable.putlocalVariable(ctx.id().getText(), var_t, isSet);
+			external_variables.add(mapped_t + " " + varName + "\n");
 
-		if(ctx.exp()!=null) {
-			v=visit(ctx.exp());
-			if(!v.type.equals("new")) // check that it is not a constructor
+		variableTable.putVariable(varName, var_t, isSet, prefix);
+		variableTable.putlocalVariable(varName, var_t, isSet);
+
+		if (ctx.arg_list() != null) {
+			crmlParser.Arg_listContext args = ctx.arg_list();
+			List<crmlParser.Named_argContext> namedArgs = args.named_arg();
+			if (!namedArgs.isEmpty()) {
+				buffer.append("(\n  ");
+				for (int i = 0; i < namedArgs.size(); i++) {
+					if (i > 0) buffer.append(",\n  ");
+					crmlParser.Named_argContext namedArg = namedArgs.get(i);
+					String argName = namedArg.id().getText();
+
+					// Set of constructors: transpose into size param + field arrays
+					if (namedArg.exp() != null
+							&& namedArg.exp().set_def() != null
+							&& namedArg.exp().set_def().empty_set() == null) {
+						List<crmlParser.ExpContext> elems = namedArg.exp().set_def().exp();
+						boolean allCtors = elems.stream()
+								.allMatch(e -> e.constructor() != null
+										&& e.constructor().arg_list() != null);
+						if (allCtors) {
+							buffer.append(argName + "_n = " + elems.size());
+							List<crmlParser.Named_argContext> fields =
+									elems.get(0).constructor().arg_list().named_arg();
+							buffer.append(",\n  " + argName + "(\n");
+							for (int j = 0; j < fields.size(); j++) {
+								if (j > 0) buffer.append(",\n");
+								String fieldName = fields.get(j).id().getText();
+								buffer.append("    " + fieldName + " = {");
+								for (int k = 0; k < elems.size(); k++) {
+									if (k > 0) buffer.append(", ");
+									v = visit(elems.get(k).constructor().arg_list()
+											.named_arg().get(j).exp());
+									buffer.append(v.toModelica());
+								}
+								buffer.append("}");
+							}
+							buffer.append("\n  )");
+							continue;
+						}
+					}
+
+					if (namedArg.arg_list() != null)
+						throw new ParseCancellationException("nested arg_list in constructor not implemented yet");
+					if (namedArg.exp() == null)
+						throw new ParseCancellationException("named argument '" + argName + "' has no value expression (parse error in model?)");
+					v = visit(namedArg.exp());
+					buffer.append(argName + " = " + v.toModelica());
+				}
+				buffer.append("\n)");
+			}
+		} else if (ctx.exp() != null) {
+			v = visit(ctx.exp());
+			if (!v.type.equals("new")) // check that it is not a constructor
 				buffer.append(" = " + v.toModelica());
 		}
 		buffer.append(";\n");
@@ -533,8 +602,12 @@ public class crmlVisitorImpl extends crmlBaseVisitor<Value> {
 			}
 	
 		// if the expression is in parenthesis
-		if(ctx.sub_exp()!=null)
-			return visit(ctx.sub_exp().exp());
+		if (ctx.sub_exp() != null) {
+			crmlParser.Sub_expContext sub = ctx.sub_exp();
+			if (sub.user_keyword() != null)
+				return apply_user_operator(sub.user_keyword().getText(), new ArrayList<>());
+			return visit(sub.exp());
+		}
 		
 		if(ctx.period_op()!=null)
 			return visit(ctx.period_op());
@@ -555,8 +628,10 @@ public class crmlVisitorImpl extends crmlBaseVisitor<Value> {
 
 			Signature sig = user_operators.get(op);
 
-			if(sig == null)
+			if(sig == null) {
+				logger.error("LOOKUP FAIL: uc.name=[" + uc.name + "] op=[" + op + "] keys=" + user_operators.keySet());
 				throw new ParseCancellationException("no definition found : " + ctx.getText() + '\n');
+			}
 	
 
 			int i=0;
@@ -684,20 +759,20 @@ public class crmlVisitorImpl extends crmlBaseVisitor<Value> {
 		
 	@Override
 	public Value visitConstructor(crmlParser.ConstructorContext ctx) {
-		
+
 		if(ctx.type().getText().equals("Clock")) { // Clock constructor
 		String varName = "c" + counter++;
 		String clockType = types_mapping.get("Clock");
-		
+
 		//TODO add return type checking
 		Value v = visit(ctx.exp());
-		
+
 		localFunctionCalls.append(clockType + " " + varName + "(b=" + v.toModelica() + ");\n");
 		localFunctionCalls.append("CRMLtoModelica.Types.CRMLClock_build " + varName+"_init(clock =" + varName + ");\n");
 		return new Value (varName, "Clock");
 		}
 
-		// if the constructor is for Periods 
+		// if the constructor is for Periods
 		if(ctx.type().getText().equals("Periods")){
 			String periodsType = types_mapping.get("Periods");
 			String varName = "ps" + counter++;
@@ -708,43 +783,61 @@ public class crmlVisitorImpl extends crmlBaseVisitor<Value> {
 			Boolean lborder = (period.lb.getText().equals("["));
 			Boolean rborder = (period.rb.getText().equals("]"));
 
-			String code = 
+			String code =
 			periodsType + " " + varName +
-			"(isLeftBoundaryIncluded=" + lborder.toString() + 
-		    ", isRightBoundaryIncluded=" + rborder.toString() + 
-			", start_event=" + left.toModelica() + 
+			"(isLeftBoundaryIncluded=" + lborder.toString() +
+		    ", isRightBoundaryIncluded=" + rborder.toString() +
+			", start_event=" + left.toModelica() +
 			", close_event=" + right.toModelica() +");\n";
-			
+
 			localFunctionCalls.append(code);
 			localFunctionCalls.append("CRMLtoModelica.Types.CRMLPeriods_build " + varName +"_init(ps =" + varName + ");\n");
-		
-		
+
+
 			return new Value (varName, "Periods");
 		}
 
 		// Constructor for events
 		if(ctx.type().getText().equals("Event")){
-		
+
 			String eventType = types_mapping.get("Event");
 			String e = "e" + counter++;
 			Value v = visit(ctx.exp());
-		
+
 			localFunctionCalls.append(eventType + " " + e + "(b=" + v.toModelica() + ");\n");
 			localFunctionCalls.append("CRMLtoModelica.Types.CRMLEvent_build " + e +"_init(E =" + e + ");\n");
-		
-		
+
+
 			return new Value (e, eventType);
 		}
-		
-		// Constructor with no expression - translates to nothing in Modelica
-		
-		if(ctx.exp()==null)
+
+		// Constructor with no args - translates to nothing in Modelica
+		if(ctx.arg_list() == null && ctx.exp() == null)
 			return new Value ("", "new");
-		
+
+		// Constructor with named args (e.g., new Pump (ident = "PO1"))
+		if(ctx.arg_list() != null) {
+			crmlParser.Arg_listContext args = ctx.arg_list();
+			List<crmlParser.Named_argContext> namedArgs = args.named_arg();
+			StringBuilder argStr = new StringBuilder("(");
+			for (int i = 0; i < namedArgs.size(); i++) {
+				if (i > 0) argStr.append(", ");
+				crmlParser.Named_argContext namedArg = namedArgs.get(i);
+				if (namedArg.arg_list() != null)
+					throw new ParseCancellationException("nested arg_list in constructor not implemented yet");
+				if (namedArg.exp() == null)
+					throw new ParseCancellationException("named argument '" + namedArg.id().getText() + "' has no value expression (parse error in model?)");
+				Value v = visit(namedArg.exp());
+				argStr.append(namedArg.id().getText() + " = " + v.toModelica());
+			}
+			argStr.append(")");
+			return new Value(argStr.toString(), "new");
+		}
+
 		// Constructor with expression - call corresponding function
 		Value exp_val = visit(ctx.exp());
 		Value result = apply_lunary_op(ctx.type().getText(), exp_val);
-		return result;	
+		return result;
 	}
 		
 		
@@ -851,10 +944,14 @@ public class crmlVisitorImpl extends crmlBaseVisitor<Value> {
 		
 		}
 		
+		private static String normalizeType(String type) {
+			return "Requirement".equals(type) ? "Boolean" : type;
+		}
+
 		private Value apply_runary_op(String op, Value right) {
-			
-			
-			Signature op_t = OperatorMapping.is_defined(operators_map, op, right.type, right.isSet);
+
+
+			Signature op_t = OperatorMapping.is_defined(operators_map, op, normalizeType(right.type), right.isSet);
 			
 			if (op_t== null) 
 				throw new ParseCancellationException("Built in operator undefined : " + op + " on " + right.type +'\n');
@@ -885,7 +982,7 @@ public class crmlVisitorImpl extends crmlBaseVisitor<Value> {
 
 		private Value apply_lunary_op(String op, Value left) {
 			System.out.println("OP DEBUG: " + op + "  " + left.type + " " + left.toModelica() + left.isSet);
-			Signature op_t = OperatorMapping.is_defined(operators_map, op, left.type, left.isSet);
+			Signature op_t = OperatorMapping.is_defined(operators_map, op, normalizeType(left.type), left.isSet);
 			
 			if (op_t== null) 
 				throw new ParseCancellationException("Built in operator undefined : " + op + " on " + left.type  + " isSet "+ left.isSet+ '\n');
@@ -936,11 +1033,37 @@ public class crmlVisitorImpl extends crmlBaseVisitor<Value> {
 		}
 		
 		private Value apply_binary_op(String op, Value left, Value right) {
+
+			// Periods while Boolean → new Periods restricted to when the Boolean is true.
+			// Generates inline clock objects from the intersection condition, consistent
+			// with how all other Periods constructors work in this compiler.
+			if (op.equals("while") && left.type.equals("Periods") && right.type.equals("Boolean")) {
+				String clockType   = types_mapping.get("Clock");
+				String periodsType = types_mapping.get("Periods");
+				int n = counter++;
+				String cStart  = "c_while_start_" + n;
+				String cClose  = "c_while_close_" + n;
+				String psWhile = "ps_while_" + n;
+				String p = left.toModelica();
+				String b = right.toModelica();
+				localFunctionCalls.append(clockType + " " + cStart +
+					"(b = CRMLtoModelica.Functions.and4(" + p + ".start_event.b, " + b + "));\n");
+				localFunctionCalls.append("CRMLtoModelica.Types.CRMLClock_build " + cStart + "_init(clock = " + cStart + ");\n");
+				localFunctionCalls.append(clockType + " " + cClose +
+					"(b = CRMLtoModelica.Functions.or4(" + p + ".close_event.b, CRMLtoModelica.Functions.not4(" + b + ")));\n");
+				localFunctionCalls.append("CRMLtoModelica.Types.CRMLClock_build " + cClose + "_init(clock = " + cClose + ");\n");
+				localFunctionCalls.append(periodsType + " " + psWhile +
+					"(isLeftBoundaryIncluded = true, isRightBoundaryIncluded = false" +
+					", start_event = " + cStart + ", close_event = " + cClose + ");\n");
+				localFunctionCalls.append("CRMLtoModelica.Types.CRMLPeriods_build " + psWhile + "_init(ps = " + psWhile + ");\n");
+				return new Value(psWhile, "Periods");
+			}
+
 			// check if predefined operator maps to Modelica operator
-			
-			Signature op_t = OperatorMapping.is_defined(operators_map, op, left.type, right.type, left.isSet, right.isSet);
-			
-			if (op_t== null) 
+
+			Signature op_t = OperatorMapping.is_defined(operators_map, op, normalizeType(left.type), normalizeType(right.type), left.isSet, right.isSet);
+
+			if (op_t== null)
 				throw new ParseCancellationException("Built in operator undefined : " + op + " on " + left.type + " and " + right.type +'\n');
 			
 			if (op_t.mtype == Signature.Type.OPERATOR) { // check if predefined operator maps to Modelica operator
@@ -1049,5 +1172,58 @@ public class crmlVisitorImpl extends crmlBaseVisitor<Value> {
 				System.out.println("operator " + e.getKey() + "\n");
 			}
 		}
-				
+
+		private String visitLibrary(String name) {
+			if (loadedLibraries.contains(name)) return "";
+			loadedLibraries.add(name);
+
+			InputStream is = tryOpenLibrary(name);
+			if (is == null)
+				throw new ParseCancellationException("Library not found: " + name);
+
+			crmlParser.DefinitionContext libDef;
+			try {
+				libDef = (crmlParser.DefinitionContext) new Parser().parse(CharStreams.fromStream(is)).ast();
+			} catch (IOException e) {
+				throw new ParseCancellationException("Error loading library " + name + ": " + e.getMessage());
+			}
+
+			StringBuffer libBuffer = new StringBuffer();
+			for (DependencyContext d : libDef.dependency()) {
+				for (IdContext libId : d.id()) {
+					libBuffer.append(visitLibrary(libId.getText()));
+				}
+			}
+			for (Element_defContext e : libDef.element_def()) {
+				// Save visitor state so a failed element doesn't corrupt subsequent ones.
+				StringBuffer savedLocalFunctionCalls = new StringBuffer(localFunctionCalls);
+				int savedCounter = counter;
+				try {
+					libBuffer.append(visit(e).toModelica());
+				} catch (ParseCancellationException ex) {
+					localFunctionCalls = savedLocalFunctionCalls;
+					counter = savedCounter;
+					variableTable.cleanLocalVariables();
+					logger.warn("Skipping library element in " + name + " (unsupported syntax): " + ex.getMessage());
+				}
+			}
+			return libBuffer.toString();
+		}
+
+		private InputStream tryOpenLibrary(String name) {
+			try {
+				InputStream is = null;
+				try{
+					is = Files.newInputStream(SafeResource.get("crml-libs/" + name + ".crml"));
+				} catch (IllegalArgumentException e){
+
+				}
+				if (is != null) return is;
+				return Files.newInputStream(SafeResource.get("crml-libs/" + name.replace('_', '-') + ".crml"));
+			} catch (IOException e) {
+				return null;
+			}
+			
+		}
+
 }

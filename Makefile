@@ -14,6 +14,8 @@ endif
 
 all: build
 
+test: tests
+
 tests:
 	$(GRADLE_CMD) test
 
@@ -30,10 +32,34 @@ test-language-specification:
 test-language-hints:
 	$(GRADLE_CMD) :language:test --tests "crml.language.hints.*"
 
+###############
+# Experiments #
+###############
+exp:
+	$(GRADLE_CMD) experiments:test --tests "crml.experiments.*"
+
+exp-tl:
+	$(GRADLE_CMD) experiments:test --tests "crml.experiments.TrafficLight"
+
+exp-sri:
+	$(GRADLE_CMD) experiments:test --tests "crml.experiments.SRIRef"
+
+exp-sri2:
+	$(GRADLE_CMD) experiments:test --tests "crml.experiments.SRI2Ref"
+
+exp-ps:
+	$(GRADLE_CMD) experiments:test --tests "crml.experiments.Pumps"
+
 
 #########
 # Other #
 #########
+test-etl:
+	$(GRADLE_CMD) test --tests "ctests.ETLTests*"
+
+test-forml:
+	$(GRADLE_CMD) test --tests "ctests.FORMLTests*"
+
 build:
 	$(GRADLE_CMD) build
 

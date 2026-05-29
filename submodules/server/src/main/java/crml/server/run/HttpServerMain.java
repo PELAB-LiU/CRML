@@ -50,7 +50,7 @@ public class HttpServerMain {
                     return;
                 }
 
-                JsonNode req = server.getMapper().readTree(exchange.getRequestBody().readAllBytes());
+                JsonNode req = server.getMapper().readTree(exchange.getRequestBody());
                 JsonNode resp = server.handle(req);
 
                 if (resp == null) {

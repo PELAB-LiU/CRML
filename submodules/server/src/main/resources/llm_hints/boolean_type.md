@@ -72,7 +72,7 @@ model BooleanOperators is {
     Boolean r_at  is b1 at c;
 
     // Period-based
-    Real    r_dur      is duration b1 on P;
-    Boolean r_integrate is integrate b1 on P;
+    Real    r_dur      is 'duration' b1 'on' P;
+    Boolean r_integrate is 'integrate' b1 'on' P;
 };
 ```

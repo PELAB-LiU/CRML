@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.io.IOException;
 import java.nio.file.Path;
 
+import crml.compiler.CRMLC;
 import crml.compiler.omc.OMCUtil;
 import crml.compiler.omc.OMCmsg;
 import crml.compiler.Utilities;
@@ -30,8 +31,7 @@ public class Util {
 
 		// try compiling crml to modelica
 		try {
-    		
-			crml.compiler.CRMLC.parse_file(fileName, out_dir, 
+			CRMLC.parse_file(fileName, out_dir, 
 				true, false, true, stripped_file_name, false);
 			
     	} catch (Exception e) {

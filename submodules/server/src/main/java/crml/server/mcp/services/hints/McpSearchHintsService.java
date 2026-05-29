@@ -11,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class McpSearchHintsService implements McpTool {
@@ -53,16 +54,16 @@ public class McpSearchHintsService implements McpTool {
             try (Stream<Path> stream = Files.list(HintsRoot.ROOT)) {
                 files = stream.filter(p -> p.getFileName().toString().endsWith(".md"))
                               .sorted()
-                              .toList();
+                              .collect(Collectors.toList());
             }
 
             List<String> results = new ArrayList<>();
             for (Path file : files) {
-                String[] lines = Files.readString(file, StandardCharsets.UTF_8).split("\n");
+                String[] lines = new String(Files.readAllBytes(file), StandardCharsets.UTF_8).split("\n");
                 List<String> matches = new ArrayList<>();
                 for (int i = 0; i < lines.length; i++) {
                     if (lines[i].toLowerCase().contains(query.toLowerCase())) {
-                        matches.add("  line " + (i + 1) + ": " + lines[i].stripTrailing());
+                        matches.add("  line " + (i + 1) + ": " + lines[i].replaceAll("\\s+$", ""));
                     }
                 }
                 if (!matches.isEmpty()) {

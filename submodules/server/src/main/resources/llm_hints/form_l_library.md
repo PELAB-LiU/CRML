@@ -10,20 +10,20 @@ These operators construct `Period` or `Periods` values from Boolean signals and 
 
 | Operator | Return type | Meaning |
 |---|---|---|
-| `from Clock e` | `Periods` | From `e` (inclusive) until the end of time |
-| `after Clock e` | `Periods` | After `e` (exclusive) until the end of time |
-| `before Clock e` | `Periods` | From the beginning of time, but before `e` (exclusive) |
-| `until Clock e` | `Periods` | From the beginning of time until `e` (inclusive) |
-| `during Boolean b` | `Periods` | Each interval while `b` is continuously `true` |
-| `after Clock e1 before Clock e2` | `Periods` | A combination of `after` and `before`, end is exclusive
-| `after Clock e1 until Clock e2` | `Periods` | A combination of `after` and `until`, end is inclusive
-| `after Clock e for Real d` | `Periods` | After `e` for the duration of `d`, end is inclusive
-| `after Clock e within Real d` | `Periods` | After `e` for the duration of `d`, end is exclusive
-| `from Clock e1 before Clock e2` | `Periods` | A combination of `from` and `before`, end is exclusive
-| `from Clock e1 until Clock e2` | `Periods` | A combination of `from` and `until`, end is inclusive
-| `from Clock e for Real d` | `Periods` | From `e` for the duration of `d`, end is inclusive
-| `from Clock e within Real d` | `Periods` | From `e` for the duration of `d`, end is exclusive
-| `when Clock e` | `Periods` | Alias for `during b`; emphasises point-in-time conditions |
+| `'from' Clock e` | `Periods` | From `e` (inclusive) until the end of time |
+| `'after' Clock e` | `Periods` | After `e` (exclusive) until the end of time |
+| `'before' Clock e` | `Periods` | From the beginning of time, but before `e` (exclusive) |
+| `'until' Clock e` | `Periods` | From the beginning of time until `e` (inclusive) |
+| `'during' Boolean b` | `Periods` | Each interval while `b` is continuously `true` |
+| `'after' Clock e1 'before' Clock e2` | `Periods` | A combination of `after` and `before`, end is exclusive
+| `'after' Clock e1 'until' Clock e2` | `Periods` | A combination of `after` and `until`, end is inclusive
+| `'after' Clock e 'for' Real d` | `Periods` | After `e` for the duration of `d`, end is inclusive
+| `'after' Clock e 'within' Real d` | `Periods` | After `e` for the duration of `d`, end is exclusive
+| `'from' Clock e1 'before' Clock e2` | `Periods` | A combination of `from` and `before`, end is exclusive
+| `'from' Clock e1 'until' Clock e2` | `Periods` | A combination of `from` and `until`, end is inclusive
+| `'from' Clock e 'for' Real d` | `Periods` | From `e` for the duration of `d`, end is inclusive
+| `'from' Clock e 'within' Real d` | `Periods` | From `e` for the duration of `d`, end is exclusive
+| `'when' Clock e` | `Periods` | Alias for `'during' b`; emphasises point-in-time conditions |
 
 ```crml
 model FORML_OperatorDefinitions is {
@@ -104,10 +104,10 @@ model HeatingCircuit is {
     Periods during_pump is [ pump_starts, pump_stops ];
 
     // after pump_running for 30 mn: 30-minute window after each startup
-    Periods after_pump_30mn is ] pump_starts, pump_starts + (30 * mn) ];
+    Periods after_pump_30mn is ] pump_starts, pump_starts + (30) ];
 
     // after pump_running for 10 mn: 10-minute warm-up window after each startup
-    Periods after_pump_10mn is ] pump_starts, pump_starts + (10 * mn) ];
+    Periods after_pump_10mn is ] pump_starts, pump_starts + (10) ];
 
     // after (outlet_temp > 70 °C) for 1 h, restricted to the heating season:
     // the window opens only when the threshold is crossed during the season
@@ -160,13 +160,13 @@ model HeatingCircuit is {
 
 | Requirement | Operator | Notes |
 |---|---|---|
-| R1 | `during … check count` | Counts rising edges of `pump.running` inside each heating-season period |
-| R2 | `after … for … check count` | Creates a 30-minute window after each startup; count must be zero |
-| R3 | `during … ensure` | Universal check: `pump.temperature < 80°C` must hold at every instant |
-| R4 | `during … after … for … check duration` | Nested period: season window → 1-hour post-threshold window; cumulated duration of violation must be < 5 min |
-| R5 | `during … check at end` | Checks the condition only at the closing event of each period |
-| R6 | `after … for … check anytime` | Checks that the condition is satisfied at least once within the window |
-| R7 | `during … ensure` | Boolean guard; `not fault.detected` must hold throughout the season |
+| R1 | `'during' … 'check count'` | Counts rising edges of `pump.running` inside each heating-season period |
+| R2 | `'after' … 'for' … 'check count'` | Creates a 30-minute window after each startup; count must be zero |
+| R3 | `'during' … 'ensure'` | Universal check: `pump.temperature < 80°C` must hold at every instant |
+| R4 | `'during' … 'after' … 'for' … 'check duration'` | Nested period: season window → 1-hour post-threshold window; cumulated duration of violation must be < 5 min |
+| R5 | `'during' … 'check at end'` | Checks the condition only at the closing event of each period |
+| R6 | `'after' … 'for' … 'check anytime'` | Checks that the condition is satisfied at least once within the window |
+| R7 | `'during' … 'ensure'` | Boolean guard; `not fault.detected` must hold throughout the season |
 
 **FORM-L to ETL correspondence (R3 as example):**
 
@@ -175,7 +175,7 @@ model HeatingCircuit is {
 'during' pump.running 'ensure' pump.temperature < 80*degC
 
 // ETL expansion:
-Periods P is [pump.running becomes true, pump.running becomes false];
+Periods P is [pump.running 'becomes true', pump.running 'becomes false'];
 Boolean R3_etl is check (count ((pump.temperature >= 80*degC) becomes true inside P) == 0) over P;
 ```
 

@@ -11,7 +11,9 @@ import static j2html.TagCreator.summary;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -64,7 +66,7 @@ public class SpecificationTestListener implements TestExecutionListener, AfterEa
 
     private static synchronized void initReport() {
         if (!reportInitialized) {
-            reporter = new ExtentSparkReporter("build" + java.io.File.separator + "specification_test_report.html");
+            reporter = new ExtentSparkReporter("build" + java.io.File.separator + "test_report.html");
             extentReport = new ExtentReports();
             extentReport.attachReporter(reporter);
             extentReport.setAnalysisStrategy(AnalysisStrategy.SUITE);
@@ -109,8 +111,8 @@ public class SpecificationTestListener implements TestExecutionListener, AfterEa
         if (testResult == null)
             return;
 
-        processNode(testKlass, test.getDisplayName(), testResult.getStatus(),
-                testResult.getThrowable().orElse(null));
+        processNode(testKlass, getKlassName(test.getUniqueId()), test.getDisplayName(),
+                testResult.getStatus(), testResult.getThrowable().orElse(null));
     }
 
     // -------------------------------------------------------------------------
@@ -119,14 +121,13 @@ public class SpecificationTestListener implements TestExecutionListener, AfterEa
 
     @Override
     public void afterEach(ExtensionContext context) throws Exception {
-        SHARED.put(context.getDisplayName(), SharedParameter.asMap(context));
-
         String className = context.getRequiredTestClass().getName();
         String displayName = context.getDisplayName();
+        SHARED.put(className + "#" + displayName, SharedParameter.asMap(context));
 
         TestExecutionResult.Status status;
         Throwable throwable = null;
-        if (context.getExecutionException().isEmpty()) {
+        if (!context.getExecutionException().isPresent()) {
             status = TestExecutionResult.Status.SUCCESSFUL;
         } else {
             throwable = context.getExecutionException().get();
@@ -148,7 +149,7 @@ public class SpecificationTestListener implements TestExecutionListener, AfterEa
         initReport();
 
         String className = context.getRequiredTestClass().getName();
-        List<String> testNames = RESULTS_BY_CLASS.getOrDefault(className, List.of());
+        List<String> testNames = RESULTS_BY_CLASS.getOrDefault(className, Collections.emptyList());
         if (testNames.isEmpty())
             return;
 
@@ -158,7 +159,7 @@ public class SpecificationTestListener implements TestExecutionListener, AfterEa
             Throwable throwable = EXT_THROWABLES.get(className + "#" + displayName);
             if (status == null)
                 continue;
-            processNode(testKlass, displayName, status, throwable);
+            processNode(testKlass, className, displayName, status, throwable);
         }
         extentReport.flush();
     }
@@ -167,7 +168,7 @@ public class SpecificationTestListener implements TestExecutionListener, AfterEa
     // Shared node rendering
     // -------------------------------------------------------------------------
 
-    private void processNode(ExtentTest testKlass, String displayName,
+    private void processNode(ExtentTest testKlass, String className, String displayName,
             TestExecutionResult.Status status, Throwable throwable) {
         if (displayName.equals("simulateTestFile(Path, Boolean, Boolean)"))
             return;
@@ -178,19 +179,20 @@ public class SpecificationTestListener implements TestExecutionListener, AfterEa
         if (matcher_idx.find())
             name += matcher_idx.group(1) + " ";
 
-        Pattern pattern_path = Pattern.compile("([^\\\\\\/]+\\.crml(?:\\.disabled)?), ");
+        Pattern pattern_path = Pattern.compile("([^\\\\\\/]+\\.crml(?:\\.disabled)?)");
         Matcher matcher_path = pattern_path.matcher(displayName);
         if (matcher_path.find())
             name += matcher_path.group(1);
 
         if (name.isEmpty())
-            return;
+            name = displayName;
 
         final ExtentTest node = testKlass.createNode(name);
-        for (Entry<String, ? extends Object> entry : SHARED.getOrDefault(displayName, new HashMap<>()).entrySet()) {
-            if (entry.getValue() instanceof Path path) {
+        for (Entry<String, ? extends Object> entry : SHARED.getOrDefault(className + "#" + displayName, new HashMap<>()).entrySet()) {
+            if (entry.getValue() instanceof Path) {
+                Path path = (Path) entry.getValue();
                 try { 
-                    String fileContent = Files.readString(path); 
+                    String fileContent = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
                     node.info(join(
                         p(join(entry.getKey(), br())),
                         pre(code(fileContent)),
@@ -202,18 +204,21 @@ public class SpecificationTestListener implements TestExecutionListener, AfterEa
                         p(a(path.toString()).withHref(path.toUri().toString()))
                     ).render());
                 }     
-            } else if (entry.getValue() instanceof CustomHtmlReporter syntax) {
+            } else if (entry.getValue() instanceof CustomHtmlReporter) {
+                CustomHtmlReporter syntax = (CustomHtmlReporter) entry.getValue();
                 node.info(join(
                     p(join(entry.getKey(), br())),
                     syntax.report()
                     //join(syntax.errors().stream().map(Object::toString).map(e -> p(e)).toArray())
                 ).render());
-            } else if (entry.getValue() instanceof String ast && "AST".equals(entry.getKey())) {
+            } else if (entry.getValue() instanceof String && "AST".equals(entry.getKey())) {
+                    String ast = (String) entry.getValue();
                     node.info(details(
                         summary(entry.getKey()),
                         pre(code(ast))
                     ).render());
-            } else if (entry.getValue() instanceof String model && "CRML model".equals(entry.getKey())) {
+            } else if (entry.getValue() instanceof String && ("CRML model".equals(entry.getKey()) | "CRML loaded".equals(entry.getKey()))) {
+                    String model = (String) entry.getValue();
                     node.info(details(
                         summary(entry.getKey()),
                         pre(code(model))
@@ -225,13 +230,17 @@ public class SpecificationTestListener implements TestExecutionListener, AfterEa
         }
 
         switch (status) {
-            case SUCCESSFUL -> node.pass(status.toString());
-            case FAILED -> {
+            case SUCCESSFUL:
+                node.pass(status.toString());
+                break;
+            case FAILED:
                 node.fail(status.toString());
                 if (throwable != null)
                     node.log(FAIL, throwable);
-            }
-            case ABORTED -> node.skip(status.toString());
+                break;
+            case ABORTED:
+                node.skip(status.toString());
+                break;
         }
     }
 

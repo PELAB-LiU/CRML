@@ -58,10 +58,10 @@ These operators derive `Clock` values from Boolean signals, optionally restricte
 
 | Operator | Return type | Meaning |
 |---|---|---|
-| `Boolean b becomes true` | `Clock` | Ticks each time `b` transitions to `true` |
-| `Boolean b becomes false` | `Clock` | Ticks each time `b` transitions to `false` |
-| `Boolean b becomes true inside Period P` | `Clock` | As above, restricted to `P` |
-| `Boolean b becomes false inside Period P` | `Clock` | As above, restricted to `P` |
+| `Boolean b 'becomes true'` | `Clock` | Ticks each time `b` transitions to `true` |
+| `Boolean b 'becomes false'` | `Clock` | Ticks each time `b` transitions to `false` |
+| `Boolean b 'becomes true' inside Period P` | `Clock` | As above, restricted to `P` |
+| `Boolean b 'becomes false' inside Period P` | `Clock` | As above, restricted to `P` |
 
 ```crml
 model EventOperatorsETL is {

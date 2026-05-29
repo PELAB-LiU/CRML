@@ -21,9 +21,16 @@ allprojects {
 subprojects {
     plugins.apply("java")
 
+    /*
+    //Toolchan for gradle only, probably not necessary.
     java {
         toolchain {
             languageVersion.set(JavaLanguageVersion.of(21))
+        }
+    }*/
+    plugins.withType<JavaPlugin> {
+        tasks.withType<JavaCompile>().configureEach {
+            options.release.set(8)
         }
     }
 }
