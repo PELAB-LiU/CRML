@@ -25,7 +25,7 @@ TESTS = AttrDict({
         "temp": {
             "seed": textwrap.dedent(
                         """\
-                        model ics_reqs is {
+                        model SRI is FORM_L union {
                             Real T is external;
                         };"""),
             "interactions":[
@@ -61,11 +61,6 @@ TESTS = AttrDict({
                         model ics_reqs is {
                             class Req_speed is {
 		                        Real v is external;
-		                        Boolean v_too_high is (v > 6.0) ; // m/s
-		                        Clock v_too_high_clock is (new Clock v_too_high) ;
-		                        Boolean R1_v is ('from' v_too_high_clock 'for' 3600.0) 'check duration' v_too_high '<=_real' 10.0 ;
-		                        Boolean R2_v is ('from' v_too_high_clock 'for' 3600.0) 'check count' v_too_high_clock '<=_int' 2 ;
-		                        Boolean R_v is R1_v and R2_v ;
 	                        };
                         };"""),
             "interactions":[
@@ -85,7 +80,7 @@ TESTS = AttrDict({
         }
     },
     # https://github.com/PELAB-LiU/CRML/blob/upstream/resources/crml_tutorial/traffic_light/TrafficLightSpecification_articleModelicaConf2025.crml
-    "trafic": {
+    "traffic": {
         "t1": {            
             "seed": textwrap.dedent(
                         """\
@@ -147,20 +142,18 @@ TESTS = AttrDict({
 		                        // type Requirement is Boolean forbid { *, +, integrate };
 		                        
 		                        class Pump is {
-			                        String ident;
 			                        Boolean isStarted is external;
 			                        Real temperature is external;
                         			
 		                        };
                         		
 		                        class System is {
-			                        Pump {} pumps;
 			                        Boolean inOperation is external;
 		                        };
 		                        Pump p1;
                                 Pump p2;
-                                Pump p3;// is new Pump(ident = "PO1");
-                                Pump {} pumps is {p1, p2, p3};
+                                Pump p3;
+
                                 System system;
 
 		                        //System system( pumps = {Pump (ident = "PO1"),  Pump (ident = "PO2"), Pump (ident = "PO3")} );
