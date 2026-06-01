@@ -58,10 +58,12 @@ TESTS = AttrDict({
         "speed": {
             "seed": textwrap.dedent(
                         """\
-                        model SRI is {
+                        model SRI is FORM_L union {
                             class Req_speed is {
 		                        Real v is external;
 	                        };
+                            Req_speed Req_speed1;
+	                        Req_speed Req_speed2;
                         };"""),
             "interactions":[
                 {
@@ -85,10 +87,8 @@ TESTS = AttrDict({
             "seed": textwrap.dedent(
                         """\
                         model TrafficLightSpecification_article is flatten {ETL, FORM_L}
-                            // Import of libraries
                             
                             union {
-                                // List of external variables
                                 Boolean red is external;
                                 Boolean yellow is external;
                                 Boolean green is external;
@@ -139,9 +139,9 @@ TESTS = AttrDict({
                         model PumpingSystem is flatten {Units, FORM_L}
 	                        
 	                        union {
-		                        // type Requirement is Boolean forbid { *, +, integrate };
 		                        
 		                        class Pump is {
+                                    Boolean systemInOperation is external;
 			                        Boolean isStarted is external;
 			                        Real temperature is external;
                         			
@@ -150,13 +150,11 @@ TESTS = AttrDict({
 		                        class System is {
 			                        Boolean inOperation is external;
 		                        };
-		                        Pump p1;
-                                Pump p2;
-                                Pump p3;
 
-                                System system;
-
-		                        //System system( pumps = {Pump (ident = "PO1"),  Pump (ident = "PO2"), Pump (ident = "PO3")} );
+		                        Boolean inOperation is external;
+		                        Pump pump1(systemInOperation=inOperation);
+		                        Pump pump2(systemInOperation=inOperation);
+		                        Pump pump3(systemInOperation=inOperation);
                         };"""),
             "interactions": [
                 {

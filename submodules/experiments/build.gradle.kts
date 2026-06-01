@@ -21,7 +21,8 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+    systemProperty("llm.generated.dir", rootDir.resolve("LLM/generated").absolutePath)
     testLogging {
         events("passed", "skipped", "failed")
-    } 
+    }
 }
