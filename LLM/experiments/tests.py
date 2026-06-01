@@ -58,7 +58,7 @@ TESTS = AttrDict({
         "speed": {
             "seed": textwrap.dedent(
                         """\
-                        model ics_reqs is {
+                        model SRI is {
                             class Req_speed is {
 		                        Real v is external;
 	                        };

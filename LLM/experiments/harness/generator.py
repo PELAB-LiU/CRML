@@ -43,12 +43,13 @@ def comparison_harness_mo(domain: DomainSpec) -> str:
     lines.append("")
 
     for sig in domain.outputs:
+        cand = sig.candidate_name if sig.candidate_name is not None else sig.name
         if sig.signal_type == "Boolean4":
-            lines.append(f"  mismatch_{sig.name} = candidate.{sig.name} <> reference.{sig.name};")
+            lines.append(f"  mismatch_{sig.name} = candidate.{cand} <> reference.{sig.name};")
         else:
             tol = domain.real_tolerance
             lines.append(
-                f"  mismatch_{sig.name} = abs(candidate.{sig.name} - reference.{sig.name}) > {tol};"
+                f"  mismatch_{sig.name} = abs(candidate.{cand} - reference.{sig.name}) > {tol};"
             )
 
     any_expr = " or ".join(f"mismatch_{s.name}" for s in domain.outputs)

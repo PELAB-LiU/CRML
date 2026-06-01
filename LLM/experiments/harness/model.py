@@ -14,6 +14,7 @@ class OutputSignal:
     """A requirement output signal to compare between candidate and reference."""
     name: str
     signal_type: str = "Boolean4"  # "Boolean4" or "Real"
+    candidate_name: str | None = None  # if set, candidate uses this name; reference always uses `name`
 
 
 @dataclass
