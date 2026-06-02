@@ -34,7 +34,7 @@ model FORML_OperatorDefinitions is {
     Integer d  is external;  // duration in seconds
 
     // during b: each interval while b is continuously true
-    Periods during_b is [ new Clock b, new Clock not b ];
+    Periods during_b is [ new Clock b, new Clock (not b) ];
 
     // after b for d: interval of length d starting at each rising edge of b
     Clock   b_rises       is new Clock b;
@@ -91,9 +91,9 @@ model BatteryManagement is {
 
     // ---- Derived clocks for rising/falling edges ----
     Clock charge_starts is new Clock cell_charging;
-    Clock charge_stops  is new Clock not cell_charging;
+    Clock charge_stops  is new Clock (not cell_charging);
     Clock cycle_starts  is new Clock cycle_active;
-    Clock cycle_ends    is new Clock not cycle_active;
+    Clock cycle_ends    is new Clock (not cycle_active);
 
     // ---- Time period collections (FORM-L desugared) ----
 
@@ -111,22 +111,22 @@ model BatteryManagement is {
 
     // after (terminal_voltage > 4.2 V) for 1 h, restricted to the active cycle:
     // the window opens only when the threshold is crossed during the cycle
-    Clock   voltage_exceeds_42 is (new Clock terminal_voltage > 4.2)
-                                    filter (time >= during_cycle start)
-                                       and (time <= during_cycle end);
+    Clock   voltage_exceeds_42 is new Clock (terminal_voltage > 4.2)
+                                    filter ((time >= during_cycle start)
+                                       and (time <= during_cycle end));
     Periods R4_periods is ] voltage_exceeds_42, voltage_exceeds_42 + (1 * h) ];
 
     // ---- R1: During the charging cycle, charging started at most 5 times ----
     Clock   charge_starts_in_cycle is charge_starts
-                                      filter (time >= during_cycle start)
-                                         and (time <= during_cycle end);
+                                      filter ((time >= during_cycle start)
+                                         and (time <= during_cycle end));
     Integer charge_start_count     is card charge_starts_in_cycle;
     Boolean R1 is integrate (charge_start_count <= 5) on during_cycle;
 
     // ---- R2: In the 30-min window after each charge start, no new charge start occurs ----
     Clock   starts_in_30mn_window is charge_starts
-                                      filter (time >= after_charge_30mn start)
-                                         and (time <= after_charge_30mn end);
+                                      filter ((time >= after_charge_30mn start)
+                                         and (time <= after_charge_30mn end));
     Integer starts_in_30mn_count  is card starts_in_30mn_window;
     Boolean R2 is integrate (starts_in_30mn_count == 0) on after_charge_30mn;
 
@@ -172,11 +172,11 @@ model BatteryManagement is {
 
 ```crml-snippet
 // FORM-L (authored form):
-'during' cell_charging 'ensure' cell_temperature < 45*degC
+'during' cell_charging 'ensure' (cell_temperature < (45 * degC))
 
 // ETL expansion:
 Periods P is [cell_charging 'becomes true', cell_charging 'becomes false'];
-Boolean R3_etl is P 'check count' ((cell_temperature >= 45*degC) 'becomes true' 'inside' P) '==' 0;
+Boolean R3_etl is P 'check count' ((cell_temperature >= (45 * degC)) 'becomes true' 'inside' P) '==' 0;
 ```
 
 The FORM-L form is directly equivalent but far more readable and requires no manual construction of `Periods` or `Clock` values.
