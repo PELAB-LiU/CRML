@@ -574,16 +574,10 @@ public class crmlVisitorImpl extends crmlBaseVisitor<Value> {
 			System.out.println("Category: " + current_category + " og_op : " + ctx.builtin_op().getText()+ " og_op : "+ op);
 			
 			if (ctx.binary!=null){
-
-				// check for iterators
-				if(ctx.left.iterator()!=null||ctx.right.iterator()!=null){
-					throw new ParseCancellationException("iterators need to be implemented");
-						
-				}
-				left = visit(ctx.left);
-				right = visit(ctx.right);
-				Value result = apply_binary_op(op, left, right);
-				return result;
+				List<crmlParser.ExpContext> vals = new ArrayList<>();
+				List<String> ops = new ArrayList<>();
+				flattenBinaryChain(ctx, vals, ops);
+				return evaluateWithPrecedence(ops, vals);
 			} else if(ctx.lunary!= null) {
 				left = visit(ctx.left);					
 				Value result = apply_lunary_op(op, left);
@@ -1032,6 +1026,72 @@ public class crmlVisitorImpl extends crmlBaseVisitor<Value> {
 			return new Value("res", sig.return_type, true);
 		}
 		
+		private int operatorPrecedence(String op) {
+			switch (op) {
+				case "or":  return 1;
+				case "and": return 2;
+				case "<": case "<=": case ">": case ">=": case "==": case "<>": return 3;
+				case "+": case "-": return 4;
+				case "*": case "/": case "mod": return 5;
+				case "^": return 6;
+				default:    return 7;
+			}
+		}
+
+		// Recursively flatten the left spine of a left-associative binary parse tree
+		// into a linear list of operands (vals) and operators (ops), preserving the
+		// original left-to-right token order needed for precedence re-evaluation.
+		private void flattenBinaryChain(crmlParser.ExpContext ctx,
+				List<crmlParser.ExpContext> vals, List<String> ops) {
+			if (ctx.binary != null) {
+				flattenBinaryChain(ctx.left, vals, ops);
+				String op = ctx.builtin_op().getText();
+				if (current_category != null) {
+					String mapped = category_map.getCategory(current_category).get(op);
+					if (mapped != null) op = mapped;
+				}
+				ops.add(op);
+				vals.add(ctx.right);
+			} else {
+				vals.add(ctx);
+			}
+		}
+
+		// Shunting-yard evaluation: re-applies correct operator precedence over a
+		// flat (ops, vals) chain that was parsed with uniform left-associativity.
+		private Value evaluateWithPrecedence(List<String> ops, List<crmlParser.ExpContext> vals) {
+			for (crmlParser.ExpContext val : vals)
+				if (val.iterator() != null)
+					throw new ParseCancellationException("iterators need to be implemented");
+
+			List<Value>  valueStack = new ArrayList<>();
+			List<String> opStack    = new ArrayList<>();
+
+			valueStack.add(visit(vals.get(0)));
+
+			for (int i = 0; i < ops.size(); i++) {
+				String op = ops.get(i);
+				while (!opStack.isEmpty() &&
+						operatorPrecedence(opStack.get(opStack.size() - 1)) >= operatorPrecedence(op)) {
+					String topOp = opStack.remove(opStack.size() - 1);
+					Value  r     = valueStack.remove(valueStack.size() - 1);
+					Value  l     = valueStack.remove(valueStack.size() - 1);
+					valueStack.add(apply_binary_op(topOp, l, r));
+				}
+				opStack.add(op);
+				valueStack.add(visit(vals.get(i + 1)));
+			}
+
+			while (!opStack.isEmpty()) {
+				String topOp = opStack.remove(opStack.size() - 1);
+				Value  r     = valueStack.remove(valueStack.size() - 1);
+				Value  l     = valueStack.remove(valueStack.size() - 1);
+				valueStack.add(apply_binary_op(topOp, l, r));
+			}
+
+			return valueStack.get(0);
+		}
+
 		private Value apply_binary_op(String op, Value left, Value right) {
 
 			// Periods while Boolean → new Periods restricted to when the Boolean is true.
