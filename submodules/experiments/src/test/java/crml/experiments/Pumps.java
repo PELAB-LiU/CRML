@@ -1,6 +1,5 @@
 package crml.experiments;
 
-import static j2html.TagCreator.iframe;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -44,7 +43,6 @@ public class Pumps extends ReportedTest {
         assertTrue(Files.exists(OUTPUT_DIR.resolve("CRMLtoModelica.mo")));
 
         Path crmlFile = SafeResource.get("models/pumps/pumps.crml");
-        String fileName = IOUtil.strip(crmlFile, ".crml");
 
         emit(crmlFile, "CRML file");
         String loaded = CRMLLibraryLoader.preprocessModel(crmlFile);

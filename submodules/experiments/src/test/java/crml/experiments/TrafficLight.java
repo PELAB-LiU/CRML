@@ -54,6 +54,7 @@ public class TrafficLight extends ReportedTest {
         assertTrue(Files.exists(PKG_DIR.resolve("package.mo")));
     }
 
+    @SuppressWarnings("unused")
     @Test
     void compileRequirements() throws Exception {
         Path library = SafeResource.get("modelica_libraries/CRMLtoModelica.mo");
@@ -61,6 +62,7 @@ public class TrafficLight extends ReportedTest {
         assertTrue(Files.exists(OUTPUT_DIR.resolve("CRMLtoModelica.mo")));
 
         Path crmlFile = SafeResource.get("models/traffic/reference.crml");        
+        @SuppressWarnings("unused")
         String fileName = IOUtil.strip(crmlFile,".crml");
 
         emit(crmlFile, "CRML file");

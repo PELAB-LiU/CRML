@@ -144,6 +144,26 @@ A model that uses FORM-L must import it: `model M is FORM_L union { … }`. The 
 
 For the full operator definitions, desugaring to ETL, and a worked example read hint file `form_l_library.md`.
 
+## Readability: helper variables and parentheses
+
+When an expression becomes complex or hard to parse, prefer one of two strategies:
+
+1. **Helper variables** — break the expression into named intermediate attributes. This makes the intent explicit and aids readability:
+
+```crml
+Boolean pump_ok is not fault and in_service;
+Periods op_periods is 'during' operational;
+Boolean req is op_periods 'ensure' pump_ok;
+```
+
+2. **Parentheses** — group sub-expressions explicitly rather than relying on operator precedence:
+
+```crml
+Boolean req is ('during' operational) 'ensure' (not fault and in_service);
+```
+
+Both strategies are preferred over writing deeply nested or ambiguous one-liners.
+
 ## Working with hints
 
 For detailed syntax, operator tables, and more examples call the documentation tools:

@@ -10,7 +10,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import crml.compiler.omc.OMCmsg;
-import crml.compiler.Utilities;
 import crml.compiler.omc.OMCUtil.CompileStage;
 import crml.compiler.util.CompilerRoot;
 import crml.compiler.util.FilesWrapper;
