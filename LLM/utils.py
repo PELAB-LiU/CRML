@@ -356,12 +356,15 @@ async def create_backend(
 
 # ── Agent base ────────────────────────────────────────────────────────────────
 
+DEFAULT_MAX_TOOL_CALLS: int = 20
+
+
 class ToolCallLimitExceeded(RuntimeError):
     pass
 
 
 class AgentBase:
-    def __init__(self, backend: Backend, verbose: bool = True, max_tool_calls: int | None = 15):
+    def __init__(self, backend: Backend, verbose: bool = True, max_tool_calls: int | None = DEFAULT_MAX_TOOL_CALLS):
         self.backend = backend
         self.verbose = verbose
         self.max_tool_calls = max_tool_calls
@@ -494,7 +497,7 @@ class AgentBase:
 # ── Concrete agents ───────────────────────────────────────────────────────────
 
 class HttpAgent(AgentBase):
-    def __init__(self, url: str, backend: Backend, verbose: bool = True, max_tool_calls: int | None = None):
+    def __init__(self, url: str, backend: Backend, verbose: bool = True, max_tool_calls: int | None = DEFAULT_MAX_TOOL_CALLS):
         super().__init__(backend, verbose, max_tool_calls)
         self.url = url
 
@@ -508,7 +511,7 @@ class HttpAgent(AgentBase):
 
 
 class StdioAgent(AgentBase):
-    def __init__(self, server_params: StdioServerParameters, backend: Backend, verbose: bool = True, max_tool_calls: int | None = None):
+    def __init__(self, server_params: StdioServerParameters, backend: Backend, verbose: bool = True, max_tool_calls: int | None = DEFAULT_MAX_TOOL_CALLS):
         super().__init__(backend, verbose, max_tool_calls)
         self.server_params = server_params
 
@@ -527,7 +530,7 @@ class MultiAgent(AgentBase):
         transports: list[str | StdioServerParameters],
         backend: Backend,
         verbose: bool = True,
-        max_tool_calls: int | None = None,
+        max_tool_calls: int | None = DEFAULT_MAX_TOOL_CALLS,
     ):
         super().__init__(backend, verbose, max_tool_calls)
         self.transports = transports
