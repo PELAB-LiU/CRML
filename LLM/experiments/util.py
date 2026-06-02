@@ -1,3 +1,8 @@
+import contextlib
+import io
+import sys
+from pathlib import Path
+
 # Source: https://github.com/PELAB-LiU/Text2VQL/blob/extension/dataset_construction/text2vql/seed/util.py
 class AttrDict:
     def __init__(self, data=None):
@@ -47,6 +52,34 @@ class AttrDict:
 
 
 import re
+
+
+class Tee:
+    """Context manager that writes stdout to both the terminal and a file simultaneously."""
+
+    def __init__(self, path: str | Path):
+        self._path = Path(path)
+
+    def __enter__(self):
+        self._file = self._path.open("w")
+        self._orig = sys.stdout
+
+        class _Stream:
+            def __init__(self, *streams):
+                self._streams = streams
+            def write(self, data):
+                for s in self._streams:
+                    s.write(data)
+            def flush(self):
+                for s in self._streams:
+                    s.flush()
+
+        sys.stdout = _Stream(self._orig, self._file)
+        return self
+
+    def __exit__(self, *_):
+        sys.stdout = self._orig
+        self._file.close()
 
 
 def extract_crml_block(text: str) -> str | None:
