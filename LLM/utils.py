@@ -36,7 +36,8 @@ class ResponseMetrics:
     total_tokens: int | None = None
     duration_s: float | None = None
     tokens_per_s: float | None = None
-    cache_read_tokens: int | None = None  # Anthropic prompt-cache reads
+    cache_read_tokens: int | None = None   # Anthropic / OpenAI prompt-cache reads
+    cache_write_tokens: int | None = None  # Anthropic cache-creation tokens
 
 
 @dataclass
@@ -83,23 +84,34 @@ class Backend(ABC):
 # ── Ollama backend ────────────────────────────────────────────────────────────
 
 class OllamaBackend(Backend):
-    def __init__(self, model: str, client: ollama.AsyncClient):
+    def __init__(self, model: str, client: ollama.AsyncClient, max_retries: int = 3):
         self._model = model
         self._client = client
+        self._max_retries = max_retries
 
     @property
     def model(self) -> str:
         return self._model
 
     async def complete(self, messages: list[dict], tools: list[dict]) -> LLMResponse:
-        t0 = time.monotonic()
-        response = await self._client.chat(
-            model=self._model,
-            messages=[_to_ollama_msg(m) for m in messages],
-            tools=tools,   # Ollama accepts the canonical function-calling format
-            options={"temperature": 0.6},
-        )
-        duration_s = time.monotonic() - t0
+        last_exc: BaseException | None = None
+        for attempt in range(self._max_retries + 1):
+            try:
+                t0 = time.monotonic()
+                response = await self._client.chat(
+                    model=self._model,
+                    messages=[_to_ollama_msg(m) for m in messages],
+                    tools=tools,
+                    options={"temperature": 0.6},
+                )
+                duration_s = time.monotonic() - t0
+                break
+            except (httpx.TimeoutException, httpx.NetworkError) as exc:
+                last_exc = exc
+                if attempt < self._max_retries:
+                    print(f"[WARNING] Ollama request failed (attempt {attempt + 1}/{self._max_retries + 1}): {exc}. Retrying...")
+                else:
+                    raise
 
         msg = response.message
         tool_calls = []
@@ -164,7 +176,7 @@ class OpenAIBackend(Backend):
 
     async def complete(self, messages: list[dict], tools: list[dict]) -> LLMResponse:
         t0 = time.monotonic()
-        kwargs: dict = {"model": self._model, "messages": messages, "temperature": 0.6}
+        kwargs: dict = {"model": self._model, "messages": messages}
         if tools:
             kwargs["tools"] = tools
         response = await self._client.chat.completions.create(**kwargs)
@@ -179,11 +191,15 @@ class OpenAIBackend(Backend):
             tool_calls.append(ToolCall(id=tc.id, name=tc.function.name, arguments=args))
 
         u = response.usage
+        cache_read = None
+        if u and getattr(u, "prompt_tokens_details", None):
+            cache_read = getattr(u.prompt_tokens_details, "cached_tokens", None)
         metrics = ResponseMetrics(
             input_tokens=u.prompt_tokens if u else None,
             output_tokens=u.completion_tokens if u else None,
             total_tokens=u.total_tokens if u else None,
             duration_s=duration_s,
+            cache_read_tokens=cache_read,
         )
         return LLMResponse(content=msg.content, tool_calls=tool_calls, metrics=metrics)
 
@@ -226,6 +242,7 @@ class AnthropicBackend(Backend):
             total_tokens=(u.input_tokens + u.output_tokens) if u else None,
             duration_s=duration_s,
             cache_read_tokens=getattr(u, "cache_read_input_tokens", None),
+            cache_write_tokens=getattr(u, "cache_creation_input_tokens", None),
         )
         return LLMResponse(content=content_text, tool_calls=tool_calls, metrics=metrics)
 
@@ -302,6 +319,8 @@ async def create_backend(
     host: str | None = None,
     api_key: str | None = None,
     headers: dict | None = None,
+    timeout_s: float = 300.0,
+    max_retries: int = 3,
 ) -> Backend:
     """Create and validate a backend.
 
@@ -322,7 +341,7 @@ async def create_backend(
     provider = provider.lower()
 
     if provider == "ollama":
-        client = ollama.AsyncClient(host=host, headers=headers)
+        client = ollama.AsyncClient(host=host, headers=headers, timeout=timeout_s)
         async with httpx.AsyncClient(headers=headers) as http:
             r = await http.get(f"{host}/api/tags")
             models = [m["name"] for m in r.json().get("models", [])]
@@ -330,17 +349,26 @@ async def create_backend(
             if not any(model in m for m in models):
                 raise ValueError(f"Model '{model}' not found. Run: ollama pull {model}")
             print(f"✓ Model '{model}' is ready.")
-        return OllamaBackend(model, client)
+        return OllamaBackend(model, client, max_retries=max_retries)
 
     elif provider == "openai":
         from openai import AsyncOpenAI
-        client = AsyncOpenAI(api_key=api_key, base_url=host)
+        client = AsyncOpenAI(
+            api_key=api_key,
+            base_url=host,
+            timeout=httpx.Timeout(timeout_s),
+            max_retries=max_retries,
+        )
         print(f"OpenAI backend ready (model={model})")
         return OpenAIBackend(model, client)
 
     elif provider == "anthropic":
         from anthropic import AsyncAnthropic
-        client = AsyncAnthropic(api_key=api_key)
+        client = AsyncAnthropic(
+            api_key=api_key,
+            timeout=httpx.Timeout(timeout_s),
+            max_retries=max_retries,
+        )
         print(f"Anthropic backend ready (model={model})")
         return AnthropicBackend(model, client)
 
@@ -350,11 +378,21 @@ async def create_backend(
 
 # ── Agent base ────────────────────────────────────────────────────────────────
 
+DEFAULT_MAX_TOOL_CALLS: int = 20
+
+
+class ToolCallLimitExceeded(RuntimeError):
+    pass
+
+
 class AgentBase:
-    def __init__(self, backend: Backend, verbose: bool = True):
+    def __init__(self, backend: Backend, verbose: bool = True, max_tool_calls: int | None = DEFAULT_MAX_TOOL_CALLS):
         self.backend = backend
         self.verbose = verbose
+        self.max_tool_calls = max_tool_calls
         self.messages: list[dict] = []
+        self.metrics_log: list[ResponseMetrics] = []
+        self.tool_call_limit_exceeded: bool = False
         self._sessions: list[ClientSession] = []
         self._stacks: list[AsyncExitStack] = []
         self._tool_to_session: dict[str, ClientSession] = {}
@@ -404,8 +442,11 @@ class AgentBase:
             print(f"User: {user_message}")
             print(f"Tools available: {self._tool_names}\n")
 
+        tool_calls_made = 0
+        last_content = ""
         while True:
             response = await self.backend.complete(self.messages, self._tools)
+            self.metrics_log.append(response.metrics)
 
             if not response.tool_calls:
                 self.messages.append({"role": "assistant", "content": response.content})
@@ -414,9 +455,16 @@ class AgentBase:
                     print(f"Assistant: {response.content}")
                 return response.content
 
+            last_content = response.content or ""
             self.messages.append(self.backend.make_assistant_tool_call_message(response))
 
             for tool_call in response.tool_calls:
+                if self.max_tool_calls is not None and tool_calls_made >= self.max_tool_calls:
+                    self.tool_call_limit_exceeded = True
+                    if self.verbose:
+                        print(f"[WARNING] Tool call limit of {self.max_tool_calls} reached; returning last content.")
+                    return last_content
+
                 if self.verbose:
                     print(f"→ Tool call: '{tool_call.name}' args={tool_call.arguments}")
 
@@ -424,6 +472,7 @@ class AgentBase:
                     tool_call.name, tool_call.arguments
                 )
                 result_text = str(result.content)
+                tool_calls_made += 1
 
                 if self.verbose:
                     preview = result_text[:300] + ("..." if len(result_text) > 300 else "")
@@ -435,6 +484,36 @@ class AgentBase:
 
     def reset(self):
         self.messages = []
+        self.metrics_log = []
+        self.tool_call_limit_exceeded = False
+
+    @property
+    def cumulative_metrics(self) -> dict:
+        """Sum all logged ResponseMetrics into a single dict; missing fields are None."""
+        def _sum(vals):
+            non_null = [v for v in vals if v is not None]
+            return sum(non_null) if non_null else None
+
+        inp  = _sum(m.input_tokens      for m in self.metrics_log)
+        out  = _sum(m.output_tokens     for m in self.metrics_log)
+        tot  = _sum(m.total_tokens      for m in self.metrics_log)
+        dur  = _sum(m.duration_s        for m in self.metrics_log)
+        cr   = _sum(m.cache_read_tokens  for m in self.metrics_log)
+        cw   = _sum(m.cache_write_tokens for m in self.metrics_log)
+        tps  = (out / dur) if (out and dur) else None
+
+        return {
+            "model":                     self.backend.model,
+            "api_calls":                 len(self.metrics_log),
+            "input_tokens":              inp,
+            "output_tokens":             out,
+            "total_tokens":              tot,
+            "duration_s":                round(dur, 3) if dur is not None else None,
+            "tokens_per_s":              round(tps, 1) if tps is not None else None,
+            "cache_read_tokens":         cr,
+            "cache_write_tokens":        cw,
+            "tool_call_limit_exceeded":  self.tool_call_limit_exceeded,
+        }
 
     async def __aenter__(self):
         raise NotImplementedError
@@ -446,8 +525,8 @@ class AgentBase:
 # ── Concrete agents ───────────────────────────────────────────────────────────
 
 class HttpAgent(AgentBase):
-    def __init__(self, url: str, backend: Backend, verbose: bool = True):
-        super().__init__(backend, verbose)
+    def __init__(self, url: str, backend: Backend, verbose: bool = True, max_tool_calls: int | None = DEFAULT_MAX_TOOL_CALLS):
+        super().__init__(backend, verbose, max_tool_calls)
         self.url = url
 
     async def __aenter__(self):
@@ -460,8 +539,8 @@ class HttpAgent(AgentBase):
 
 
 class StdioAgent(AgentBase):
-    def __init__(self, server_params: StdioServerParameters, backend: Backend, verbose: bool = True):
-        super().__init__(backend, verbose)
+    def __init__(self, server_params: StdioServerParameters, backend: Backend, verbose: bool = True, max_tool_calls: int | None = DEFAULT_MAX_TOOL_CALLS):
+        super().__init__(backend, verbose, max_tool_calls)
         self.server_params = server_params
 
     async def __aenter__(self):
@@ -479,8 +558,9 @@ class MultiAgent(AgentBase):
         transports: list[str | StdioServerParameters],
         backend: Backend,
         verbose: bool = True,
+        max_tool_calls: int | None = DEFAULT_MAX_TOOL_CALLS,
     ):
-        super().__init__(backend, verbose)
+        super().__init__(backend, verbose, max_tool_calls)
         self.transports = transports
 
     async def __aenter__(self):
