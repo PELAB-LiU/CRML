@@ -370,6 +370,7 @@ class AgentBase:
         self.max_tool_calls = max_tool_calls
         self.messages: list[dict] = []
         self.metrics_log: list[ResponseMetrics] = []
+        self.tool_call_limit_exceeded: bool = False
         self._sessions: list[ClientSession] = []
         self._stacks: list[AsyncExitStack] = []
         self._tool_to_session: dict[str, ClientSession] = {}
@@ -420,6 +421,7 @@ class AgentBase:
             print(f"Tools available: {self._tool_names}\n")
 
         tool_calls_made = 0
+        last_content = ""
         while True:
             response = await self.backend.complete(self.messages, self._tools)
             self.metrics_log.append(response.metrics)
@@ -431,13 +433,15 @@ class AgentBase:
                     print(f"Assistant: {response.content}")
                 return response.content
 
+            last_content = response.content or ""
             self.messages.append(self.backend.make_assistant_tool_call_message(response))
 
             for tool_call in response.tool_calls:
                 if self.max_tool_calls is not None and tool_calls_made >= self.max_tool_calls:
-                    raise ToolCallLimitExceeded(
-                        f"Tool call limit of {self.max_tool_calls} reached in a single chat turn"
-                    )
+                    self.tool_call_limit_exceeded = True
+                    if self.verbose:
+                        print(f"[WARNING] Tool call limit of {self.max_tool_calls} reached; returning last content.")
+                    return last_content
 
                 if self.verbose:
                     print(f"→ Tool call: '{tool_call.name}' args={tool_call.arguments}")
@@ -459,6 +463,7 @@ class AgentBase:
     def reset(self):
         self.messages = []
         self.metrics_log = []
+        self.tool_call_limit_exceeded = False
 
     @property
     def cumulative_metrics(self) -> dict:
@@ -476,15 +481,16 @@ class AgentBase:
         tps  = (out / dur) if (out and dur) else None
 
         return {
-            "model":               self.backend.model,
-            "api_calls":           len(self.metrics_log),
-            "input_tokens":        inp,
-            "output_tokens":       out,
-            "total_tokens":        tot,
-            "duration_s":          round(dur, 3) if dur is not None else None,
-            "tokens_per_s":        round(tps, 1) if tps is not None else None,
-            "cache_read_tokens":   cr,
-            "cache_write_tokens":  cw,
+            "model":                     self.backend.model,
+            "api_calls":                 len(self.metrics_log),
+            "input_tokens":              inp,
+            "output_tokens":             out,
+            "total_tokens":              tot,
+            "duration_s":                round(dur, 3) if dur is not None else None,
+            "tokens_per_s":              round(tps, 1) if tps is not None else None,
+            "cache_read_tokens":         cr,
+            "cache_write_tokens":        cw,
+            "tool_call_limit_exceeded":  self.tool_call_limit_exceeded,
         }
 
     async def __aenter__(self):
