@@ -50,6 +50,9 @@ exp-sri2:
 exp-ps:
 	$(GRADLE_CMD) experiments:test --tests "crml.experiments.Pumps"
 
+classify-llm:
+	$(GRADLE_CMD) :experiments:classifyLLMFiles
+
 
 #########
 # Other #

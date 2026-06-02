@@ -26,3 +26,11 @@ tasks.test {
         events("passed", "skipped", "failed")
     }
 }
+
+tasks.register<JavaExec>("classifyLLMFiles") {
+    dependsOn(tasks.classes)
+    classpath = sourceSets.main.get().runtimeClasspath
+    mainClass.set("crml.experiments.LLMFileClassifier")
+    systemProperty("llm.generated.dir", rootDir.resolve("LLM/generated").absolutePath)
+    args(rootDir.resolve("LLM/generated").absolutePath)
+}
