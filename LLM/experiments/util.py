@@ -61,7 +61,7 @@ class Tee:
         self._path = Path(path)
 
     def __enter__(self):
-        self._file = self._path.open("w")
+        self._file = self._path.open("w", buffering=1)
         self._orig = sys.stdout
 
         class _Stream:
