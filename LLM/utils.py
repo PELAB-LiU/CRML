@@ -84,23 +84,34 @@ class Backend(ABC):
 # ── Ollama backend ────────────────────────────────────────────────────────────
 
 class OllamaBackend(Backend):
-    def __init__(self, model: str, client: ollama.AsyncClient):
+    def __init__(self, model: str, client: ollama.AsyncClient, max_retries: int = 3):
         self._model = model
         self._client = client
+        self._max_retries = max_retries
 
     @property
     def model(self) -> str:
         return self._model
 
     async def complete(self, messages: list[dict], tools: list[dict]) -> LLMResponse:
-        t0 = time.monotonic()
-        response = await self._client.chat(
-            model=self._model,
-            messages=[_to_ollama_msg(m) for m in messages],
-            tools=tools,   # Ollama accepts the canonical function-calling format
-            options={"temperature": 0.6},
-        )
-        duration_s = time.monotonic() - t0
+        last_exc: BaseException | None = None
+        for attempt in range(self._max_retries + 1):
+            try:
+                t0 = time.monotonic()
+                response = await self._client.chat(
+                    model=self._model,
+                    messages=[_to_ollama_msg(m) for m in messages],
+                    tools=tools,
+                    options={"temperature": 0.6},
+                )
+                duration_s = time.monotonic() - t0
+                break
+            except (httpx.TimeoutException, httpx.NetworkError) as exc:
+                last_exc = exc
+                if attempt < self._max_retries:
+                    print(f"[WARNING] Ollama request failed (attempt {attempt + 1}/{self._max_retries + 1}): {exc}. Retrying...")
+                else:
+                    raise
 
         msg = response.message
         tool_calls = []
@@ -308,6 +319,8 @@ async def create_backend(
     host: str | None = None,
     api_key: str | None = None,
     headers: dict | None = None,
+    timeout_s: float = 300.0,
+    max_retries: int = 3,
 ) -> Backend:
     """Create and validate a backend.
 
@@ -328,7 +341,7 @@ async def create_backend(
     provider = provider.lower()
 
     if provider == "ollama":
-        client = ollama.AsyncClient(host=host, headers=headers)
+        client = ollama.AsyncClient(host=host, headers=headers, timeout=timeout_s)
         async with httpx.AsyncClient(headers=headers) as http:
             r = await http.get(f"{host}/api/tags")
             models = [m["name"] for m in r.json().get("models", [])]
@@ -336,17 +349,26 @@ async def create_backend(
             if not any(model in m for m in models):
                 raise ValueError(f"Model '{model}' not found. Run: ollama pull {model}")
             print(f"✓ Model '{model}' is ready.")
-        return OllamaBackend(model, client)
+        return OllamaBackend(model, client, max_retries=max_retries)
 
     elif provider == "openai":
         from openai import AsyncOpenAI
-        client = AsyncOpenAI(api_key=api_key, base_url=host)
+        client = AsyncOpenAI(
+            api_key=api_key,
+            base_url=host,
+            timeout=httpx.Timeout(timeout_s),
+            max_retries=max_retries,
+        )
         print(f"OpenAI backend ready (model={model})")
         return OpenAIBackend(model, client)
 
     elif provider == "anthropic":
         from anthropic import AsyncAnthropic
-        client = AsyncAnthropic(api_key=api_key)
+        client = AsyncAnthropic(
+            api_key=api_key,
+            timeout=httpx.Timeout(timeout_s),
+            max_retries=max_retries,
+        )
         print(f"Anthropic backend ready (model={model})")
         return AnthropicBackend(model, client)
 
