@@ -37,7 +37,7 @@ model ClassBatterySystem is {
         Real temperature is external;
         Boolean overTemp is external;
         // Derived attribute: requirement expressed as a formula
-        Boolean safeTemp is 'during' inOperation 'ensure' not overTemp;
+        Boolean safeTemp is 'during' inOperation 'ensure' (not overTemp);
     } extends Equipment;
 
     // BatteryPack groups three cells, itself extending Equipment
@@ -62,7 +62,7 @@ model ClassInstantiation is {
         Real voltage is external;
         Real temperature is external;
         Boolean overTemp is external;
-        Boolean safeTemp is 'during' inOperation 'ensure' not overTemp;
+        Boolean safeTemp is 'during' inOperation 'ensure' (not overTemp);
     } extends Equipment;
 
     // Instantiate a BatteryCell object, binding the 'id' external attribute

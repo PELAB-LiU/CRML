@@ -217,7 +217,7 @@ public class SpecificationTestListener implements TestExecutionListener, AfterEa
                         summary(entry.getKey()),
                         pre(code(ast))
                     ).render());
-            } else if (entry.getValue() instanceof String && ("CRML model".equals(entry.getKey()) | "CRML loaded".equals(entry.getKey()))) {
+            } else if (entry.getValue() instanceof String && ("CRML model".equals(entry.getKey()) | "CRML loaded".equals(entry.getKey()) | "Modelica Code".equals(entry.getKey()))) {
                     String model = (String) entry.getValue();
                     node.info(details(
                         summary(entry.getKey()),

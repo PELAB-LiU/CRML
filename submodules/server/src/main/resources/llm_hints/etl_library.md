@@ -10,17 +10,17 @@ ETL defines three Boolean connectives as templates (Boolean-to-Boolean, no type 
 
 | Template | Syntax | Meaning |
 |---|---|---|
-| Disjunction | `b1 or b2` | `not (not b1 and not b2)` |
-| Exclusive or | `b1 xor b2` | `(b1 or b2) and not (b1 and b2)` |
-| Implication | `b1 implies b2` | `not b1 or b2` |
+| Disjunction | `b1 or b2` | `not ((not b1) and (not b2))` |
+| Exclusive or | `b1 xor b2` | `(b1 or b2) and (not (b1 and b2))` |
+| Implication | `b1 implies b2` | `(not b1) or b2` |
 
 ```crml
 model BooleanTemplates is {
     // or is built-in; shown here only for documentation:
-    // Template b1 or b2 = not (not b1 and not b2);
+    // Template b1 or b2 = not ((not b1) and (not b2));
 
-    Template b1 xor b2 = (b1 or b2) and not (b1 and b2);
-    Template b1 implies b2 = not b1 or b2;
+    Template b1 xor b2 = (b1 or b2) and (not (b1 and b2));
+    Template b1 implies b2 = (not b1) or b2;
 };
 ```
 
@@ -42,11 +42,11 @@ model EventOperatorsETL is {
 
     // Ticks each time b transitions to true / false
     Clock becomes_true  is new Clock b;
-    Clock becomes_false is new Clock not b;
+    Clock becomes_false is new Clock (not b);
 
     // Same, restricted to within P
-    Clock becomes_true_inside  is becomes_true  filter (time >= P start) and (time <= P end);
-    Clock becomes_false_inside is becomes_false filter (time >= P start) and (time <= P end);
+    Clock becomes_true_inside  is becomes_true  filter ((time >= P start) and (time <= P end));
+    Clock becomes_false_inside is becomes_false filter ((time >= P start) and (time <= P end));
 };
 ```
 
@@ -70,11 +70,11 @@ model EventOperatorsETL is {
 
     // Ticks each time b transitions to true / false
     Clock becomes_true  is new Clock b;
-    Clock becomes_false is new Clock not b;
+    Clock becomes_false is new Clock (not b);
 
     // Same, restricted to within P
-    Clock becomes_true_inside  is becomes_true  filter (time >= P start) and (time <= P end);
-    Clock becomes_false_inside is becomes_false filter (time >= P start) and (time <= P end);
+    Clock becomes_true_inside  is becomes_true  filter ((time >= P start) and (time <= P end));
+    Clock becomes_false_inside is becomes_false filter ((time >= P start) and (time <= P end));
 };
 ```
 
@@ -114,7 +114,7 @@ model RequirementEvaluationOperators is {
     Period  P   is external;
     Periods PS  is external;
 
-    Boolean decided   is phi or new Boolean P end;
+    Boolean decided   is phi or (new Boolean (P end));
     Boolean evaluated is integrate (decided * phi) on P;
     Boolean checked   is integrate phi on PS;
 };
@@ -183,7 +183,7 @@ model BatteryMonitoring is {
     // --- Charge session period ---
     // A session starts when charging begins and ends when it stops.
     Clock  session_start is new Clock cell_charging;
-    Clock  session_end   is new Clock not cell_charging;
+    Clock  session_end   is new Clock (not cell_charging);
     Period session       is [ session_start, session_end ];
 
     // --- ETL Boolean connectives ---
@@ -195,23 +195,23 @@ model BatteryMonitoring is {
     // --- Event counting inside the period ---
     // Count how many over-temperature events occurred during the session.
     Clock   overTemp_events is new Clock overTemp;
-    Clock   overTemp_inside is overTemp_events filter (time >= session start) and (time <= session end);
+    Clock   overTemp_inside is overTemp_events filter ((time >= session start) and (time <= session end));
     Integer overTemp_count  is card overTemp_inside;
 
     // --- Implication example ---
     // If over-temperature occurred, then voltage must eventually stabilize.
     Boolean voltage_stabilized        is terminal_voltage >= voltage_min;
-    Boolean overTemp_implies_recovery is not overTemp or voltage_stabilized;
+    Boolean overTemp_implies_recovery is (not overTemp) or voltage_stabilized;
 
     // --- Core ETL evaluation ---
     // decide: resolves as soon as healthy is false, or at session end.
-    Boolean health_decision is healthy or new Boolean session end;
+    Boolean health_decision is healthy or (new Boolean (session end));
 
     // evaluate: true iff healthy held at the decision point.
     Boolean session_ok is integrate (health_decision * healthy) on session;
 
     // check: verify over all sessions defined by charge start/stop clocks.
-    Periods all_sessions          is [ new Clock cell_charging, new Clock not cell_charging ];
+    Periods all_sessions          is [ new Clock cell_charging, new Clock (not cell_charging) ];
     Boolean requirement_satisfied is integrate healthy on all_sessions;
 
 };

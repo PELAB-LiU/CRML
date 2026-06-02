@@ -14,6 +14,7 @@ class OutputSignal:
     """A requirement output signal to compare between candidate and reference."""
     name: str
     signal_type: str = "Boolean4"  # "Boolean4" or "Real"
+    candidate_name: str | None = None  # if set, candidate uses this name; reference always uses `name`
 
 
 @dataclass
@@ -38,6 +39,7 @@ class DomainSpec:
     stop_time: float = 200.0
     n_intervals: int = 400
     real_tolerance: float = 1e-6
+    req_model_name: str = "ics_reqs"  # top-level model name produced by the CRML compiler
 
 
 @dataclass

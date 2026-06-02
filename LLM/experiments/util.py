@@ -87,12 +87,12 @@ async def generate_crml_sequence(agent, seed: str, interactions, lang: str = "en
     results = []
 
     await agent.chat(
-        "You are a CRML modelling assistant. "
+        "You are a modelling assistant translating natural language requirements into Common Requirement Modeling Language. "
         "I will give you a seed CRML model and then add requirements one by one. "
-        "After each requirement, extend the model to encode it and return the complete updated model "
+        "After each requirement, extend the model with the CRML formalization of the requirement and return the complete updated model "
         "in a ```crml``` code block. The final model must be syntactically valid.\n\n"
-        "Tools are available for looking up the CRML language syntax, features, and guidelines, "
-        "as well as for checking model syntax.\n\n"
+        "Explain your solution in comments. "
+        "Tools are available for looking up the CRML coding guidelines, language syntax, as well as for checking model syntax.\n\n"
         f"Seed model:\n```crml\n{seed}\n```\n\nAcknowledge and wait for the first requirement."
     )
 

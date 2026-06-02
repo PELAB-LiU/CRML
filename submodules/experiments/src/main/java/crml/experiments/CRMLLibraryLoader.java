@@ -32,7 +32,12 @@ public class CRMLLibraryLoader {
 
     public static String preprocessModel(String model) throws IOException {
         CRMLModelModifier modifier = new CRMLModelModifier();
-        modifier.inject(model, "");  // discover referenced library names
+        try {
+            modifier.inject(model, "");  // discover referenced library names
+        } catch (IllegalArgumentException e) {
+            // No recognised library header — model has no dependencies, pass through unchanged.
+            return model;
+        }
         String payload = resolveLibraries(modifier.getFoundLibNames(), new LinkedHashSet<>());
         return modifier.inject(model, payload);
     }
