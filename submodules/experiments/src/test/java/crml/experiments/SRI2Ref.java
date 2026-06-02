@@ -43,7 +43,6 @@ public class SRI2Ref extends ReportedTest {
         assertTrue(Files.exists(OUTPUT_DIR.resolve("CRMLtoModelica.mo")));
 
         Path crmlFile = SafeResource.get("models/sri/sri2_ref.crml");
-        String fileName = IOUtil.strip(crmlFile, ".crml");
 
         emit(crmlFile, "CRML file");
 

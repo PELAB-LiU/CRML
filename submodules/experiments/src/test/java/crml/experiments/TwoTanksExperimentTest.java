@@ -8,13 +8,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.Comparator;
-import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import crml.compiler.CRMLC;
-import crml.compiler.Utilities;
 import crml.compiler.omc.OMGenerator;
 import crml.language.util.Parser;
 import crml.language.util.Parser.ParserResult;
