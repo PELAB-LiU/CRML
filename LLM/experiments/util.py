@@ -118,7 +118,6 @@ async def generate_crml_single(agent, seed: str, req_text: str) -> str:
         "I will give you a seed CRML model and a single requirement. "
         "Extend the model with the CRML formalization of the requirement and return the complete updated model "
         "in a ```crml``` code block. The final model must be syntactically valid.\n\n"
-        "Explain your solution in comments. "
         "Tools are available for looking up the CRML coding guidelines, language syntax, as well as for checking model syntax.\n\n"
         f"Seed model:\n```crml\n{seed}\n```\n\nAcknowledge and wait for the requirement."
     )
