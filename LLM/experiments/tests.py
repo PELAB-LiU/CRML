@@ -25,7 +25,7 @@ TESTS = AttrDict({
             },
             {
                 "id": "temp2",
-                "en": "When the SRI system temperature exceeds the normal operating limits, the SRI system temperature shall return to the normal operating range within one minute.",
+                "en": "When the SRI system temperature exceeds the normal operating limits, the SRI system temperature shall return to the normal operating range within one minute. (In normal operation, the SRI system shall have a temperature between 16°C and 30°C.)",
             },
             {
                 "id": "speed1",
