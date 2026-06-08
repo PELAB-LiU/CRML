@@ -122,19 +122,9 @@ public class crmlVisitorImpl extends crmlBaseVisitor<Value> {
 		if (!ctx.definition_type().getText().equals("model"))
 			throw new ParseCancellationException("library and package not implemented yet");
 
-		// load libraries and packages
-		if (!ctx.dependency().isEmpty()) {
-			for (DependencyContext d : ctx.dependency()) {
-
-			}
-		}
-
 		buffer.append("model " + ctx.id().getText() + " \n");
 
-		List<Element_defContext> cL = ctx.element_def();
-		for (Element_defContext e : cL)
-			buffer.append(visit(e).toModelica());
-
+		// Load libraries first so operators are registered before elements are visited
 		if (!ctx.dependency().isEmpty()) {
 			for (DependencyContext d : ctx.dependency()) {
 				for (IdContext libId : d.id()) {
@@ -142,6 +132,11 @@ public class crmlVisitorImpl extends crmlBaseVisitor<Value> {
 				}
 			}
 		}
+
+		List<Element_defContext> cL = ctx.element_def();
+		for (Element_defContext e : cL)
+			buffer.append(visit(e).toModelica());
+
 		buffer.append(localFunctionCalls);
 
 		buffer.append("end " + ctx.id().getText() + ";\n");
@@ -151,6 +146,10 @@ public class crmlVisitorImpl extends crmlBaseVisitor<Value> {
 
 	@Override
 	public Value visitElement_def(crmlParser.Element_defContext ctx) {
+		// the element is a definition
+		if (ctx.var_def() != null)
+			return visit(ctx.var_def());
+
 		// the element is a template
 		if (ctx.template() != null)
 			return visit(ctx.template());
@@ -688,7 +687,7 @@ public class crmlVisitorImpl extends crmlBaseVisitor<Value> {
 				UserOperatorCall left, right;
 				left = reconstructUserOperator(ctx.left, "", args);
 				right = reconstructUserOperator(ctx.right, "", args);
-				return new UserOperatorCall(left.name + ctx.user_keyword().getText().replace("'", "") + right.name,
+				return new UserOperatorCall(string + left.name + ctx.user_keyword().getText().replace("'", "") + right.name,
 						args);
 			} else {
 				return reconstructUserOperator(ctx.exp(0), string + ctx.user_keyword().getText().replace("'", ""),

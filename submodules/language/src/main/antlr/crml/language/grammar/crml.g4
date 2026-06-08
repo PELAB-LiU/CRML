@@ -25,7 +25,7 @@ category_pair : '(' op ',' op ')';
 
 //association : 'Category' empty_set c_set=id 'is' 'associate' c_name=id 'with' c_op_name=user_keyword ';';
  
-var_def : var_qualifier? type id  (arg_list | 'is' (exp | is_external = 'external'))? ';' ;
+var_def : var_qualifier? type id  ( ('is' (is_external = 'external' | exp)) | arg_list)? ';' ;
 
 operator : 'Operator' '[' type ']' operator_def ';' ;
 
