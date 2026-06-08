@@ -99,11 +99,7 @@ iterator : name= ITERATOR;
 
 if_exp : 'if' if_e=exp 'then' then_e=exp ('else' else_e=exp);
 
-<<<<<<< HEAD
-constructor : 'new' type (arg_list | exp);
-=======
 constructor : 'new' type (arg_list | exp)?;
->>>>>>> fixes
 	
 period_op : lb=('['| ']') exp ',' exp rb=('['| ']') ; 
 
