@@ -25,7 +25,7 @@ category_pair : '(' op ',' op ')';
 
 //association : 'Category' empty_set c_set=id 'is' 'associate' c_name=id 'with' c_op_name=user_keyword ';';
  
-var_def : var_qualifier? type id  (arg_list | 'is' (exp | is_external = 'external'))? ';' ;
+var_def : var_qualifier? type id  ( ('is' (is_external = 'external' | exp)) | arg_list)? ';' ;
 
 operator : 'Operator' '[' type ']' operator_def ';' ;
 
@@ -80,6 +80,8 @@ when_exp : 'when' when_e=exp 'then' then_e=exp;
 
 integrate : 'integrate' exp 'on' exp;
 
+duration : 'duration' exp 'on' exp;
+
 tick : 'tick' id;
     
  exp : sub_exp | id | constant | constructor | sum |trim |  proj | period_op | iterator
@@ -91,13 +93,13 @@ tick : 'tick' id;
 	 | left=exp ubinary=user_keyword right=exp 
 	 | left=exp uleft=user_keyword  
  	 | 'element' | 'terminate' | when_exp | exp 'at' at=exp 
- 	 | integrate | tick |crml_component_reference | if_exp | set_def | 'evaluate' exp ;
+ 	 | integrate | tick |crml_component_reference | if_exp | set_def | 'evaluate' exp | duration;
  	 
 iterator : name= ITERATOR;
 
 if_exp : 'if' if_e=exp 'then' then_e=exp ('else' else_e=exp);
 
-constructor : 'new' type (arg_list | exp);
+constructor : 'new' type (arg_list | exp)?;
 	
 period_op : lb=('['| ']') exp ',' exp rb=('['| ']') ; 
 

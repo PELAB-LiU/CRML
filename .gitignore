@@ -6,6 +6,10 @@ build
 
 # Ignore translated tests
 generated
+generated__old
+
+# Ignore figures
+LLM/figures*.pdf
 
 # Ignore jars
 jars/

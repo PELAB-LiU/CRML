@@ -50,4 +50,12 @@ def load_generated(generated_dir: Path = GENERATED_DIR) -> pd.DataFrame:
             }
             rows.append(row)
 
-    return pd.DataFrame(rows)
+    df = pd.DataFrame(rows)
+
+    results_path = generated_dir / "results.csv"
+    if results_path.exists():
+        cls_df = pd.read_csv(results_path)
+        cls_df = cls_df.rename(columns={"file": "crml"})
+        df = df.merge(cls_df[["crml", "classification", "detail"]], on="crml", how="left")
+
+    return df

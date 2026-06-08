@@ -110,6 +110,21 @@ def get_req_text(interaction, lang: str = "en") -> str:
     return str(req)
 
 
+async def generate_crml_single(agent, seed: str, req_text: str) -> str:
+    """Extend *seed* with a single requirement via *agent*."""
+    agent.reset()
+    await agent.chat(
+        "You are a modelling assistant translating natural language requirements into Common Requirement Modeling Language. "
+        "I will give you a seed CRML model and a single requirement. "
+        "Extend the model with the CRML formalization of the requirement and return the complete updated model "
+        "in a ```crml``` code block. The final model must be syntactically valid.\n\n"
+        "Tools are available for looking up the CRML coding guidelines, language syntax, as well as for checking model syntax.\n\n"
+        f"Seed model:\n```crml\n{seed}\n```\n\nAcknowledge and wait for the requirement."
+    )
+    response = await agent.chat(f"Requirement: {req_text}")
+    return extract_crml_block(response) or response
+
+
 async def generate_crml_sequence(agent, seed: str, interactions, lang: str = "en") -> list[str]:
     """Grow a CRML model from *seed* by adding requirements one by one via *agent*.
 
