@@ -55,13 +55,6 @@ public class crmlVisitorImpl extends crmlBaseVisitor<Value> {
 
 	private String prefix = ""; // to keep track of variable prefix
 
-	private CategoryMapping category_map;
-
-	private String current_category = null;
-	crmlParser parser;
-
-	private String prefix = ""; // to keep track of variable prefix
-
 	private String input_prefix;
 	private String output_prefix;
 
