@@ -1,6 +1,7 @@
 """Writes Modelica files to a temp dir, compiles with omc, runs simulations."""
 
 import csv
+import json
 import shutil
 import subprocess
 import tempfile
@@ -52,6 +53,8 @@ class SimRunner:
         self._keep = keep
         self._work_dir: Path | None = None
         self._sim_binary: Path | None = None
+        self._runs_dir: Path | None = None
+        self._run_index: int = 0
 
     # ------------------------------------------------------------------
     # Setup (compile once)
@@ -64,7 +67,11 @@ class SimRunner:
         else:
             self._work_dir = Path(tempfile.mkdtemp(prefix="crml_harness_"))
         print(f"[runner] Setup... {self._work_dir}")
-        
+
+        self._runs_dir = self._work_dir / "runs"
+        self._runs_dir.mkdir(exist_ok=True)
+        self._run_index = 0
+
         self._write_files(candidate_mo, reference_mo)
         self._build(candidate_mo, reference_mo)
 
@@ -78,7 +85,7 @@ class SimRunner:
         (harness_dir / "package.mo").write_text(package_mo(HARNESS_PKG))
 
         # Write Candidate and Reference as subpackages of crml_harness.
-        # package.mo files are written for OM import; ics_reqs are loaded via
+        # package.mo files are written for OM import; req models are loaded via
         # loadString in the build script to avoid the OMC 1.26 auto-scan bug.
         for subpkg, mo_src in (
             (CANDIDATE_SUBPKG, candidate_mo),
@@ -87,7 +94,7 @@ class SimRunner:
             sub_dir = harness_dir / subpkg
             sub_dir.mkdir(exist_ok=True)
             (sub_dir / "package.mo").write_text(package_mo(subpkg, within=HARNESS_PKG))
-            (sub_dir / "ics_reqs.mo").write_text(mo_src)
+            (sub_dir / f"{self.domain.req_model_name}.mo").write_text(mo_src)
 
         sys_src = rewrite_within(self.domain.system_model_source, HARNESS_PKG)
         (harness_dir / f"{self.domain.system_model_name}.mo").write_text(sys_src)
@@ -130,7 +137,7 @@ class SimRunner:
             'loadFile("CRMLtoModelica.mo"); getErrorString();',
             # Declare all packages via loadString — avoids OMC 1.26 auto-scan
             # bug where loadFile("package.mo") scans the directory and chokes
-            # on ics_reqs.mo nested models with quoted identifiers.
+            # on req model .mo files with nested models with quoted identifiers.
             f'loadString("within ;\\npackage {HARNESS_PKG}\\nend {HARNESS_PKG};\\n"); getErrorString();',
             f'loadString("within {HARNESS_PKG};\\npackage {CANDIDATE_SUBPKG}\\nend {CANDIDATE_SUBPKG};\\n"); getErrorString();',
             f'loadString("{cand_esc}"); getErrorString();',
@@ -173,7 +180,59 @@ class SimRunner:
                 raise SimulationError("No result CSV found after simulation.")
             csv_path = candidates[0]
 
-        return _read_csv(csv_path)
+        data = _read_csv(csv_path)
+        self._archive_run(params, csv_path)
+        return data
+
+    # ------------------------------------------------------------------
+    # Per-run archive
+    # ------------------------------------------------------------------
+
+    def _archive_run(self, params: dict[str, float], csv_path: Path) -> None:
+        """Save result CSV, params, and a re-runnable .mos into runs/run_NNNN/."""
+        run_dir = self._runs_dir / f"run_{self._run_index:04d}"
+        run_dir.mkdir(parents=True, exist_ok=True)
+
+        (run_dir / "params.json").write_text(json.dumps(params, indent=2))
+        shutil.copy(csv_path, run_dir / "result.csv")
+        (run_dir / "run.mos").write_text(self._run_script(params))
+
+        self._run_index += 1
+
+    def _run_script(self, params: dict[str, float]) -> str:
+        """Generate a .mos script that re-runs this scenario in OpenModelica.
+
+        The script uses paths relative to the parent work directory so it can be
+        opened with 'omc run.mos' from inside runs/run_NNNN/, or pasted into the
+        OpenModelica script editor after adjusting the cd() call.
+        """
+        d = self.domain
+        lines = [
+            "// Re-run this scenario in OpenModelica.",
+            "// From inside runs/run_NNNN/:  omc run.mos",
+            "// Or open in the OM GUI script editor and adjust the cd() path.",
+            f'cd("../..");',
+            f'loadFile("CRMLtoModelica.mo"); getErrorString();',
+            f'loadFile("{HARNESS_PKG}/package.mo"); getErrorString();',
+            f'loadFile("{HARNESS_PKG}/{CANDIDATE_SUBPKG}/package.mo"); getErrorString();',
+            f'loadFile("{HARNESS_PKG}/{CANDIDATE_SUBPKG}/{d.req_model_name}.mo"); getErrorString();',
+            f'loadFile("{HARNESS_PKG}/{REFERENCE_SUBPKG}/package.mo"); getErrorString();',
+            f'loadFile("{HARNESS_PKG}/{REFERENCE_SUBPKG}/{d.req_model_name}.mo"); getErrorString();',
+            f'loadFile("{HARNESS_PKG}/{d.system_model_name}.mo"); getErrorString();',
+            f'loadFile("{HARNESS_PKG}/ComparisonHarness.mo"); getErrorString();',
+        ]
+        simflags = ""
+        if params:
+            override = ",".join(f"system.{k}={v}" for k, v in params.items())
+            simflags = f', simflags="-override={override}"'
+        lines.append(
+            f'simulate({HARNESS_PKG}.ComparisonHarness,'
+            f' stopTime={d.stop_time},'
+            f' numberOfIntervals={d.n_intervals},'
+            f' outputFormat="csv"'
+            f'{simflags}); getErrorString();'
+        )
+        return "\n".join(lines) + "\n"
 
     # ------------------------------------------------------------------
     # Cleanup

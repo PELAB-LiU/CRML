@@ -19,7 +19,7 @@ class CRMLCompiler:
         """Compile CRML source to Modelica.
 
         Returns (modelica_code, filename) where modelica_code starts with
-        `within <pkg_name>;` and filename is e.g. `ics_reqs.mo`.
+        `within <pkg_name>;` and filename is e.g. `SRI.mo`.
         """
         result = self._Parser().parse(crml_source)
         if result.syntax().hasErrors():

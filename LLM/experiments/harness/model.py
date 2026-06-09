@@ -39,7 +39,7 @@ class DomainSpec:
     stop_time: float = 200.0
     n_intervals: int = 400
     real_tolerance: float = 1e-6
-    req_model_name: str = "ics_reqs"  # top-level model name produced by the CRML compiler
+    req_model_name: str = "SRI"  # top-level model name produced by the CRML compiler
 
 
 @dataclass

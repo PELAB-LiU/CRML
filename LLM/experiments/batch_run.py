@@ -34,6 +34,7 @@ from experiments.harness import (
     OMCBuildError,
     RequirementMapping,
 )
+from experiments.harness.generator import REFERENCE_PKG
 from experiments.loader import GENERATED_DIR, load_generated
 
 _REPO = Path(__file__).resolve().parent.parent.parent
@@ -74,6 +75,7 @@ class BatchRunner:
         n_iters: int = 20,
         seed: int = 42,
         work_dir: Path | None = None,
+        keep: bool = False,
         generated_dir: Path = GENERATED_DIR,
         verbose: bool = False,
     ) -> None:
@@ -82,8 +84,12 @@ class BatchRunner:
         self.n_iters = n_iters
         self.seed = seed
         self.work_dir = work_dir
+        self.keep = keep
         self.generated_dir = generated_dir
         self.verbose = verbose
+        # Cache compiled reference Modelica per domain so it is compiled once,
+        # not once per candidate model.
+        self._ref_mo_cache: dict[str, str] = {}
 
     # ------------------------------------------------------------------
     # Public API
@@ -131,6 +137,21 @@ class BatchRunner:
         ref_crml = entry.ref_crml_path.read_text()
         harness = FuzzHarness(adapted, self.compiler, entry.crmltomodelica_path)
 
+        # Compile the reference once per domain and reuse across all candidates.
+        if domain_key not in self._ref_mo_cache:
+            ref_mo, _ = self.compiler.compile(ref_crml, REFERENCE_PKG)
+            self._ref_mo_cache[domain_key] = ref_mo
+        cached_ref_mo = self._ref_mo_cache[domain_key]
+
+        # Give each model its own subdirectory so archived runs don't collide.
+        model_work_dir = None
+        if self.work_dir is not None:
+            model_work_dir = (
+                self.work_dir
+                / row["llm"]
+                / f"{row['domain']}_{row['requirement']}_k{row['attempt']}"
+            )
+
         try:
             result = harness.run(
                 candidate_crml=candidate_crml,
@@ -138,7 +159,9 @@ class BatchRunner:
                 n_iters=self.n_iters,
                 seed=self.seed,
                 verbose=self.verbose,
-                work_dir=self.work_dir,
+                work_dir=model_work_dir,
+                keep=self.keep,
+                _reference_mo=cached_ref_mo,
             )
         except CRMLCompileError as exc:
             return {**base, "status": "compile_error",

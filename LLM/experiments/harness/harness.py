@@ -37,15 +37,24 @@ class FuzzHarness:
         verbose: bool = True,
         work_dir: Path | None = None,
         keep: bool = False,
+        _reference_mo: str | None = None,
     ) -> HarnessResult:
-        """Full fuzz run: compile both models, build once, simulate n_iters times."""
+        """Full fuzz run: compile both models, build once, simulate n_iters times.
+
+        Pass ``_reference_mo`` to skip recompiling the reference when the caller
+        already holds the compiled Modelica string (e.g. a batch runner that
+        processes many candidates against the same reference).
+        """
         if verbose:
             print(f"[harness] Compiling candidate...")
         candidate_mo, _ = self.compiler.compile(candidate_crml, CANDIDATE_PKG)
 
-        if verbose:
-            print(f"[harness] Compiling reference...")
-        reference_mo, _ = self.compiler.compile(reference_crml, REFERENCE_PKG)
+        if _reference_mo is not None:
+            reference_mo = _reference_mo
+        else:
+            if verbose:
+                print(f"[harness] Compiling reference...")
+            reference_mo, _ = self.compiler.compile(reference_crml, REFERENCE_PKG)
 
         fuzzer = Fuzzer(self.domain, seed=seed)
         failures: list[Failure] = []
