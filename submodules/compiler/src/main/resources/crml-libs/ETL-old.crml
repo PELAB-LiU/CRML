@@ -77,6 +77,6 @@ library ETL is {
 
 	// Check: true if phi evaluated true over all periods
 	Operator [ Boolean ] 'check' Boolean phi 'over' Periods P
-		= and ('evaluate' phi 'over' P);
+		= and ('evaluate' phi 'over' P.element);
 };
 

@@ -250,6 +250,9 @@ public class crmlVisitorImpl extends crmlBaseVisitor<Value> {
 
 		prefix += ctx.id(0).getText();
 
+		StringBuffer store_localFunctionCalls = new StringBuffer(localFunctionCalls);
+		localFunctionCalls = new StringBuffer();
+
 		buffer.append("model " + ctx.id(0).getText());
 
 		if (ctx.class_var_def() != null)// parse class variables
@@ -269,6 +272,8 @@ public class crmlVisitorImpl extends crmlBaseVisitor<Value> {
 
 			buffer.append(";\n");
 		}
+		buffer.append(localFunctionCalls);
+		localFunctionCalls = store_localFunctionCalls;
 		buffer.append("end " + ctx.id(0).getText() + "; \n");
 
 		prefix = prefixTemp;
@@ -681,14 +686,35 @@ public class crmlVisitorImpl extends crmlBaseVisitor<Value> {
 		throw new ParseCancellationException("unable to parse expression : " + ctx.getText() + '\n');
 	}
 
+	private String getOperatorName(ExpContext ctx) {
+		if (ctx.user_keyword() == null)
+			return "";
+		String keyword = ctx.user_keyword().getText().replace("'", "");
+		if (ctx.ubinary != null)
+			return getOperatorName(ctx.left) + keyword + getOperatorName(ctx.right);
+		return keyword + getOperatorName(ctx.exp(0));
+	}
+
 	private UserOperatorCall reconstructUserOperator(ExpContext ctx, String string, List<ExpContext> args) {
 		if (ctx.user_keyword() != null)// is part of the user operator
 			if (ctx.ubinary != null) {// binary operator
+				String keyword = ctx.user_keyword().getText().replace("'", "");
+				String leftName = getOperatorName(ctx.left);
+				String rightName = getOperatorName(ctx.right);
+				String compoundName = string + leftName + keyword + rightName;
+				// If the compound doesn't exist but the left is already a complete standalone
+				// operator, treat it as an opaque argument to the outer binary keyword.
+				if (!user_operators.containsKey("'" + compoundName + "'")
+						&& !leftName.isEmpty()
+						&& user_operators.containsKey("'" + leftName + "'")) {
+					UserOperatorCall right = reconstructUserOperator(ctx.right, "", args);
+					args.add(ctx.left); // append: left maps to the first (outermost) parameter
+					return new UserOperatorCall(string + keyword + right.name, args);
+				}
 				UserOperatorCall left, right;
 				left = reconstructUserOperator(ctx.left, "", args);
 				right = reconstructUserOperator(ctx.right, "", args);
-				return new UserOperatorCall(string + left.name + ctx.user_keyword().getText().replace("'", "") + right.name,
-						args);
+				return new UserOperatorCall(compoundName, args);
 			} else {
 				return reconstructUserOperator(ctx.exp(0), string + ctx.user_keyword().getText().replace("'", ""),
 						args);
@@ -734,7 +760,7 @@ public class crmlVisitorImpl extends crmlBaseVisitor<Value> {
 
 		localFunctionCalls.append(code);
 
-		localFunctionCalls.append("CRMLtoModelica.Types.CRMLPeriod_build " + varName + "_init(P =" + varName + ");\n");
+		localFunctionCalls.append("CRMLtoModelica.Types.CRMLPeriod_build " + varName + "_init(ps =" + varName + ");\n");
 
 		return new Value(varName, "Period", false);
 	}
