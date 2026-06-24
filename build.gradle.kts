@@ -15,15 +15,22 @@ allprojects {
         maven {
             url = uri("https://repo.eclipse.org/content/groups/releases/")
         }*/
+        maven {
+            url = uri("https://maven.pkg.github.com/folmate/emf-mermaid")
+            credentials {
+                username = project.findProperty("gpr.user") as String? ?: System.getenv("GITHUB_ACTOR")
+                password = project.findProperty("gpr.key") as String? ?: System.getenv("GITHUB_TOKEN")
+            }
+        }
     }
 } 
 
 subprojects {
     plugins.apply("java")
 
-    java {
-        toolchain {
-            languageVersion.set(JavaLanguageVersion.of(21))
+    plugins.withType<JavaPlugin> {
+        tasks.withType<JavaCompile>().configureEach {
+            options.release.set(8)
         }
     }
 }
