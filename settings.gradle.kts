@@ -13,7 +13,7 @@ include(
         "model",
         "language",
         "language-xtext",
-        "compiler"
+        "compiler",
         "util",
         "util-test",
         "test-resources"
