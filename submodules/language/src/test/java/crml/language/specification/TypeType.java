@@ -10,18 +10,20 @@ import java.util.List;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import crml.language.specification.util.BaseSpecificationTest;
+import crml.language.util.CRMLSyntaxResultsWrapper;
+import crml.language.util.Parser;
+import crml.language.util.SpecsRoot;
+import crml.test.ReportedTest;
 
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.params.ParameterizedTest;
 
 
-public class TypeType extends BaseSpecificationTest {
+public class TypeType extends ReportedTest {
     
     static List<Arguments> fileNameSource() {
         List<Arguments> tests = new ArrayList<>();
-        tests.addAll(BaseSpecificationTest.fileNameSourceHelper2(RESOURCES.resolve("type")));
-        //tests.addAll(BaseSpecificationTest.fileNameSourceHelper2(RESOURCES.resolve("type").resolve("docs")));
+        tests.addAll(ReportedTest.fileNameSourceHelper2(SpecsRoot.RESOURCES.resolve("type")));
         return tests;
     }
     
@@ -31,9 +33,9 @@ public class TypeType extends BaseSpecificationTest {
         emit(fileName, "CRML model");
         Assumptions.assumeFalse(isDisabled); 
 
-        var parsed = parse(fileName);
+        Parser.ParserResult parsed = new Parser().parse(fileName);
         
-        emit(parsed.syntax(), "Syntax Errors");
+        emit(CRMLSyntaxResultsWrapper.of(parsed.syntax()), "Syntax Errors");
         emit(parsed.toPrettyTree(), "AST");
         assertEquals(isValid, !parsed.syntax().hasErrors());
     }
