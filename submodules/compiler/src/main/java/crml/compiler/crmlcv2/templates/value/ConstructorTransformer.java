@@ -1,0 +1,152 @@
+package crml.compiler.crmlcv2.templates.value;
+
+import static crml.modelica.build.Modelica.call;
+import static crml.modelica.build.Modelica.component;
+import static crml.modelica.build.Modelica.mod;
+
+import crml.compiler.crmlcv2.Diagnostics;
+import crml.compiler.crmlcv2.TransformationContext;
+import crml.compiler.crmlcv2.UnsupportedConstruct;
+import crml.compiler.crmlcv2.templates.ValueTransformer;
+import crml.compiler.crmlcv2.util.TypeResolver;
+import crml.model.language.BuiltinType;
+import crml.model.language.ConstructorValue;
+import crml.model.modelica.ComponentDeclaration;
+import crml.model.modelica.ComponentReference;
+import crml.model.modelica.Expression;
+import crml.modelica.build.Modelica;
+
+/**
+ * CRML constructors ("new T e") to Modelica.
+ *
+ * <p>Clock and Event are records with a companion {@code _build} record that
+ * initialises them, so they hoist two component declarations onto the target
+ * class and the expression becomes a reference to the first. The remaining
+ * domains are casts, which stay inline.
+ */
+public final class ConstructorTransformer {
+
+    private ConstructorTransformer() {
+    }
+
+    /** True for a bare {@code new} - nothing to translate as an expression. */
+    public static boolean isDefaultConstructor(ConstructorValue constructor) {
+        return constructor.getValue() == null && constructor.getBindings().isEmpty();
+    }
+
+    public static Expression transform(TransformationContext ctx, ConstructorValue constructor) {
+        if (!constructor.getBindings().isEmpty()) {
+            // "new Contract(ecs is ecs, consumer is consumer)": a class instance,
+            // which becomes a component with modifications once classes are
+            // translated.
+            throw new UnsupportedConstruct(Diagnostics.notYetImplemented("ConstructorValue.bindings",
+                "constructor with an argument list becomes a component with modifications (M4/M5)", constructor));
+        }
+        if (constructor.getValue() == null) {
+            throw new UnsupportedConstruct(Diagnostics.error("ConstructorValue",
+                "default constructor ('new') has no expression to translate; a variable "
+                + "declared with it is emitted as a plain declaration instead", constructor));
+        }
+
+        BuiltinType domain = TypeResolver.resolveBuiltin(constructor.getDomain());
+        Expression operand = ValueTransformer.transform(ctx, constructor.getValue());
+
+        if (domain == BuiltinType.CLOCK) {
+            return recordBuild(ctx, constructor, "c", TypeResolver.resolve(BuiltinType.CLOCK),
+                "CRMLtoModelica.Types.CRMLClock_build", "clock", operand);
+        } else if (domain == BuiltinType.EVENT) {
+            return recordBuild(ctx, constructor, "e", TypeResolver.resolve(BuiltinType.EVENT),
+                "CRMLtoModelica.Types.CRMLEvent_build", "E", operand);
+        } else if (domain == BuiltinType.STRING) {
+            return stringCast(constructor, operand);
+        } else if (domain == BuiltinType.INTEGER) {
+            return integerCast(constructor, operand);
+        } else if (domain == BuiltinType.REAL) {
+            return realCast(constructor, operand);
+        } else if (domain == BuiltinType.BOOLEAN) {
+            return booleanCast(constructor, operand);
+        } else {
+            throw new UnsupportedConstruct(Diagnostics.notYetImplemented("ConstructorValue." + domain,
+                "no constructor mapping for domain " + domain, constructor));
+        }
+    }
+
+    /**
+     * Declares the record and its {@code _build} companion on the target class.
+     * Both are configured with modifiers rather than wired with equations, so two
+     * declarations are all that is needed. The instance name comes from the
+     * context's allocator, which is scoped per class - the generator this
+     * replaces held a static allocator, so its names depended on how many models
+     * had been compiled earlier in the same JVM.
+     */
+    private static ComponentReference recordBuild(TransformationContext ctx, ConstructorValue constructor,
+            String prefix, String recordType, String buildType, String buildParam, Expression operand) {
+        String name = ctx.allocateName(prefix);
+
+        ComponentDeclaration record = component(recordType, name);
+        record.getModifications().add(mod("b", operand));
+        ctx.declare(record, constructor);
+
+        ComponentDeclaration build = component(buildType, name + "_init");
+        // A fresh reference per use: these are contained objects, so handing the
+        // same node to two parents would silently move it out of the first.
+        build.getModifications().add(mod(buildParam, Modelica.ref(name)));
+        ctx.declare(build, constructor);
+
+        return Modelica.ref(name);
+    }
+
+    private static Expression stringCast(ConstructorValue constructor, Expression operand) {
+        BuiltinType sourceType = TypeResolver.resolveBuiltin(constructor.getValue().getReturnType());
+        if (sourceType == BuiltinType.BOOLEAN) {
+            // The string generator emitted CRMLtoModelica.Functions.Bool4toString
+            // here, which does not exist: the library's complete function set is
+            // cvBooleanToBoolean4, add4, mul4, or4, not4, and4, PStart, PEnd, gEV,
+            // lEV, Event2Boolean.
+            throw new UnsupportedConstruct(Diagnostics.libraryGap("ConstructorValue.STRING",
+                "String(Boolean4) needs CRMLtoModelica.Functions.Bool4toString, which does not exist "
+                + "in CRMLtoModelica.mo", constructor));
+        }
+        return call("String", operand);
+    }
+
+    private static Expression integerCast(ConstructorValue constructor, Expression operand) {
+        BuiltinType sourceType = TypeResolver.resolveBuiltin(constructor.getValue().getReturnType());
+        if (sourceType == BuiltinType.REAL) {
+            return call("integer", operand);
+        }
+        // Modelica's Integer() converts enumerations only, and Boolean4 is the one
+        // enumeration in play. A String or Event operand has no conversion.
+        if (sourceType == null || sourceType == BuiltinType.BOOLEAN
+                || sourceType == BuiltinType.REQUIREMENT || sourceType == BuiltinType.INTEGER) {
+            return call("Integer", operand);
+        }
+        throw new UnsupportedConstruct(Diagnostics.error("ConstructorValue.INTEGER",
+            "Modelica's Integer() converts enumerations and Real only; operand type is " + sourceType, constructor));
+    }
+
+    private static Expression realCast(ConstructorValue constructor, Expression operand) {
+        BuiltinType sourceType = TypeResolver.resolveBuiltin(constructor.getValue().getReturnType());
+        // The string generator emitted real(x)/Real(x); neither exists as a
+        // conversion function. Real -> Real is a no-op, and Integer -> Real is
+        // Modelica's own implicit conversion, so the operand stands on its own.
+        if (sourceType == null || sourceType == BuiltinType.REAL || sourceType == BuiltinType.INTEGER) {
+            return operand;
+        }
+        throw new UnsupportedConstruct(Diagnostics.error("ConstructorValue.REAL",
+            "Modelica has no conversion to Real from " + sourceType, constructor));
+    }
+
+    private static Expression booleanCast(ConstructorValue constructor, Expression operand) {
+        // Return-type inference only populates constants today, so a computed
+        // operand such as "Boolean((P end))" arrives with a null type. The only
+        // defined Boolean constructor is from an Event, so proceed optimistically
+        // rather than rejecting every non-constant operand.
+        BuiltinType sourceType = TypeResolver.resolveBuiltin(constructor.getValue().getReturnType());
+        if (sourceType == null || sourceType == BuiltinType.EVENT) {
+            return call("CRMLtoModelica.Functions.Event2Boolean", operand);
+        }
+        throw new UnsupportedConstruct(Diagnostics.error("ConstructorValue.BOOLEAN",
+            "the Boolean constructor is only defined for an Event operand (got " + sourceType + ")", constructor));
+    }
+}
