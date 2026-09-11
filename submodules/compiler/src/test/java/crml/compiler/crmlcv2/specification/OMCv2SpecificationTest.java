@@ -45,12 +45,21 @@ import crml.test.TestResourcesRoot;
  * not implement is a WARNING, and shows up in the diagnostics table.
  */
 public abstract class OMCv2SpecificationTest extends ReportedTest {
-    protected static final Path SPEC_DOC_EXAMPLES =
-        CompilerRoot.RESOURCES.resolve("testModels").resolve("spec-doc-examples");
+    protected static final Path TEST_MODELS = CompilerRoot.RESOURCES.resolve("testModels");
+    protected static final Path SPEC_DOC_EXAMPLES = TEST_MODELS.resolve("spec-doc-examples");
 
     protected static List<Path> docExamples(String prefix) {
         return TestResourcesRoot.listFiles(SPEC_DOC_EXAMPLES,
             f -> f.getFileName().toString().startsWith(prefix));
+    }
+
+    /** Every .crml directly under {@code testModels/<first>/<rest...>}. */
+    protected static List<Path> modelsIn(String first, String... rest) {
+        Path directory = TEST_MODELS.resolve(first);
+        for (String segment : rest) {
+            directory = directory.resolve(segment);
+        }
+        return CompilerRoot.fileNameSourceHelper(directory);
     }
 
     @ParameterizedTest
@@ -59,6 +68,13 @@ public abstract class OMCv2SpecificationTest extends ReportedTest {
         emit(fileName, "CRML model");
 
         Parser.ParserResult parsed = new Parser().parse(fileName);
+        if (parsed.syntax().hasErrors()) {
+            StringBuilder syntaxErrors = new StringBuilder();
+            for (Object syntaxError : parsed.syntax().errors()) {
+                syntaxErrors.append(syntaxError).append(System.lineSeparator());
+            }
+            emit(CodeWrapper.of(syntaxErrors.toString()), "Syntax errors");
+        }
         Assumptions.assumeFalse(parsed.syntax().hasErrors(), "Model failed to parse");
 
         Throwable error = null;
@@ -70,6 +86,9 @@ public abstract class OMCv2SpecificationTest extends ReportedTest {
                 dom = ((BuildResult.SingleBuildResult<?>) result).result();
             }
             visitor.linker();
+            // Natural-language operator calls are parsed as raw Sequences; this
+            // turns the ones that name an operator in scope into calls.
+            visitor.resolveOperatorCalls();
         } catch (Throwable e) {
             error = e;
         }

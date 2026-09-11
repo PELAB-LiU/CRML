@@ -86,12 +86,10 @@ public final class ValueTransformer {
         if (value instanceof ConstructorValue) {
             return ConstructorTransformer.transform(ctx, (ConstructorValue) value);
         }
-        // --- planned, not yet built ----------------------------------------
         if (value instanceof ComputedValue) {
-            throw new UnsupportedConstruct(Diagnostics.notYetImplemented("ComputedValue",
-                "a call to a template or user operator becomes a function call or a block "
-                + "instantiation (M3)", value));
+            return OperatorTransformer.transformCall(ctx, (ComputedValue) value);
         }
+        // --- planned, not yet built ----------------------------------------
         if (value instanceof PeriodsValue) {
             throw new UnsupportedConstruct(Diagnostics.notYetImplemented("PeriodsValue",
                 "a period literal becomes a CRMLPeriod component and its _build companion (M4)", value));

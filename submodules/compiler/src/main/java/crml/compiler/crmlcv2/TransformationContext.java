@@ -2,14 +2,16 @@ package crml.compiler.crmlcv2;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.eclipse.emf.ecore.EObject;
 
 import crml.model.language.CustomOperator;
 import crml.model.language.Model;
-import crml.model.language.Set;
 import crml.model.language.Value;
 import crml.model.language.Variable;
 import crml.model.modelica.ClassDefinition;
@@ -45,6 +47,18 @@ public final class TransformationContext {
     private static final class Session {
         final TraceModel trace = TraceFactory.eINSTANCE.createTraceModel();
         final List<Diagnostic> diagnostics = new ArrayList<Diagnostic>();
+        /** The top-level class; generated operator classes are nested in it. */
+        ClassDefinition root;
+        /** One generated class per CustomOperator, reused by every call site. */
+        final Map<CustomOperator, GeneratedOperator> operators =
+            new LinkedHashMap<CustomOperator, GeneratedOperator>();
+        /** Operators currently being transformed, to catch cyclic definitions. */
+        final Set<CustomOperator> visiting = new HashSet<CustomOperator>();
+        /** Operators whose class could not be generated, so each is diagnosed once. */
+        final Map<CustomOperator, UnsupportedConstruct> operatorFailures =
+            new HashMap<CustomOperator, UnsupportedConstruct>();
+        /** Class names already used, so generated names never collide. */
+        final Set<String> classNames = new HashSet<String>();
     }
 
     private final Session session;
@@ -64,7 +78,11 @@ public final class TransformationContext {
 
     /** Starts a fresh translation targeting {@code target}. */
     public static TransformationContext of(ClassDefinition target) {
-        return new TransformationContext(new Session(), target);
+        Session session = new Session();
+        session.root = target;
+        TransformationContext ctx = new TransformationContext(session, target);
+        session.classNames.add(target.getName());
+        return ctx;
     }
 
     public ClassDefinition target() {
@@ -140,6 +158,53 @@ public final class TransformationContext {
         return new TransformationContext(session, newTarget);
     }
 
+    /** A context targeting the top-level class of this translation. */
+    public TransformationContext root() {
+        return session.root == target ? this : new TransformationContext(session, session.root);
+    }
+
+    // --- generated operator classes ------------------------------------------
+
+    /** The class generated for {@code operator}, or null if it has not been generated. */
+    public GeneratedOperator generatedOperator(CustomOperator operator) {
+        return session.operators.get(operator);
+    }
+
+    public void registerOperator(CustomOperator operator, GeneratedOperator generated) {
+        session.operators.put(operator, generated);
+    }
+
+    /** The failure already recorded for {@code operator}, or null. */
+    public UnsupportedConstruct operatorFailure(CustomOperator operator) {
+        return session.operatorFailures.get(operator);
+    }
+
+    public void recordOperatorFailure(CustomOperator operator, UnsupportedConstruct failure) {
+        session.operatorFailures.put(operator, failure);
+    }
+
+    /** False when {@code operator} is already being transformed - a cyclic definition. */
+    public boolean beginVisiting(CustomOperator operator) {
+        return session.visiting.add(operator);
+    }
+
+    public void endVisiting(CustomOperator operator) {
+        session.visiting.remove(operator);
+    }
+
+    /** A class name unique within this translation, derived from {@code preferred}. */
+    public String allocateClassName(String preferred) {
+        if (session.classNames.add(preferred)) {
+            return preferred;
+        }
+        for (int i = 2; ; i++) {
+            String candidate = preferred + "_" + i;
+            if (session.classNames.add(candidate)) {
+                return candidate;
+            }
+        }
+    }
+
     // --- trace --------------------------------------------------------------
 
     private void link(EObject crmlSource, ModelicaElement modelicaTarget, TraceLinkKind kind) {
@@ -168,7 +233,7 @@ public final class TransformationContext {
         if (crmlSource instanceof Variable) {
             return TraceLinkKind.VARIABLE_TO_COMPONENT;
         }
-        if (crmlSource instanceof Set<?>) {
+        if (crmlSource instanceof crml.model.language.Set<?>) {
             return TraceLinkKind.SET_TO_COMPONENT;
         }
         if (crmlSource instanceof Value) {

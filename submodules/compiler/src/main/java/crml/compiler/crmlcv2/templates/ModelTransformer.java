@@ -2,6 +2,8 @@ package crml.compiler.crmlcv2.templates;
 
 import crml.compiler.crmlcv2.Diagnostics;
 import crml.compiler.crmlcv2.TransformationContext;
+import crml.compiler.crmlcv2.UnsupportedConstruct;
+import crml.model.language.CustomOperator;
 import crml.model.language.Model;
 import crml.model.language.Operator;
 import crml.model.language.Variable;
@@ -29,17 +31,25 @@ public final class ModelTransformer {
         TransformationContext ctx = TransformationContext.of(definition);
         ctx.linkRoot(model, definition);
 
+        // Operators first: a variable's definition may call one, and every
+        // operator the model declares is emitted whether or not it is called.
+        for (Operator operator : model.getOperators()) {
+            if (operator instanceof CustomOperator) {
+                try {
+                    OperatorTransformer.declare(ctx, (CustomOperator) operator);
+                } catch (UnsupportedConstruct e) {
+                    ctx.reportWithPlaceholder(e.diagnostic());
+                }
+            } else {
+                ctx.report(Diagnostics.libraryGap("Operator." + operator.eClass().getName(),
+                    operator.eClass().getName() + " has no Modelica mapping", operator));
+            }
+        }
+
         for (Variable variable : model.getVariables()) {
             VariableTransformer.transform(ctx, variable);
         }
 
-        // Reached but not yet mapped; each becomes real output in a later
-        // milestone. Recorded without a placeholder so the generated text keeps
-        // to what the previous generator produced.
-        for (Operator operator : model.getOperators()) {
-            ctx.report(Diagnostics.notYetImplemented("Operator",
-                "operator '" + operator.getName() + "' becomes a nested function or block (M3)", operator));
-        }
         for (crml.model.language.Class clazz : model.getClasses()) {
             ctx.report(Diagnostics.notYetImplemented("Class",
                 "class '" + clazz.getName() + "' becomes a nested model (M5)", clazz));
