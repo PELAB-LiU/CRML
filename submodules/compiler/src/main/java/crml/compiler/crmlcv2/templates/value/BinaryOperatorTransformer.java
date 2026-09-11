@@ -2,14 +2,19 @@ package crml.compiler.crmlcv2.templates.value;
 
 import static crml.compiler.crmlcv2.templates.value.TypeCategories.involvesClockOrPeriod;
 import static crml.compiler.crmlcv2.templates.value.TypeCategories.isBooleanOrUnknown;
+import static crml.compiler.crmlcv2.templates.value.TypeCategories.isClockOrUnknown;
 import static crml.compiler.crmlcv2.templates.value.TypeCategories.isNumericOrUnknown;
 import static crml.compiler.crmlcv2.templates.value.TypeCategories.isStringCompatible;
 import static crml.modelica.build.Modelica.binary;
 import static crml.modelica.build.Modelica.call;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import crml.compiler.crmlcv2.Diagnostics;
 import crml.compiler.crmlcv2.TransformationContext;
 import crml.compiler.crmlcv2.UnsupportedConstruct;
+import crml.compiler.crmlcv2.templates.BlockInstantiation;
 import crml.compiler.crmlcv2.templates.ValueTransformer;
 import crml.compiler.crmlcv2.util.TypeResolver;
 import crml.model.language.BinaryOperator;
@@ -78,6 +83,9 @@ public final class BinaryOperatorTransformer {
                 return transformComparison(op, opType, lhs, rhs, lt, rt, BinaryOperatorKind.EQ, "==", false, null, true);
             case NEQ:
                 return transformComparison(op, opType, lhs, rhs, lt, rt, BinaryOperatorKind.NEQ, "<>", false, null, true);
+            case FILTER:
+                // EventFilter(r1: CRMLClock, r2: Boolean4) -> out: CRMLClock.
+                return transformFilter(ctx, op, opType, lhs, rhs, lt, rt);
             case AT:
                 // typeinference.csv has "AT,*,2,*,EVENT" and crml.g4 has the rule,
                 // and BooleanAtEvent.crml exercises it with a verification harness -
@@ -90,6 +98,28 @@ public final class BinaryOperatorTransformer {
                 throw new UnsupportedConstruct(Diagnostics.unsupported(opType,
                     "this operator kind is not produced by the current AST builders", op));
         }
+    }
+
+    // --- block-backed operators ---------------------------------------------
+
+    /**
+     * Filtering a clock by a condition. EventFilter is a block, so it is
+     * instantiated on the target class and the expression becomes a reference to
+     * its output port.
+     */
+    private static Expression transformFilter(TransformationContext ctx, BinaryOperator op,
+            BuiltinBinaryOperatorKind opType, Expression lhs, Expression rhs, BuiltinType lt, BuiltinType rt) {
+        // The looked-through left type: EventFilter takes a CRMLClock, and
+        // typeinference.csv's only FILTER row is CLOCK|BOOLEAN.
+        lt = TypeResolver.inferBuiltin(op.getLhs());
+        if (!isClockOrUnknown(lt) || !isBooleanOrUnknown(rt)) {
+            throw new UnsupportedConstruct(Diagnostics.incompatibleTypes(opType, lt, rt, op));
+        }
+        Map<String, Expression> inputs = new LinkedHashMap<String, Expression>();
+        inputs.put("r1", lhs);
+        inputs.put("r2", rhs);
+        return BlockInstantiation.instantiate(ctx, "CRMLtoModelica.Blocks.EventFilter", "filter",
+            inputs, "out", op);
     }
 
     // --- arithmetic ---------------------------------------------------------

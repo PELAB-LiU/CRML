@@ -2,9 +2,13 @@ package crml.compiler.crmlcv2.util;
 
 import crml.model.language.BuiltinType;
 import crml.model.language.BuiltinTypeReference;
+import crml.model.language.ConstructorValue;
 import crml.model.language.IndirectTypeReference;
 import crml.model.language.TypeReference;
 import crml.model.language.UserTypereference;
+import crml.model.language.Value;
+import crml.model.language.Variable;
+import crml.model.language.VariableReference;
 
 public class TypeResolver {
     public static String resolve(TypeReference type){
@@ -20,8 +24,10 @@ public class TypeResolver {
                 return clazz.getName();
             }
             throw new RuntimeException("Unimplemented.");
+        } else if (type == null) {
+            throw new RuntimeException("No type reference to resolve.");
         } else {
-            throw new RuntimeException("Unreachable.");
+            throw new RuntimeException("Unable to resolve type reference: " + type.eClass().getName());
         }
     }
 
@@ -37,6 +43,38 @@ public class TypeResolver {
         } else {
             return null;
         }
+    }
+
+    /**
+     * The builtin type of a value, looking past the object model's own gaps.
+     *
+     * <p>{@code Value#getReturnType()} is only populated for constants today, so
+     * a reference to a variable of a known domain still reports "unknown". Where
+     * a decision genuinely depends on the type - not merely on it being
+     * compatible - this looks through the reference to the variable's declared
+     * domain, and through a constructor to the domain it constructs.
+     *
+     * <p>Deliberately not used by the operator transformers: their type dispatch
+     * is written around "known-or-unknown" predicates and was verified against
+     * typeinference.csv in that form. Making inference sharper there is a
+     * separate change with its own consequences.
+     */
+    public static BuiltinType inferBuiltin(Value value){
+        if (value == null) {
+            return null;
+        }
+        BuiltinType declared = resolveBuiltin(value.getReturnType());
+        if (declared != null) {
+            return declared;
+        }
+        if (value instanceof VariableReference) {
+            Variable variable = ((VariableReference) value).getVariable();
+            return variable == null ? null : resolveBuiltin(variable.getDomain());
+        }
+        if (value instanceof ConstructorValue) {
+            return resolveBuiltin(((ConstructorValue) value).getDomain());
+        }
+        return null;
     }
 
     public static String resolve(BuiltinType type){

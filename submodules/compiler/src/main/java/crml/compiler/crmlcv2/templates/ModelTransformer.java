@@ -31,6 +31,15 @@ public final class ModelTransformer {
         TransformationContext ctx = TransformationContext.of(definition);
         ctx.linkRoot(model, definition);
 
+        // Before anything is generated, so no allocated name can collide with a
+        // name the model itself uses.
+        for (Variable variable : model.getVariables()) {
+            ctx.reserveName(variable.getName());
+        }
+        for (crml.model.language.Set<?> set : model.getSets()) {
+            ctx.reserveName(set.getName());
+        }
+
         // Operators first: a variable's definition may call one, and every
         // operator the model declares is emitted whether or not it is called.
         for (Operator operator : model.getOperators()) {

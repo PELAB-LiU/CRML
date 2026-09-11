@@ -108,6 +108,10 @@ public final class OperatorTransformer {
         // anything, the scratch already is the block's body.
         ClassDefinition body = Modelica.block(name);
         TransformationContext bodyCtx = root.nested(body);
+        bodyCtx.reserveName(GeneratedOperator.OUTPUT_PORT);
+        for (Variable parameter : parameters) {
+            bodyCtx.reserveName(parameter.getName());
+        }
         Expression result = ValueTransformer.transform(bodyCtx, operator.getDefinition());
         boolean hoisted = !body.getComponents().isEmpty()
             || (body.getEquations() != null && !body.getEquations().getEquations().isEmpty());

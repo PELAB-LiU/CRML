@@ -70,6 +70,12 @@ public final class TransformationContext {
      * JVM.
      */
     private final Map<String, Integer> counters = new HashMap<String, Integer>();
+    /**
+     * Every name already spoken for in the target class. A generated name must
+     * avoid the CRML variables' names too, including those not declared yet -
+     * otherwise a model with its own variable "c1" gets "c1 = c1".
+     */
+    private final Set<String> usedNames = new HashSet<String>();
 
     private TransformationContext(Session session, ClassDefinition target) {
         this.session = session;
@@ -104,6 +110,7 @@ public final class TransformationContext {
      * expression that needed something hoisted can go on being an expression.
      */
     public ComponentReference declare(ComponentDeclaration declaration, EObject crmlSource) {
+        reserveName(declaration.getName());
         target.getComponents().add(declaration);
         link(crmlSource, declaration, componentKind(crmlSource));
         return Modelica.ref(declaration.getName());
@@ -129,11 +136,25 @@ public final class TransformationContext {
 
     // --- supporting operations ----------------------------------------------
 
+    /**
+     * Reserves a name so no generated name can take it. Call this for every CRML
+     * name that will end up in the target class, before transforming anything.
+     */
+    public void reserveName(String name) {
+        if (name != null) {
+            usedNames.add(name);
+        }
+    }
+
     /** A name unique within the target class: {@code prefix1}, {@code prefix2}, ... */
     public String allocateName(String prefix) {
         Integer previous = counters.get(prefix);
         int next = previous == null ? 1 : previous + 1;
+        while (usedNames.contains(prefix + next)) {
+            next++;
+        }
         counters.put(prefix, next);
+        usedNames.add(prefix + next);
         return prefix + next;
     }
 

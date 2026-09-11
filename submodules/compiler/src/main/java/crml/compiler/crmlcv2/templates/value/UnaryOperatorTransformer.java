@@ -1,15 +1,20 @@
 package crml.compiler.crmlcv2.templates.value;
 
 import static crml.compiler.crmlcv2.templates.value.TypeCategories.isBooleanOrUnknown;
+import static crml.compiler.crmlcv2.templates.value.TypeCategories.isClockOrUnknown;
 import static crml.compiler.crmlcv2.templates.value.TypeCategories.isNumericOrUnknown;
 import static crml.compiler.crmlcv2.templates.value.TypeCategories.isPeriodOrUnknown;
 import static crml.modelica.build.Modelica.call;
 import static crml.modelica.build.Modelica.parens;
 import static crml.modelica.build.Modelica.unary;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import crml.compiler.crmlcv2.Diagnostics;
 import crml.compiler.crmlcv2.TransformationContext;
 import crml.compiler.crmlcv2.UnsupportedConstruct;
+import crml.compiler.crmlcv2.templates.BlockInstantiation;
 import crml.compiler.crmlcv2.templates.ValueTransformer;
 import crml.compiler.crmlcv2.util.TypeResolver;
 import crml.model.language.BuiltinType;
@@ -64,17 +69,48 @@ public final class UnaryOperatorTransformer {
             case END:
                 return transformPeriodEndpoint(op, opType, operand, t, "CRMLtoModelica.Functions.PEnd");
             case CARD:
-                // CRMLtoModelica.Blocks.CardClock is a block: it has to be
-                // instantiated as a component and wired with equations, which is M4.
-                throw new UnsupportedConstruct(Diagnostics.notYetImplemented("UnaryOperator." + opType,
-                    "needs CRMLtoModelica.Blocks.CardClock instantiated as a component (M4)", op));
+                // CardClock(r1: CRMLClock) -> out: Integer, the number of ticks.
+                // "card" over a set is a different operation - set cardinality -
+                // which CRMLtoModelica.mo does not implement; and a set-typed
+                // variable reaches the generator carrying only its element type
+                // ("Real {} S" arrives as a Real), so the two cannot be told
+                // apart here beyond "this is not a clock".
+                if (!isClockOrUnknown(TypeResolver.inferBuiltin(op.getValue()))) {
+                    throw new UnsupportedConstruct(Diagnostics.libraryGap("UnaryOperator.CARD",
+                        "card over anything but a Clock - set cardinality - has no implementation "
+                        + "in CRMLtoModelica.mo", op));
+                }
+                return transformClockBlock(ctx, op, opType, operand,
+                    "CRMLtoModelica.Blocks.CardClock", "card");
             case TICK:
-                throw new UnsupportedConstruct(Diagnostics.notYetImplemented("UnaryOperator." + opType,
-                    "needs CRMLtoModelica.Blocks.ClockTick instantiated as a component (M4)", op));
+                // ClockTick(r1: CRMLClock) -> out: Event, the time of the last tick.
+                return transformClockBlock(ctx, op, opType, operand,
+                    "CRMLtoModelica.Blocks.ClockTick", "tick");
             default:
                 throw new UnsupportedConstruct(Diagnostics.unsupported(opType,
                     "this operator kind is not produced by the current AST builders", op));
         }
+    }
+
+    /**
+     * A unary operator backed by a library block. A block cannot sit inside an
+     * expression, so it is instantiated as a component on the target class and
+     * the expression becomes a reference to its output port.
+     */
+    private static Expression transformClockBlock(TransformationContext ctx, UnaryOperator op,
+            BuiltinUnaryOperatorKind opType, Expression operand, String blockType, String prefix) {
+        // The looked-through type, not the inferred return type: both blocks
+        // take a CRMLClock and nothing else, and typeinference.csv has no row
+        // for card or tick on anything but a Clock. "card S" over a set of Reals
+        // must be rejected, not quietly wired to CardClock.
+        BuiltinType t = TypeResolver.inferBuiltin(op.getValue());
+        if (!isClockOrUnknown(t)) {
+            throw new UnsupportedConstruct(Diagnostics.incompatibleTypes(opType, t, op));
+        }
+        Map<String, Expression> inputs = new LinkedHashMap<String, Expression>();
+        inputs.put("r1", operand);
+        return BlockInstantiation.instantiate(ctx, blockType, prefix, inputs,
+            "out", op);
     }
 
     private static Expression transformSign(UnaryOperator op, BuiltinUnaryOperatorKind opType,

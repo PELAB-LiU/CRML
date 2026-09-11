@@ -12,6 +12,8 @@ import crml.compiler.crmlcv2.TransformationContext;
 import crml.compiler.crmlcv2.UnsupportedConstruct;
 import crml.compiler.crmlcv2.templates.value.BinaryOperatorTransformer;
 import crml.compiler.crmlcv2.templates.value.ConstructorTransformer;
+import crml.compiler.crmlcv2.templates.value.IntegrateTransformer;
+import crml.compiler.crmlcv2.templates.value.PeriodsTransformer;
 import crml.compiler.crmlcv2.templates.value.UnaryOperatorTransformer;
 import crml.model.language.BinaryOperator;
 import crml.model.language.BooleanConstant;
@@ -91,12 +93,10 @@ public final class ValueTransformer {
         }
         // --- planned, not yet built ----------------------------------------
         if (value instanceof PeriodsValue) {
-            throw new UnsupportedConstruct(Diagnostics.notYetImplemented("PeriodsValue",
-                "a period literal becomes a CRMLPeriod component and its _build companion (M4)", value));
+            return PeriodsTransformer.transform(ctx, (PeriodsValue) value);
         }
         if (value instanceof IntegrateValue) {
-            throw new UnsupportedConstruct(Diagnostics.notYetImplemented("IntegrateValue",
-                "needs CRMLtoModelica.Blocks.Integrate instantiated as a component (M4)", value));
+            return IntegrateTransformer.transform(ctx, (IntegrateValue) value);
         }
         if (value instanceof Set<?>) {
             throw new UnsupportedConstruct(Diagnostics.notYetImplemented("Set",

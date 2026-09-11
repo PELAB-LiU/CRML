@@ -9,12 +9,14 @@ import crml.compiler.crmlcv2.TransformationContext;
 import crml.compiler.crmlcv2.UnsupportedConstruct;
 import crml.compiler.crmlcv2.templates.ValueTransformer;
 import crml.compiler.crmlcv2.util.TypeResolver;
+import crml.model.language.Binding;
 import crml.model.language.BuiltinType;
 import crml.model.language.ConstructorValue;
+import crml.model.language.Element;
+import crml.model.language.PeriodsValue;
 import crml.model.modelica.ComponentDeclaration;
 import crml.model.modelica.ComponentReference;
 import crml.model.modelica.Expression;
-import crml.modelica.build.Modelica;
 
 /**
  * CRML constructors ("new T e") to Modelica.
@@ -36,11 +38,7 @@ public final class ConstructorTransformer {
 
     public static Expression transform(TransformationContext ctx, ConstructorValue constructor) {
         if (!constructor.getBindings().isEmpty()) {
-            // "new Contract(ecs is ecs, consumer is consumer)": a class instance,
-            // which becomes a component with modifications once classes are
-            // translated.
-            throw new UnsupportedConstruct(Diagnostics.notYetImplemented("ConstructorValue.bindings",
-                "constructor with an argument list becomes a component with modifications (M4/M5)", constructor));
+            return instantiate(ctx, constructor);
         }
         if (constructor.getValue() == null) {
             throw new UnsupportedConstruct(Diagnostics.error("ConstructorValue",
@@ -52,11 +50,9 @@ public final class ConstructorTransformer {
         Expression operand = ValueTransformer.transform(ctx, constructor.getValue());
 
         if (domain == BuiltinType.CLOCK) {
-            return recordBuild(ctx, constructor, "c", TypeResolver.resolve(BuiltinType.CLOCK),
-                "CRMLtoModelica.Types.CRMLClock_build", "clock", operand);
+            return RecordBuild.clock(ctx, operand, constructor);
         } else if (domain == BuiltinType.EVENT) {
-            return recordBuild(ctx, constructor, "e", TypeResolver.resolve(BuiltinType.EVENT),
-                "CRMLtoModelica.Types.CRMLEvent_build", "E", operand);
+            return RecordBuild.event(ctx, operand, constructor);
         } else if (domain == BuiltinType.STRING) {
             return stringCast(constructor, operand);
         } else if (domain == BuiltinType.INTEGER) {
@@ -65,6 +61,15 @@ public final class ConstructorTransformer {
             return realCast(constructor, operand);
         } else if (domain == BuiltinType.BOOLEAN) {
             return booleanCast(constructor, operand);
+        } else if (domain == BuiltinType.PERIOD || domain == BuiltinType.PERIODS) {
+            // "new Periods ] ev, ev + d ]" names the type of a period literal
+            // that has already built its own component; the constructor adds
+            // nothing of its own.
+            if (constructor.getValue() instanceof PeriodsValue) {
+                return operand;
+            }
+            throw new UnsupportedConstruct(Diagnostics.error("ConstructorValue." + domain,
+                "a " + domain + " can only be constructed from a period literal", constructor));
         } else {
             throw new UnsupportedConstruct(Diagnostics.notYetImplemented("ConstructorValue." + domain,
                 "no constructor mapping for domain " + domain, constructor));
@@ -72,28 +77,35 @@ public final class ConstructorTransformer {
     }
 
     /**
-     * Declares the record and its {@code _build} companion on the target class.
-     * Both are configured with modifiers rather than wired with equations, so two
-     * declarations are all that is needed. The instance name comes from the
-     * context's allocator, which is scoped per class - the generator this
-     * replaces held a static allocator, so its names depended on how many models
-     * had been compiled earlier in the same JVM.
+     * A constructor with an argument list - "new Contract(ecs is ecs, consumer is
+     * consumer)" - instantiates a class. It becomes a component of that class
+     * whose modifications bind the named members, hoisted onto the target class
+     * so the expression can be a reference to it.
      */
-    private static ComponentReference recordBuild(TransformationContext ctx, ConstructorValue constructor,
-            String prefix, String recordType, String buildType, String buildParam, Expression operand) {
-        String name = ctx.allocateName(prefix);
+    private static ComponentReference instantiate(TransformationContext ctx, ConstructorValue constructor) {
+        String typeName;
+        try {
+            typeName = TypeResolver.resolve(constructor.getDomain());
+        } catch (RuntimeException e) {
+            throw new UnsupportedConstruct(Diagnostics.error("ConstructorValue.bindings",
+                "cannot resolve the type being constructed: " + e.getMessage(), constructor));
+        }
 
-        ComponentDeclaration record = component(recordType, name);
-        record.getModifications().add(mod("b", operand));
-        ctx.declare(record, constructor);
-
-        ComponentDeclaration build = component(buildType, name + "_init");
-        // A fresh reference per use: these are contained objects, so handing the
-        // same node to two parents would silently move it out of the first.
-        build.getModifications().add(mod(buildParam, Modelica.ref(name)));
-        ctx.declare(build, constructor);
-
-        return Modelica.ref(name);
+        ComponentDeclaration instance = component(typeName, ctx.allocateName("inst"));
+        for (Binding binding : constructor.getBindings()) {
+            Element member = binding.getElement();
+            if (member == null || member.getName() == null) {
+                throw new UnsupportedConstruct(Diagnostics.error("ConstructorValue.bindings",
+                    "a constructor argument does not name the member it binds", constructor));
+            }
+            if (binding.getValue() == null) {
+                throw new UnsupportedConstruct(Diagnostics.error("ConstructorValue.bindings",
+                    "member '" + member.getName() + "' is bound to nothing", constructor));
+            }
+            instance.getModifications().add(
+                mod(member.getName(), ValueTransformer.transform(ctx, binding.getValue())));
+        }
+        return ctx.declare(instance, constructor);
     }
 
     private static Expression stringCast(ConstructorValue constructor, Expression operand) {

@@ -35,4 +35,8 @@ public final class TypeCategories {
     public static boolean isPeriodOrUnknown(BuiltinType t) {
         return t == null || t == BuiltinType.PERIOD;
     }
+
+    public static boolean isClockOrUnknown(BuiltinType t) {
+        return t == null || t == BuiltinType.CLOCK;
+    }
 }
