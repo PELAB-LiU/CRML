@@ -99,9 +99,11 @@ resolver; an object model reaching the generator contains none.
   **All new code must be Java 8** — no `var`, records, switch expressions, `List.of`.
 * `:model` pins `force("org.antlr:antlr-runtime:3.2")` to work around the Xcore
   POM's version range. The new submodule needs the same pin.
-* The root `repositories` block has a GitHub Packages repo for `emf-mermaid`
-  requiring `gpr.user`/`gpr.key`. Only `:model`'s optional `generateMermaid`
-  task uses it — do not add it to the new submodule.
+* `emf-mermaid` is served from a GitHub Packages repo requiring
+  `gpr.user`/`gpr.key`. It is declared in `:model` alone, scoped to its own
+  group, and reached only from `:model`'s `mermaid` source set, which nothing
+  in `assemble` or `check` compiles — so a build needs no GitHub credentials,
+  and only `generateMermaid` does. Do not add any of it to the new submodule.
 
 ---
 
