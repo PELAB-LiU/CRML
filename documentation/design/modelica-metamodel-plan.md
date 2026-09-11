@@ -4,7 +4,12 @@ Architecture/implementation plan for replacing `crmlcv2`'s string-based code
 generation with a real Modelica object model.
 
 Audience: an implementing agent (or developer) working from this document.
-Target branch: `elephant`.
+Target branch: `modelica-metamodel-plan`.
+
+Revision 2. Changes from revision 1 are listed in §11 — the metamodel is cut
+from 49 classes to 31, the `Class` -> `record` mapping is corrected to
+`model`, and every mapping is now verified against the runtime library, the
+type-inference table and the CRML specification (§7, §8).
 
 ---
 
@@ -14,73 +19,65 @@ Target branch: `elephant`.
 |---|---|---|
 | 1 | Which Modelica runtime library is the emission target? | **`CRMLtoModelica.mo` only.** `CRML.mo` and the `CRML_test/**` reference implementations are *not* the emission target. |
 | 2 | Construct coverage | **Full coverage** of the CRML object model, in the sense of #3. |
-| 3 | Constructs with no Modelica mapping anywhere | **Reach every construct; diagnose the rest.** Producing new Modelica semantics, and filling the empty stubs in `CRMLtoModelica.mo`, is *out of scope* and listed as follow-on work. |
+| 3 | Constructs with no Modelica mapping | **Reach every construct; diagnose the rest.** Inventing new Modelica semantics, and filling the gaps in `CRMLtoModelica.mo`, is *out of scope* and listed as follow-on work (§8.3). |
 | 4 | Where the metamodel lives | **New submodule `submodules/modelica`**, mirroring `submodules/model`. |
 | 5 | Output shape | **One `.mo` text per CRML model**, containing potentially many classes. `OMCv2.translate(Model) -> String` keeps working. |
-| 6 | Existing `Scope` classes | **Deleted** in the same milestone that replaces them (M2). No dual code path. |
+| 6 | Existing `Scope` classes | **Deleted** in the same milestone that replaces them (M2). |
 | 7 | Trace granularity | **Class / component-declaration / equation level**, linking object-model elements. No `.crml` source positions in this work. |
 | 8 | Trace model form | **Own `.xcore` in `submodules/modelica`**, returned in memory, rendered into the HTML test report. Not written to disk. |
 
 Non-goals, restated: no `omc`, no simulation, no comparison against
-`refResults/*_ref.mat`, and the per-construct read-through check described in
-§8 is **deliberately not automated**.
+`refResults/*_ref.mat`, and the per-construct read-through check in §10 is
+**deliberately not automated**.
+
+### 0.1 Sources of truth used in this plan
+
+Every mapping claim below is grounded in one of these, cited inline:
+
+| Tag | Source |
+|---|---|
+| **LIB** | `submodules/compiler/src/main/resources/modelica_libraries/CRMLtoModelica.mo` — the emission target's actual signatures |
+| **CSV** | `submodules/language/src/main/resources/res/crml/language/typeinference.csv` — the authoritative operator/type table (72 rows) |
+| **GRAMMAR** | `submodules/language/src/main/antlr/crml/language/grammar/crml.g4` |
+| **DOM** | the builders under `submodules/language/src/main/java/crml/language/dom/` — what is actually instantiated |
+| **SPEC** | `documentation/crml_specification/CRML_specification_v1.2.pdf` (136 pp.), cited by page |
+| **LEGACY** | `submodules/compiler/src/main/java/crml/compiler/translation/crmlVisitorImpl.java` — excluded from compilation, but the only prior implementation |
+| **CORPUS** | `submodules/test-resources/src/main/resources/testModels/**` (213 `.crml`), `verificationModels/**` (28 `*_verif.mo`) |
 
 ---
 
-## 1. What exists today (findings that shape the plan)
+## 1. What exists today
 
 ### 1.1 The generator
 
-`submodules/compiler/src/main/java/crml/compiler/crmlcv2/` — 905 lines total.
+`submodules/compiler/src/main/java/crml/compiler/crmlcv2/` — 905 lines.
 
-* `OMCv2.translate(Model)` → `ModelGen.generate` → `Scope.toModelica(0)` → `String`.
-* `scopes/` is a tree of string builders: `ModelScope` (name + variable lines +
-  equation lines), `RawstringScope`/`FunctionScope` (verbatim text),
-  `BlockScope` (declares a component + wiring equations on a host `ModelScope`
-  as a *constructor side effect*, then `reference()` returns `inst.port`).
-* `ModelGen` iterates `model.getOperators()` with an **empty loop body**.
-  `TemplateGen` is **never referenced**. So today no CRML operator or template
-  is emitted at all — which is why essentially only the operator-free
-  `spec-doc-examples` models produce anything meaningful, and the whole
-  `libraries/ETL_test`, `libraries/FORML_test` and `use-cases` corpus does not.
-* `ModelGen` also ignores `Model.objects`, `Model.sets`, `Model.classes` and
-  `Model.frame`.
-* Implemented `Value` kinds (`ValueGen`): `VariableReference`, `IfValue`,
-  `BooleanConstant`, `RealConstant`, `IntegerConstant`, `TimeValue`,
-  `BinaryOperator`, `UnaryOperator`, `ConstructorValue`.
-  Unimplemented: `ComputedValue`, `PeriodsValue`, `IntegrateValue`,
-  `DurationValue`, `ProjectionValue`, `StringConstant`, `Set`, `Sequence`.
-* `PeriodsGen` exists but is dead code: it is never called, returns `String`
-  rather than `Scope`, and builds an identifier out of
-  `periods.hashCode()` — non-deterministic output. It must not be revived as-is.
-
-Concrete defects the rewrite should fix, not carry over:
-
-1. `ModelScope.toModelica` emits `model 'Name'` (quoted) but `end Name;`
-   (unquoted). Quoting must be conditional on the identifier actually needing
-   it, and consistent between header and footer.
-2. The generated model is never `partial`, but a model with `is external`
-   variables has unbound components. Every `*_verif.mo` harness does
-   `extends <Name>;` and then binds those variables, and the hand-written
-   reference classes in `CRML_test/**` are `partial model`. A non-partial
-   generated class is not a legal standalone Modelica class here.
-3. `ModelScope` always emits an `equation` keyword even with no equations.
-4. `infix()` unconditionally parenthesises, producing `((a + b) + c)`.
-5. Unsupported constructs throw `UnsupportedOperationException`, which aborts
-   the whole file. Per decision #3 they must become recorded diagnostics.
+* `OMCv2.translate(Model)` -> `ModelGen.generate` -> `Scope.toModelica(0)` -> `String`.
+* `scopes/` is a tree of string builders. `BlockScope` declares a component plus
+  wiring equations on a host `ModelScope` **as a constructor side effect**, then
+  `reference()` returns `inst.port`.
+* `ModelGen` iterates `model.getOperators()` with an **empty loop body**;
+  `TemplateGen` is **never referenced**. No CRML operator or template is emitted
+  at all, which is why the whole `libraries/ETL_test`, `libraries/FORML_test` and
+  `use-cases` corpus produces nothing meaningful.
+* `ModelGen` ignores `Model.objects`, `Model.sets`, `Model.classes`, `Model.frame`.
+* Implemented `Value` kinds: `VariableReference`, `IfValue`, `BooleanConstant`,
+  `RealConstant`, `IntegerConstant`, `TimeValue`, `BinaryOperator`,
+  `UnaryOperator`, `ConstructorValue`.
+* `PeriodsGen` is dead code (never called, returns `String` not `Scope`) and
+  contains three defects — see §8.1.
 
 ### 1.2 The object model
 
 `submodules/model/src/main/model/crml.xcore` (450 lines), package
 `crml.model.language`. Java is generated by the **`org.xtext.builder` Gradle
-plugin** (`submodules/model/build.gradle.kts`, `srcDir("src/main/model")`,
-`producesJava = true`) — *not* by `GenmodelMain`. `GenmodelMain` backs a
-separate optional `generateGenModel` JavaExec task that writes a `.genmodel`
-file only. Both must be mirrored for the new submodule; the xtext builder is
-the one that matters.
+plugin** (`srcDir("src/main/model")`, `producesJava = true`) — *not* by
+`GenmodelMain`, which backs a separate optional `generateGenModel` task that
+writes only a `.genmodel` file. Mirror the xtext builder; the genmodel task is
+diagnostic.
 
-Classes the DOM builders in `:language` actually instantiate (this is the real
-input alphabet for the transformation):
+Classes the DOM builders actually instantiate — the real input alphabet
+(**DOM**):
 
 ```
 Model  Library  Class  Variable  Template  UserOperator  Keyword  Binding
@@ -90,81 +87,21 @@ PeriodsValue  IntegrateValue  DurationValue  ProjectionValue  VariableReference
 Set  SequenceValue  SequenceKeyword  BuiltinTypeReference  UserTypereference
 ```
 
-Never instantiated (so: define behaviour, but expect no coverage from the test
-corpus): `Object`, `Package`, `Category`, `PowerClass`, `IndirectTypeReference`,
-`ModelDependency`. `RootBuilder.parse(DependencyContext)` returns an empty list
-with the real body commented out, so library dependencies are never resolved.
-`Sequence*` are parser scaffolding that the mixfix resolver replaces with
-`ComputedValue`; an object model reaching the generator should contain none.
+Never instantiated: **`Object`**, `Package`, `Category`, `PowerClass`,
+`IndirectTypeReference`, `ModelDependency`. `RootBuilder.parse(DependencyContext)`
+returns an empty list with its body commented out, so library dependencies are
+never resolved. `Sequence*` are parser scaffolding replaced by the mixfix
+resolver; an object model reaching the generator contains none.
 
-### 1.3 The runtime library — construct inventory
-
-`submodules/compiler/src/main/resources/modelica_libraries/CRMLtoModelica.mo`
-(590 lines). This is the file the metamodel must be able to *talk about*, and
-whose shape the generated code must fit. Everything the metamodel needs is
-observable in it:
-
-| Modelica construct | Where in `CRMLtoModelica.mo` |
-|---|---|
-| `package` / `end` | `CRMLtoModelica`, `Types`, `Functions`, `TruthTables`, `Blocks` |
-| `record` | `CRMLClock`, `CRMLPeriod`, `Event`, `CRMLPeriods`, `WhileLocator`, `TimeLocator` |
-| `model` | `CRMLClock_build`, `CRMLPeriod_build`, `CRMLEvent_build`, `setAnd` |
-| `block` | `EventFilter`, `Integrate`, `ClockTick`, `CardClock`, `BoolTick`, `unaryBoolAnd`, `ClockAdd` |
-| `function` | `cvBooleanToBoolean4`, `add4`, `mul4`, `or4`, `not4`, `and4`, `PStart`, `PEnd`, `gEV`, `lEV`, `Event2Boolean` |
-| `type X = enumeration(...)` | `Boolean4` |
-| `import` | `import CRMLtoModelica.Types.Boolean4;` in most functions |
-| `input` / `output` | every function and block |
-| `public` / `protected` sections | `CRMLPeriod`, `EventFilter`, `Integrate` |
-| `discrete`, `constant` | `discrete Integer counter`, `constant Boolean4 add4[4,4]` |
-| array dimensions, incl. `[:]` | `ticks[50]`, `add4[4,4]`, `Types.Boolean4 [:] r1` |
-| modifications, nested | `b (start = ...)`, `clock_c(clock = out)`, `Placement(transformation(extent = ...))` |
-| `each` modifier | `ticks[50](each start = -1, each fixed = true)` |
-| declaration binding `= expr` | `output Boolean4 out = Functions.cvBooleanToBoolean4(...)` |
-| `equation` / `initial equation` | `CRMLEvent_build` has both |
-| `algorithm` / `initial algorithm` | `CRMLClock_build` |
-| `when ... then ... end when;` | `CRMLClock_build`, `CRMLEvent_build`, `unaryBoolAnd` |
-| `if` expression | `Event2Boolean`, `CRMLPeriod_build`, `Integrate` |
-| array/matrix literals | `{...}` and `[a,b; c,d]` in `TruthTables` |
-| string comment | `"4-valued logic"`, `"Boolean filter"` |
-| `annotation(...)` | throughout |
-| operator calls, `pre()`, `edge()`, `change()`, subscripting | `Integrate`, `CRMLClock_build` |
-
-Two constructs in that table are **not needed for emission** and are marked
-optional in §3: matrix literals (`[a,b; c,d]`) and `type X = enumeration(...)`.
-The compiler *references* `CRMLtoModelica.Types.Boolean4.true4`; it never
-declares an enumeration. They are listed because they are the only gap between
-"what we emit" and "what the target library contains", and closing it makes the
-metamodel able to represent its own runtime library — useful, cheap, optional.
-
-`connector`, `connect()`, `extends`, `inner`/`outer` and `within` belong to the
-`CRML.mo` world and are **excluded** by decision #1. `extends` is nevertheless
-included in §3 at negligible cost because it is one class and the harness
-contract in §8 turns on it.
-
-### 1.4 The verification corpus
-
-* `testModels/**` — 213 `.crml` files.
-* `verificationModels/**` — only **28** `*_verif.mo` harnesses, so ~13% of test
-  models have an interface contract to check against. Their content is
-  uniform: `extends <GeneratedName>;`, one `<Name>_externals` component, and a
-  `// Bindings` equation block assigning each external variable. That yields
-  exactly the contract in §8.
-* `modelica_libraries/CRML.mo` (9155 lines) and `modelica_libraries/CRML_test/**`
-  are the *other* library and its hand-written reference implementations. They
-  are reference material for reading the intended semantics, **not** an output
-  target.
-
-### 1.5 Build constraints
+### 1.3 Build constraints
 
 * Root `build.gradle.kts` sets `options.release.set(8)` for every subproject.
-  **All new code must be Java 8**: no `var`, no records, no switch
-  expressions, no `List.of`.
+  **All new code must be Java 8** — no `var`, records, switch expressions, `List.of`.
 * `:model` pins `force("org.antlr:antlr-runtime:3.2")` to work around the Xcore
   POM's version range. The new submodule needs the same pin.
-* The root `repositories` block includes a GitHub Packages repo for
-  `emf-mermaid` that requires `gpr.user`/`gpr.key` credentials. Only
-  `:model`'s optional `generateMermaid` task uses it — do not add that
-  dependency to the new submodule unless the mermaid diagram is wanted.
+* The root `repositories` block has a GitHub Packages repo for `emf-mermaid`
+  requiring `gpr.user`/`gpr.key`. Only `:model`'s optional `generateMermaid`
+  task uses it — do not add it to the new submodule.
 
 ---
 
@@ -177,173 +114,144 @@ submodules/modelica/
     modelica.xcore                       <- package crml.model.modelica
     trace.xcore                          <- package crml.model.trace
   src/main/java/
-    crml/modelica/GenmodelMain.java      <- mirrors crml/model/GenmodelMain.java
-    crml/modelica/build/Modelica.java    <- hand-written construction helpers (§4.3)
+    crml/modelica/GenmodelMain.java
+    crml/modelica/build/Modelica.java    <- construction helpers (§4.3)
     crml/modelica/print/ModelicaPrinter.java
     crml/modelica/print/PrinterOptions.java
     crml/modelica/print/Precedence.java
     crml/modelica/print/Identifiers.java
     crml/modelica/print/IndentingWriter.java
-  src/test/java/crml/modelica/print/...  <- printer unit tests (§7)
+  src/test/java/crml/modelica/print/...
 ```
 
 Wiring:
 
-1. `settings.gradle.kts`: add `"modelica"` to the `include(...)` list. The
-   existing loop already maps project name → `submodules/<name>`.
-2. `submodules/modelica/build.gradle.kts`: copy `submodules/model`'s verbatim,
-   minus the `application`/`generateMermaid` blocks and the `emf-mermaid`
-   dependency, keeping:
-   * plugins `java-library` + `org.xtext.builder` 4.0.0
-   * the `org.antlr:antlr-runtime:3.2` resolution force
-   * the `xtextLanguages` dependency set
-   * the `api` EMF dependencies (so `:compiler` gets `EObject`/`EList`)
-   * `xtext { version.set(xtextVersion); sourceSets.main.srcDir("src/main/model") }`
-     and the `xcore` language with `producesJava.set(true)`
-   * `sourceSets.main.resources.exclude("**/*.xcore")`
-   * a `generateGenModel` JavaExec task pointing at `crml.modelica.GenmodelMain`
-3. `submodules/compiler/build.gradle.kts`: add
-   `implementation(project(":modelica"))`.
-4. `:modelica` must **not** depend on `:model` — see §6 for why the trace model
-   is generic over `EObject`.
+1. `settings.gradle.kts`: add `"modelica"` to `include(...)`. The existing loop
+   maps project name -> `submodules/<name>`.
+2. `submodules/modelica/build.gradle.kts`: copy `:model`'s, minus the
+   `application`/`generateMermaid` blocks and the `emf-mermaid` dependency,
+   keeping the `java-library` + `org.xtext.builder` 4.0.0 plugins, the antlr-runtime
+   pin, the `xtextLanguages` set, the `api` EMF dependencies, the
+   `xtext { sourceSets.main.srcDir("src/main/model") }` block with
+   `producesJava.set(true)`, `resources.exclude("**/*.xcore")`, and a
+   `generateGenModel` JavaExec task.
+3. `submodules/compiler/build.gradle.kts`: add `implementation(project(":modelica"))`.
+4. `:modelica` must **not** depend on `:model` — see §6.
 
-Sanity gate for this step: `./gradlew :modelica:build` produces
-`crml/model/modelica/*.java` under the xtext outlet and compiles at release 8.
+Gate: `./gradlew :modelica:build` produces `crml/model/modelica/*.java` under the
+xtext outlet and compiles at release 8.
 
 ---
 
 ## 3. The Modelica metamodel (`modelica.xcore`, package `crml.model.modelica`)
 
-Scoped to what `crmlcv2` must emit plus what `CRMLtoModelica.mo` contains.
-Roughly 40 EClasses. Every class below is justified by a row of the §1.3 table
-or by a §5 transformation need.
+**31 EClasses.** The governing rule, applied to every class below:
 
-### 3.1 Roots and classes
+> Every class must have a **named producer** in the transformation of §5.
+> A class with no producer is cut, not "kept cheaply".
+
+Revision 1 had 49 classes. §3.6 lists the 18 that were cut or deferred and why.
+
+### 3.1 Classes (4)
 
 ```
-abstract class ModelicaElement { }                 // trace anchor; every node extends it
+abstract class ModelicaElement { }                  // trace anchor; all nodes extend it
 
-class ModelicaFile extends ModelicaElement {
-    String withinPath                              // null today; reserved (decision #5)
-    contains ClassDefinition[] classes
-}
+enum ClassKind { MODEL, RECORD, BLOCK, FUNCTION, PACKAGE }
 
-enum ClassKind { MODEL, RECORD, BLOCK, FUNCTION, PACKAGE, TYPE, CONNECTOR }
-
-abstract class ClassDefinition extends ModelicaElement {
-    String name
+class ClassDefinition extends ModelicaElement {
+    String  name
     ClassKind kind
-    Boolean partial                                // §1.1 defect 2
-    Boolean encapsulated
-    String comment                                 // the string comment
-    contains Annotation annotation
-}
-
-class CompositeClass extends ClassDefinition {
-    contains ImportClause[]        imports
-    contains ExtendsClause[]       extendsClauses
-    contains ClassDefinition[]     nestedClasses
+    Boolean partial
+    String  comment
+    contains ExtendsClause[]        extendsClauses
+    contains ClassDefinition[]      nestedClasses
     contains ComponentDeclaration[] components
-    contains Section[]             sections
-    contains Placeholder[]         placeholders    // §5.5
+    contains EquationSection        equations       // at most one
+    contains AlgorithmSection        algorithm       // at most one
+    contains Placeholder[]          placeholders
 }
 
-class EnumerationClass extends ClassDefinition {   // OPTIONAL, see §1.3
-    contains EnumerationLiteral[] literals
-}
-class EnumerationLiteral extends ModelicaElement { String name  String comment }
-
-class ImportClause  extends ModelicaElement { String qualifiedName  String alias  Boolean wildcard }
-class ExtendsClause extends ModelicaElement { contains TypeSpecifier type  contains Modification modification }
+class ExtendsClause extends ModelicaElement { String typeName }
+class Placeholder   extends ModelicaElement { String message }
 ```
 
-`CompositeClass` uses **typed lists rather than one ordered element list.**
-Modelica permits arbitrary interleaving of declarations, `public`/`protected`
-markers and sections; a *generator* never needs that freedom, and typed lists
-make it impossible to emit a malformed class. The printer imposes the order:
-imports, extends, nested classes, public components, protected components,
-sections, placeholders, annotation.
+* One concrete `ClassDefinition` with a `kind` enum, not a subclass per Modelica
+  class kind. The printer differs only in the keyword it writes.
+* `equations`/`algorithm` are single-valued, not a `Section[]` list. The
+  transformation never produces more than one of each per class, and never an
+  `initial` section (**LIB** shows `initial equation`/`initial algorithm` only
+  inside library classes we reference, never generate).
+* `ExtendsClause` carries a bare `String typeName`. Justified by **CORPUS**:
+  `Contract.crml` has `class ECS is { ... } extends System;`, and **DOM**
+  (`ClassBuilder`) populates `superClasses` via a deferred link task.
+* `Placeholder` prints as a Modelica line comment. It is the only raw-text node
+  and can never produce executable Modelica; it implements decision #3 (§5.5).
 
-### 3.2 Components
+### 3.2 Components (4)
 
 ```
 enum Visibility  { PUBLIC, PROTECTED }
 enum Causality   { NONE, INPUT, OUTPUT }
-enum Variability { CONTINUOUS, DISCRETE, PARAMETER, CONSTANT }
+enum Variability { CONTINUOUS, CONSTANT }
 
 class ComponentDeclaration extends ModelicaElement {
-    String name
-    contains TypeSpecifier   type
+    String      name
+    String      typeName                 // dotted path, verbatim
     Visibility  visibility
     Causality   causality
     Variability variability
-    contains ArrayDimension[] arrayDimensions      // empty == scalar
-    contains Modification     modification         // the (start=..., fixed=...) part
-    contains Expression       binding              // the "= expr" part
-    String comment
-    contains Annotation annotation
+    contains ArrayDimension[]  arrayDimensions   // empty == scalar
+    contains ModificationElement[] modifications // the (a = x, b = y) part
+    contains Expression        binding           // the "= expr" part
+    String      comment
 }
 
-class TypeSpecifier  extends ModelicaElement { String name }        // dotted path, verbatim
-class ArrayDimension extends ModelicaElement { contains Expression size }  // size == null  ==>  ":"
-
-class Modification        extends ModelicaElement { contains ModificationElement[] elements }
-class ModificationElement extends ModelicaElement {
+class ArrayDimension       extends ModelicaElement { contains Expression size }  // null size == ":"
+class ModificationElement  extends ModelicaElement {
     String name
-    Boolean each                                   // "each start = -1"
-    Boolean final
-    contains Expression   value
-    contains Modification nested                   // Placement(transformation(...))
+    contains Expression value
+    contains ModificationElement[] nested
 }
-class Annotation extends ModelicaElement { contains Modification modification }
 ```
 
-`TypeSpecifier` is a **flat dotted string**, not a resolved reference. The
-compiler always knows the full library path as a literal (`TypeResolver`
-already returns `"CRMLtoModelica.Types.Boolean4"`); modelling Modelica's
-lookup/package resolution is out of scope and would buy nothing.
+* `typeName` is a **flat dotted string**, not a `TypeSpecifier` class.
+  `TypeResolver` already yields `"CRMLtoModelica.Types.Boolean4"` as a literal,
+  and trace granularity (decision #7) has nothing to anchor at type level.
+* `Modification` as a wrapper class is gone; `ComponentDeclaration` holds the
+  element list directly, and `ModificationElement` nests itself.
+* `Variability` keeps only `CONSTANT` (justified: `crml.xcore` has
+  `Variable.constant`). `DISCRETE`/`PARAMETER` have no producer.
+* `each` and `final` modifier flags are dropped — no producer.
+* `binding` is separate from `modifications` even though Modelica's grammar folds
+  them together. Generators want "declare `x` of type `T` equal to `e`"; the
+  printer re-joins them.
 
-`binding` is separated from `modification` even though Modelica's grammar folds
-the binding into the modification. Generators overwhelmingly want "declare `x`
-of type `T` equal to `e`", and keeping them apart removes a whole class of
-construction mistakes. The printer re-joins them.
-
-### 3.3 Sections, equations, statements
+### 3.3 Sections and bodies (5)
 
 ```
-abstract class Section extends ModelicaElement { Boolean initial }
-class EquationSection  extends Section { contains Equation[]  equations  }
-class AlgorithmSection extends Section { contains Statement[] statements }
+class EquationSection  extends ModelicaElement { contains Equation[]  equations  }
+class AlgorithmSection extends ModelicaElement { contains Statement[] statements }
 
-abstract class Equation extends ModelicaElement { String comment  contains Annotation annotation }
+abstract class Equation extends ModelicaElement { String comment }
 class SimpleEquation extends Equation { contains Expression lhs  contains Expression rhs }
-class WhenEquation   extends Equation { contains EquationBranch[] branches }            // when / elsewhen
-class IfEquation     extends Equation { contains EquationBranch[] branches
-                                        contains Equation[] elseEquations }
-class ForEquation    extends Equation { contains ForIndex[] indices
-                                        contains Equation[] equations }
-class EquationBranch extends ModelicaElement { contains Expression condition
-                                               contains Equation[] equations }
 
 abstract class Statement extends ModelicaElement { String comment }
 class AssignmentStatement extends Statement { contains ComponentReference target
                                               contains Expression value }
-class WhenStatement extends Statement { contains StatementBranch[] branches }
-class IfStatement   extends Statement { contains StatementBranch[] branches
-                                        contains Statement[] elseStatements }
-class ForStatement  extends Statement { contains ForIndex[] indices
-                                        contains Statement[] statements }
-class StatementBranch extends ModelicaElement { contains Expression condition
-                                                contains Statement[] statements }
-
-class ForIndex extends ModelicaElement { String name  contains Expression range }
 ```
 
-Equation and statement forms are deliberately parallel rather than shared:
-`when x then y = z; end when;` and `when x then y := z; end when;` are different
-productions, and unifying them forces a runtime check at print time.
+`AlgorithmSection` + `AssignmentStatement` exist for one producer only: an
+operator compiled to a Modelica `function` needs `algorithm out := expr;` (§5.7).
 
-### 3.4 Expressions
+**No `WhenEquation`, `IfEquation`, `ForEquation`, `WhenStatement`, `IfStatement`.**
+This is architectural, not an omission: `CRMLtoModelica.mo` keeps all temporal
+logic **inside library classes** — `CRMLClock_build`, `CRMLEvent_build`,
+`unaryBoolAnd` and `Integrate` each own their own `when`. The compiler
+instantiates and wires; it never generates temporal control flow. Corroborated by
+**LEGACY**, which emits zero `when` in 1081 lines. See §3.6 for the `for` case.
+
+### 3.4 Expressions (17)
 
 ```
 abstract class Expression extends ModelicaElement { }
@@ -352,225 +260,214 @@ class ComponentReference extends Expression { contains ReferencePart[] parts }
 class ReferencePart extends ModelicaElement { String name  contains Expression[] subscripts }
 
 enum BinaryOperatorKind { ADD SUB MUL DIV POW AND OR EQ NEQ LT LE GT GE }
-enum UnaryOperatorKind  { PLUS MINUS NOT }
+enum UnaryOperatorKind  { PLUS MINUS }
+
 class BinaryExpression extends Expression { BinaryOperatorKind op
                                             contains Expression lhs  contains Expression rhs }
 class UnaryExpression  extends Expression { UnaryOperatorKind  op  contains Expression operand }
-
-class FunctionCall extends Expression { contains ComponentReference function
-                                        contains Argument[] arguments }
-class Argument extends ModelicaElement { String name           // null == positional
-                                         contains Expression value }
-
-class IfExpression       extends Expression { contains ExpressionBranch[] branches
-                                              contains Expression elseExpression }
-class ExpressionBranch   extends ModelicaElement { contains Expression condition
-                                                   contains Expression value }
-
-class RangeExpression    extends Expression { contains Expression start
-                                              contains Expression step
-                                              contains Expression end }
-class ArrayConstructor   extends Expression { contains Expression[] elements }   // {a, b, c}
-class MatrixConstructor  extends Expression { contains MatrixRow[] rows }        // OPTIONAL, §1.3
-class MatrixRow          extends ModelicaElement { contains Expression[] elements }
+class FunctionCall     extends Expression { String functionName
+                                            contains Expression[] arguments }
+class IfExpression     extends Expression { contains Expression condition
+                                            contains Expression thenExpression
+                                            contains Expression elseExpression }
+class ArrayConstructor extends Expression { contains Expression[] elements }   // {a, b, c}
 class ParenthesizedExpression extends Expression { contains Expression inner }
 
 class IntegerLiteral extends Expression { Integer value }
-class RealLiteral    extends Expression { String literal   Double value }  // literal wins if set
+class RealLiteral    extends Expression { String literal   Double value }
 class StringLiteral  extends Expression { String value }
 class BooleanLiteral extends Expression { Boolean value }
 ```
 
-Notes:
+* `UnaryOperatorKind` has no `NOT`: CRML `not` maps to a **call** to
+  `CRMLtoModelica.Functions.not4` (**LIB**), never to Modelica's `not`.
+* `FunctionCall.functionName` is a flat string and arguments are positional.
+  Every call the transformation emits is positional (§7) — named arguments have
+  no producer.
+* `IfExpression` is flat (condition/then/else), not a branch list. CRML's
+  `IfValue` has exactly one condition; `elseif` chains arise from nesting.
+* `ParenthesizedExpression` exists **only** for CRML's explicit `SUBEXPRESSION`
+  unary operator — parentheses the author wrote. All other parenthesisation is
+  the printer's job (§4.2). Do not emit it defensively.
+* `pre()`, `edge()`, `change()`, `time`, `integer()`, `String()`, and every
+  `CRMLtoModelica.Functions.*` call are `FunctionCall`/`ComponentReference`
+  nodes. No dedicated classes for Modelica builtins — the printer treats them
+  identically, so ~15 classes would buy nothing.
 
-* `ComponentReference` is a list of parts rather than a dotted string so that
-  `clock.ticks[clock.counter]` and `CRMLtoModelica.Types.Boolean4.true4` are
-  both expressible, and so a trace link can point at a part. `Modelica.ref("a.b.c")`
-  in the builder helpers (§4.3) keeps this from being tedious.
-* `RealLiteral` keeps the raw `literal` string because `crml.model.language.RealConstant`
-  does, and `ValueGen` already prefers it — round-tripping `2.5e-3` exactly
-  matters for diffing generated output.
-* `ParenthesizedExpression` exists **only** to carry CRML's explicit
-  `SUBEXPRESSION` unary operator, i.e. parentheses the author wrote. All other
-  parenthesisation is the printer's job (§4.2). Do not emit it defensively.
-* `pre(x)`, `edge(x)`, `change(x)`, `time`, `integer(x)`, `String(x)` and every
-  `CRMLtoModelica.Functions.*` call are `FunctionCall` / `ComponentReference`
-  nodes. There are deliberately **no** dedicated classes for Modelica builtins:
-  they are ordinary calls, and special-casing them would add ~15 classes that
-  the printer would handle identically.
+### 3.5 Class inventory
 
-### 3.5 Placeholder
+| Group | Classes | Count |
+|---|---|---|
+| §3.1 Classes | ModelicaElement, ClassDefinition, ExtendsClause, Placeholder | 4 |
+| §3.2 Components | ComponentDeclaration, ArrayDimension, ModificationElement | 3 |
+| §3.3 Sections | EquationSection, AlgorithmSection, Equation, SimpleEquation, Statement, AssignmentStatement | 6 |
+| §3.4 Expressions | Expression, ComponentReference, ReferencePart, BinaryExpression, UnaryExpression, FunctionCall, IfExpression, ArrayConstructor, ParenthesizedExpression, IntegerLiteral, RealLiteral, StringLiteral, BooleanLiteral | 13 |
+| **Total** | | **26** |
 
-```
-class Placeholder extends ModelicaElement { String message }
-```
+Plus 6 EEnums, not counted as EClasses: `ClassKind`, `Visibility`, `Causality`,
+`Variability`, `BinaryOperatorKind`, `UnaryOperatorKind`.
+Deferred to M4 (§3.6): `ForEquation`, `ForIndex`, `RangeExpression`,
+`MatrixConstructor`, `MatrixRow` — bringing the eventual total to **31** if all
+five are needed.
 
-Printed as a Modelica line comment. This is the *only* raw-text node in the
-metamodel and it can never produce executable Modelica — it is how decision #3
-("no silent gaps") is met without aborting a file. See §5.5.
+### 3.6 What was cut from revision 1, and why
+
+| Cut | Reason |
+|---|---|
+| `WhenEquation`, `IfEquation`, `EquationBranch`, `WhenStatement`, `IfStatement`, `StatementBranch` | Temporal logic lives inside library blocks (§3.3). No producer. **LEGACY** emits no `when`. |
+| `ImportClause` | `TypeResolver` emits fully-qualified names; an import is never needed. |
+| `Annotation` | No producer. Also removes the `annotation` field from three other classes. |
+| `ModelicaFile` | Decision #5 is single-class output; `withinPath` was dead. |
+| `EnumerationClass`, `EnumerationLiteral` | The compiler *references* `Boolean4`; it never declares an enumeration. |
+| `TypeSpecifier` | Collapsed to a `String` attribute (§3.2). |
+| `Modification` | Collapsed; `ComponentDeclaration` holds `ModificationElement[]` directly. |
+| `Section` (abstract) | Only two concrete kinds, each single-valued on `ClassDefinition`. |
+| `Argument` | Calls are positional; `FunctionCall` holds `Expression[]`. |
+| `ExpressionBranch` | `IfExpression` is flat. |
+| **Deferred, not cut** | |
+| `ForEquation`, `ForIndex`, `RangeExpression` | **LEGACY** emits `for i in 1:size(ps.period,1) loop` for Periods (line 912) and for Sets (line 998). M4/M5 may need them — build when a producer exists, not in M1. |
+| `MatrixConstructor`, `MatrixRow` | Needed only to represent `TruthTables`' `[a,b; c,d]` literals, which are library content we never emit. Add only if a producer appears. |
 
 ---
 
 ## 4. The serializer
 
-`crml.modelica.print`, in `submodules/modelica`, so the metamodel module is
-independently testable and the printer is not entangled with CRML concepts.
+`crml.modelica.print`, inside `submodules/modelica`, so the metamodel module is
+independently testable.
 
 ### 4.1 Shape
 
 ```java
 public final class ModelicaPrinter {
-    public static String print(ModelicaElement node);                       // any node
+    public static String print(ModelicaElement node);
     public static String print(ModelicaElement node, PrinterOptions opts);
 }
 ```
 
-Implementation: a `switch`-based dispatcher over the generated `ModelicaSwitch`
-(the Xcore/EMF generator produces one) writing into an `IndentingWriter` that
-owns indent depth, the indent string and the line separator. `print` on any
-node is public because the trace report (§6) and the unit tests (§7) both want
-to render single expressions.
+A `switch`-based dispatcher over the generated `ModelicaSwitch`, writing into an
+`IndentingWriter` that owns indent depth, indent string and line separator.
+`print` accepts any node because the trace report (§6) and unit tests (§9) both
+render single expressions.
 
-`PrinterOptions`: `indentString` (default four spaces, matching today's
-`Scope.indent`), `lineSeparator` (default `System.lineSeparator()`, matching
-`ModelScope`), `emitAnnotations` (default true).
+`PrinterOptions`: `indentString` (default four spaces, matching `Scope.indent`),
+`lineSeparator` (default `System.lineSeparator()`, matching `ModelScope`).
 
 ### 4.2 Rules
 
 * **Precedence-aware parenthesisation.** A `Precedence` table mirroring the
-  Modelica grammar's expression productions; `needsParens(parentOp, childOp,
-  side)` inserts the minimum. This removes today's `((a + b) + c)` noise and is
-  a large part of why the AST is worth having. `ParenthesizedExpression` always
-  prints its parentheses regardless.
+  Modelica expression grammar; `needsParens(parentOp, childOp, side)` inserts the
+  minimum. Removes revision-0 output like `((a + b) + c)`.
+  `ParenthesizedExpression` always prints its parentheses.
 * **Conditional identifier quoting.** `Identifiers.quote(name)` emits `'name'`
-  only when `name` is not a valid Modelica `IDENT` or is a reserved word, and
-  the *same* decision is used for a class's header and its `end` — fixing
-  §1.1 defect 1. Name it and test it explicitly; the harness contract in §8
-  depends on the generated name matching what `_verif.mo` writes after
-  `extends`.
-* **No empty sections.** An `EquationSection` with zero equations prints
-  nothing — §1.1 defect 3.
-* **Deterministic.** Output depends only on the tree. No hash codes, no
-  iteration over unordered maps, no timestamps. This is what makes generated
-  `.mo` diffable across runs, which the §8 read-through relies on.
-* **Class layout**: `partial`/`encapsulated` prefixes, `kind` keyword, quoted
-  name, string comment, then imports / extends / nested classes / public
-  components / `protected` + protected components / sections / placeholders /
-  annotation, then `end <name>;`.
-* **Component layout**: `visibility` is handled by the class printer's
-  grouping, then `causality` prefix, `variability` prefix, type,
-  array dimensions, name, modification, binding, comment, annotation.
+  only when `name` is not a valid Modelica `IDENT` or is a reserved word, and the
+  **same** decision governs the class header and its `end` — fixing the current
+  `model 'X' … end X;` mismatch. The §10 contract check depends on the generated
+  name matching what `_verif.mo` writes after `extends`.
+* **No empty sections.** An `EquationSection` with zero equations prints nothing.
+* **Deterministic.** Output depends only on the tree: no hash codes, no unordered
+  map iteration, no timestamps.
+* **Class layout**: `partial` prefix, `kind` keyword, quoted name, string comment,
+  then extends / nested classes / public components / `protected` + protected
+  components / equation section / algorithm section / placeholders, then
+  `end <name>;`.
 
 ### 4.3 Construction helpers
 
-Hand-written `crml.modelica.build.Modelica` static factory, because raw EMF
-factory calls are unreadable at the volume the transformation needs:
+Hand-written `crml.modelica.build.Modelica` static factory — plain Java, not
+generated:
 
 ```java
-Modelica.model(name)            Modelica.record(name)     Modelica.block(name)
-Modelica.function(name)         Modelica.component(type, name)
-Modelica.ref("a.b.c")           Modelica.call("Pkg.f", arg1, arg2)
-Modelica.binary(ADD, l, r)      Modelica.unary(NOT, e)
-Modelica.eq(lhs, rhs)           Modelica.when(cond, equations...)
-Modelica.ifExpr(cond, t, e)     Modelica.real(2.5)  .integer(3)  .string("x")  .bool(true)
-Modelica.mod("start", expr)     Modelica.each("start", expr)
+Modelica.model(name)        Modelica.record(name)    Modelica.block(name)
+Modelica.function(name)     Modelica.component(typeName, name)
+Modelica.ref("a.b.c")       Modelica.call("Pkg.f", arg1, arg2)
+Modelica.binary(ADD, l, r)  Modelica.unary(MINUS, e)
+Modelica.eq(lhs, rhs)       Modelica.assign(target, value)
+Modelica.ifExpr(c, t, e)    Modelica.real(2.5) .integer(3) .string("x") .bool(true)
+Modelica.mod("start", expr)
 ```
-
-These are plain Java, not generated — keep them in `:modelica` next to the
-printer.
 
 ---
 
 ## 5. Rewriting the transformation
 
-Package stays `crml.compiler.crmlcv2`. Public entry point stays `OMCv2`.
+Package stays `crml.compiler.crmlcv2`; entry point stays `OMCv2`.
 
-### 5.1 New entry point
+### 5.1 Entry point
 
 ```java
 public class OMCv2 {
-    public TranslationResult translateModel(Model model);     // new
-    public String translate(Model model);                     // kept: prints translateModel(...)
+    public TranslationResult translateModel(Model model);   // new
+    public String            translate(Model model);        // kept: prints translateModel(...)
 }
 
 public class TranslationResult {
-    ClassDefinition   modelica();
-    TraceModel        trace();
-    List<Diagnostic>  diagnostics();
-    String            text();      // ModelicaPrinter.print(modelica())
+    ClassDefinition  modelica();
+    TraceModel       trace();
+    List<Diagnostic> diagnostics();
+    String           text();
 }
 ```
 
 Keeping `String translate(Model)` means `OMCv2SpecificationTest` and its 13
-subclasses keep compiling untouched; the richer report in §8 uses
-`translateModel` instead.
+subclasses compile untouched.
 
 ### 5.2 `TransformationContext` replaces `Scope`
 
-The one piece of real design here. `BlockScope` today does its work *in its
-constructor*, mutating a host `ModelScope` — that pattern is correct in spirit
-(hoisting a component declaration plus wiring equations out of an expression)
-but invisible and untraceable. Make it explicit:
+`BlockScope` does its work in its constructor, mutating a host `ModelScope`. That
+pattern is right in spirit — hoist a component plus wiring equations out of an
+expression — but invisible and untraceable. Make it explicit:
 
 ```java
 public class TransformationContext {
-    CompositeClass  target();                         // class currently being built
+    ClassDefinition    target();
     ComponentReference declare(ComponentDeclaration decl, EObject crmlSource);
-    void            equate(Equation eq, EObject crmlSource);
-    CompositeClass  defineClass(ClassDefinition cls, EObject crmlSource);
-    String          allocateName(String prefix);      // deterministic, per-target counter
-    void            report(Diagnostic d);
-    TransformationContext nested(CompositeClass newTarget);   // entering an operator body
+    void               equate(Equation eq, EObject crmlSource);
+    ClassDefinition    defineClass(ClassDefinition cls, EObject crmlSource);
+    String             allocateName(String prefix);
+    void               report(Diagnostic d);
+    TransformationContext nested(ClassDefinition newTarget);
 }
 ```
 
-* `declare`, `equate` and `defineClass` are the **only** ways to add to the
-  target class, and each records a trace link (§6). The trace therefore cannot
-  be forgotten — that is the whole point of routing through the context.
+* `declare`, `equate` and `defineClass` are the **only** ways to add to the target
+  class, and each records a trace link (§6). The trace cannot be forgotten.
 * `allocateName` replaces `scopes/NameAllocator`, scoped per target class and
-  seeded deterministically. This kills `PeriodsGen`'s `hashCode()` identifier
-  and `ConstructorGen`'s `static` allocator shared across compilations (today a
-  `private static final NameAllocator` — generated names depend on how many
-  models were compiled earlier in the JVM, so output is not reproducible).
-* `nested` handles operator bodies becoming their own Modelica classes.
+  seeded deterministically. This kills two non-determinism sources: `PeriodsGen`'s
+  `hashCode()`-derived identifier, and `ConstructorGen`'s `private static final
+  NameAllocator` (today generated names depend on how many models were compiled
+  earlier in the same JVM).
+* `nested` handles operator bodies becoming their own classes.
 
 ### 5.3 Expression results
 
 `Scope.reference()` returning `null` for "cannot be embedded" disappears. Every
-value transformer returns an `Expression`, unconditionally. Anything that needs
-hoisting calls `context.declare(...)` / `context.equate(...)` and returns the
-`ComponentReference` those produced — exactly `BlockScope`'s trick, typed and
-traced.
+value transformer returns an `Expression`, unconditionally. Anything needing
+hoisting calls `declare`/`equate` and returns the resulting `ComponentReference`.
 
 ### 5.4 Per-class migration map
 
 | Today | Becomes | Notes |
 |---|---|---|
-| `OMCv2` | `OMCv2` | §5.1; unchanged signature plus `translateModel` |
-| `scopes/Scope` | *deleted* (M2) | replaced by `Expression` + `TransformationContext` |
-| `scopes/ModelScope` | *deleted* | → `CompositeClass` + `TransformationContext` |
-| `scopes/RawstringScope` | *deleted* | no raw text survives except `Placeholder` |
-| `scopes/FunctionScope` | *deleted* | → `Expression` subtypes |
-| `scopes/BlockScope` | *deleted* | → `BlockInstantiation` helper on the context (§5.6) |
-| `scopes/NameAllocator` | *deleted* | → `TransformationContext.allocateName` |
+| `OMCv2` | `OMCv2` | §5.1 |
+| `scopes/*` (6 files) | *deleted* (M2) | -> `Expression` + `TransformationContext` |
 | `util/LineMerger` | *deleted* | printer's job |
-| `util/TypeResolver` | `TypeResolver` | returns `TypeSpecifier`, not `String`. Logic unchanged. |
-| `templates/ModelGen` | `ModelTransformer` | Model → `CompositeClass`, `partial` when any variable is unbound (§1.1 defect 2). Also handles `classes`, `operators`, `objects`, `sets` — all ignored today. |
-| `templates/VariableGen` | `VariableTransformer` | Variable → `ComponentDeclaration` (+ binding). Logic unchanged. |
+| `util/TypeResolver` | `TypeResolver` | returns a type-name `String`. Logic unchanged. |
+| `templates/ModelGen` | `ModelTransformer` | Model -> `ClassDefinition` (MODEL), `partial` when any variable is unbound (§8.1 defect 2). Also handles `classes` and `operators`, both ignored today. |
+| `templates/VariableGen` | `VariableTransformer` | Variable -> `ComponentDeclaration`. Logic unchanged. |
 | `templates/ValueGen` | `ValueTransformer` | same dispatch, returns `Expression`; new cases in M3–M5 |
-| `templates/value/BinaryOperatorGen` | `BinaryOperatorTransformer` | **type-dispatch logic copied verbatim**; only construction changes |
-| `templates/value/UnaryOperatorGen` | `UnaryOperatorTransformer` | same |
-| `templates/value/ConstructorGen` | `ConstructorTransformer` | same, minus the `static` allocator |
-| `templates/value/ValueGenUtil` | split | type predicates → `TypeCategories`; text helpers → `Modelica` builders (§4.3); exception factories → `Diagnostics` |
-| `templates/TemplateGen` (dead) | `OperatorTransformer` | new, M3 — the biggest piece |
-| `templates/PeriodsGen` (dead) | `PeriodsTransformer` | new, M4 — do not revive as-is |
+| `templates/value/BinaryOperatorGen` | `BinaryOperatorTransformer` | **type-dispatch logic ported verbatim** — verified correct against **CSV** in §7.2 |
+| `templates/value/UnaryOperatorGen` | `UnaryOperatorTransformer` | same; verified in §7.3 |
+| `templates/value/ConstructorGen` | `ConstructorTransformer` | same, minus the `static` allocator; **three defects to fix first**, §8.1 |
+| `templates/value/ValueGenUtil` | split | predicates -> `TypeCategories`; text helpers -> `Modelica` (§4.3); exception factories -> `Diagnostics` |
+| `templates/TemplateGen` (dead) | `OperatorTransformer` | new, M3 — §5.7 |
+| `templates/PeriodsGen` (dead) | `PeriodsTransformer` | new, M4 — **do not revive as-is**, §8.1 |
 
-The type-compatibility logic in `BinaryOperatorGen`/`UnaryOperatorGen` (which
-tracks `typeinference.csv` and the "OrUnknown" tolerance for unresolved types)
-is correct and hard-won. **Port it verbatim.** Only the construction calls
-change: `infix(lhs, rhs, "+")` → `Modelica.binary(ADD, lhs, rhs)`,
-`call("f", a)` → `Modelica.call("f", a)`,
-`comparisonToBoolean4(l, r, "<")` → `Modelica.call("CRMLtoModelica.Functions.cvBooleanToBoolean4", Modelica.binary(LT, l, r))`.
+The type-compatibility logic in `BinaryOperatorGen`/`UnaryOperatorGen` has been
+checked row-by-row against **CSV** (§7.2) and is correct. **Port it verbatim.**
+Only construction calls change: `infix(l, r, "+")` -> `Modelica.binary(ADD, l, r)`,
+`call("f", a)` -> `Modelica.call("f", a)`, and
+`comparisonToBoolean4(l, r, "<")` ->
+`Modelica.call("CRMLtoModelica.Functions.cvBooleanToBoolean4", Modelica.binary(LT, l, r))`.
 
 ### 5.5 Diagnostics instead of exceptions
 
@@ -579,39 +476,22 @@ public class Diagnostic {
     enum Severity { ERROR, WARNING, INFO }
     Severity severity();
     String   message();
-    EObject  crmlSource();       // the CRML object-model element; no file/line (decision #7)
-    String   constructKind();    // e.g. "BinaryOperator.AT", "Value.DurationValue"
+    EObject  crmlSource();     // no file/line — decision #7
+    String   constructKind();  // e.g. "BinaryOperator.AT"
 }
 ```
 
-Rule, per decision #3: **every CRML construct is reached and produces either a
-correct Modelica AST or a recorded diagnostic.** Nothing throws
-`UnsupportedOperationException` out of the transformation, and nothing is
-silently skipped.
+Rule: **every CRML construct is reached and produces either a correct Modelica
+AST or a recorded diagnostic.** Nothing throws out of the transformation, nothing
+is silently skipped.
 
-Where an unmapped construct sits:
-
-* in a *declaration or equation* position — the element is omitted, a
-  `Diagnostic` is recorded, and a `Placeholder` is added in its place so the
-  generated `.mo` visibly shows the gap.
-* in an *expression* position — the whole enclosing declaration/equation is
+* Unmapped in a *declaration or equation* position -> element omitted,
+  `Diagnostic` recorded, `Placeholder` added so the gap is visible in the `.mo`.
+* Unmapped in an *expression* position -> the enclosing declaration/equation is
   dropped (an expression hole cannot produce valid Modelica), one `Diagnostic`
-  is recorded naming the enclosing element, and one `Placeholder` marks it.
+  recorded naming the enclosing element, one `Placeholder` emitted.
 
-The known unmapped set, to be diagnosed rather than implemented (M5):
-
-`AT` (semantics undefined; `crml.g4` has an unanswered TODO), Boolean4 `SUB`
-(no `diff4` in `CRMLtoModelica.mo`), Boolean4 `<`/`<=`/`>`/`>=` (the legacy
-table's `Blocks.Logical4` package does not exist), Real/Period comparisons
-(`realPeriodeq`/`realPeriodleq` do not exist), `WITH`, `MASTER`, `ON`,
-`DurationValue`, `ProjectionValue`, `Category`, `PowerClass`, `Package`,
-`IndirectTypeReference`, `ModelDependency`.
-
-Follow-on work, explicitly out of scope: defining those semantics and filling
-the empty stubs in `CRMLtoModelica.mo` (`Blocks.setAnd` and `Blocks.ClockAdd`
-both have empty equation sections; `Functions.lEV` has a copy-paste bug — its
-body is `r1.t > r2.t`, identical to `gEV`). Record the `lEV` bug as a
-diagnostic-worthy note; do not fix it here.
+§7 classifies every construct; §8.3 lists what stays diagnosed.
 
 ### 5.6 Block instantiation (M4)
 
@@ -623,248 +503,425 @@ ComponentReference instantiateBlock(
     Map<String, Expression> inputs, String outputPort, EObject crmlSource);
 ```
 
-Declares `blockType <allocated> ;`, emits one `SimpleEquation` per input
-(`inst.<port> = <expr>;`), returns `ref(inst, outputPort)`. Unblocks
-`UnaryOperatorKind.CARD` (`Blocks.CardClock`), `TICK` (`Blocks.ClockTick`),
-Clock/Period `ADD` (`Blocks.ClockAdd` — note its equation section is empty
-upstream, so emit correctly and record an INFO diagnostic), `FILTER`
-(`Blocks.EventFilter`), and `IntegrateValue` (`Blocks.Integrate`).
+Declares `blockType <allocated>;`, emits one `SimpleEquation` per input
+(`inst.<port> = <expr>;`), returns `ref(inst, outputPort)`.
 
-Input port names come from `CRMLtoModelica.mo` and are uniformly `r1`, `r2`,
-with output `out` — verify against the block before wiring each one.
+**LIB** fixes the port names: every block uses `r1`, `r2` for inputs and `out`
+for the output. Verified for `EventFilter`, `Integrate`, `ClockTick`,
+`CardClock`, `BoolTick`, `unaryBoolAnd`, `ClockAdd`, `setAnd`. `Integrate` has a
+third input `a` with a default (`= Types.Boolean4.true4`, marked `//FIXME`
+upstream) — leave it unbound.
 
-### 5.7 Operators and templates (M3) — the unlock
+### 5.7 Operators and templates (M3)
 
-`ModelGen`'s empty operator loop is why no `libraries/**` or `use-cases/**`
-model generates anything. `Template` and `UserOperator` both extend
-`CustomOperator` (header of `Keyword`s and `Variable`s, a `definition` `Value`,
-and `getArity()`/`getVariables()` helpers already generated from `crml.xcore`).
-
-Mapping:
+`Template` and `UserOperator` both extend `CustomOperator` (a header of
+`Keyword`s and `Variable`s, a `definition` `Value`, and generated
+`getArity()`/`getVariables()` helpers).
 
 * A `CustomOperator` becomes a **nested class in the generated model**:
   * a Modelica `function` when its definition is a pure expression over its
     parameters — inputs from `getVariables()`, one `output` of the operator's
     `domain`, an `algorithm` section with a single assignment;
-  * a Modelica `block` when its translation requires hoisted components or
-    state (i.e. when transforming its body in a nested context produces any
-    component declaration or equation) — inputs/outputs as above, an
-    `equation` section.
-  Decide by transforming the body first into a scratch nested context and
-  checking whether anything was hoisted. That keeps the rule mechanical.
-* `ComputedValue` (the operator *call*) becomes a `FunctionCall` for the
-  function form, or a block instantiation (§5.6) for the block form. Argument
-  order comes from `Binding.element` matched against the operator's
-  `getVariables()` — bind by element identity, never by position, since mixfix
-  operators interleave keywords and values.
-* Recursion: ETL operators call each other (`'becomes false inside'` is defined
-  in terms of `'becomes false'` and `'inside'`). Emit each operator once per
-  model, keyed on the `CustomOperator` instance, and reuse the emitted class
-  for every call. Guard against cyclic definitions with a visiting set and a
-  diagnostic.
+  * a Modelica `block` when transforming its body hoists any component or
+    equation. Decide mechanically: transform the body into a scratch nested
+    context first, then check whether anything was hoisted.
+* `ComputedValue` (the call) becomes a `FunctionCall` for the function form, or a
+  block instantiation (§5.6) for the block form. Argument order comes from
+  `Binding.element` matched against `getVariables()` — **bind by element
+  identity, never by position**, since mixfix operators interleave keywords and
+  values.
+* Emit each operator once per model, keyed on the `CustomOperator` instance, and
+  reuse the class for every call. Guard cyclic definitions with a visiting set
+  and a diagnostic.
+
+**Open question before M3 starts.** **LEGACY** `crmlVisitorImpl.java:297` emits
+`"model "` for operators — neither `function` nor `block`. Its reasons are not
+documented. Resolve which of the three is right before building the rule above;
+the function/block split is this plan's proposal, not an inherited decision.
 
 ### 5.8 Classes, objects, sets (M5)
 
-* `crml.model.language.Class` → a nested Modelica `record` with one
-  `ComponentDeclaration` per `Class.variables`. `superClasses` is a diagnostic
-  for now (records plus `extends` is expressible, but no test model exercises
-  it and `ClassBuilder` never populates it).
-* `Object` → a `ComponentDeclaration` whose type is the record above, with a
-  `Modification` binding each of its `variables`. Note: `RootBuilder` never
-  creates an `Object`, so expect zero corpus coverage — implement it, but do
-  not spend time tuning it.
-* `Set<Value>` → a `ComponentDeclaration` with one `ArrayDimension` and an
-  `ArrayConstructor` binding. `ExpressionBuilder` does create `Set`s.
-  `Blocks.setAnd` is the intended consumer and has an empty equation section
-  upstream — emit and record an INFO diagnostic.
-* `Model.frame` (a `Period`) → diagnostic; nothing consumes it today.
+**`crml.model.language.Class` -> a nested Modelica `model`** (kind `MODEL`),
+`partial` when the CRML class is partial, with one `ExtendsClause` per entry in
+`superClasses`, one `ComponentDeclaration` per `Class.variables`, and an
+`EquationSection` for those variables that have definitions.
+
+This corrects revision 1, which said `record`. Four independent checks:
+
+1. **GRAMMAR**: `class_var_def : var_def | ...` (crml.g4:68) and
+   `var_def : cnst='constant'? var_qualifier? type id (arg_list | 'is' (exp | is_external='external'))? ';'`
+   (crml.g4:44). Class variables can carry expressions, which become equations.
+   **Modelica records cannot contain equation sections.**
+2. **CORPUS**: `ProbabilityExample1.crml`'s `class Pump` declares
+   `Events failures is new Clock failure;`, `Boolean nostart is (...)`,
+   `Real p is estimator Probability ...`, `Requirement noStartProb is ...`.
+   `Contract.crml`'s `class Contract` has
+   `Boolean r1 is while consumer.inOperation ensure (...)`. All equations.
+3. **LEGACY**: `crmlVisitorImpl.java:250`, in the `class_def` visitor:
+   `buffer.append("model " + ctx.id(0).getText());`.
+4. **SPEC** p70 §3.23.1 and the `Pump` example on p69: a class definition is a set
+   of attributes that includes defined requirements
+   (`ℛ: R_noCav = ¬cav ⊗ [s↑, ¬s↑]`). **SPEC** p71 §3.23.4 defines partial
+   classes as classes that "cannot have any instances because [they are]
+   incompletely defined" — exactly Modelica `partial`.
+
+Where `record` *would* work — a class whose variables are all external, like
+`Contract.crml`'s `partial class System` — it is still wrong to use, because
+Modelica forbids mixing record and model in one `extends` hierarchy. Uniform
+`model` is both simpler and correct.
+
+**Class instances do not go through `crml.model.language.Object`** (never built
+by any builder — **DOM**). `ECS ecs is new ECS;` is a **`Variable`** whose domain
+is a `UserTypereference` and whose definition is a `ConstructorValue`.
+`TypeResolver.resolve(UserTypereference)` already returns `clazz.getName()`, so
+that path is half-built. `new Contract(ecs is ecs, consumer is consumer)` is
+exactly the non-empty `ConstructorValue.bindings` that `ConstructorGen` currently
+throws on -> a `ComponentDeclaration` with `ModificationElement`s.
+
+`Set<Value>` -> a `ComponentDeclaration` with one `ArrayDimension` and an
+`ArrayConstructor` binding. `Blocks.setAnd` is the intended consumer and takes
+`Types.Boolean4[:]` (**LIB**), but its equation section is empty — emit and record
+an INFO diagnostic. `Object` and `Model.frame` -> diagnostics; no producer.
 
 ---
 
 ## 6. The trace model (`trace.xcore`, package `crml.model.trace`)
 
 ```
-class TraceModel extends ... { contains TraceLink[] links }
+class TraceModel { contains TraceLink[] links }
 
 enum TraceLinkKind {
-    MODEL_TO_CLASS            // CRML Model      -> Modelica CompositeClass
-    CLASS_TO_RECORD           // CRML Class      -> Modelica record
-    OPERATOR_TO_FUNCTION      // Template/UserOperator -> Modelica function
-    OPERATOR_TO_BLOCK         // Template/UserOperator -> Modelica block
-    VARIABLE_TO_COMPONENT     // CRML Variable   -> ComponentDeclaration
-    VARIABLE_TO_EQUATION      // CRML Variable   -> binding Equation
-    VALUE_TO_COMPONENT        // hoisted: Value  -> ComponentDeclaration
-    VALUE_TO_EQUATION         // hoisted: Value  -> wiring Equation
-    OBJECT_TO_COMPONENT
-    SET_TO_COMPONENT
-    UNSUPPORTED               // CRML element    -> Placeholder
+    MODEL_TO_CLASS  CLASS_TO_MODEL  OPERATOR_TO_FUNCTION  OPERATOR_TO_BLOCK
+    VARIABLE_TO_COMPONENT  VARIABLE_TO_EQUATION
+    VALUE_TO_COMPONENT     VALUE_TO_EQUATION
+    SET_TO_COMPONENT       UNSUPPORTED
 }
 
 class TraceLink {
-    refers ecore::EObject source        // CRML object-model element
-    refers ecore::EObject target        // Modelica element
+    refers ecore::EObject source     // CRML object-model element
+    refers ecore::EObject target     // Modelica element
     TraceLinkKind kind
     String note
 }
 ```
 
-Design points:
-
-* **Generic over `EObject` on both sides**, so `:modelica` does not need a
-  dependency on `:model`. The `kind` enum carries the semantics that typed
-  references would have carried. (If `refers ecore::EObject` proves awkward in
-  Xcore, the fallback is to declare the references against a local
-  `abstract class Traceable` marker and have the transformation store proxies —
-  but try the direct form first; Xcore resolves the Ecore metamodel by default.)
-* **Granularity is class / component-declaration / equation**, per decision #7.
-  That is exactly the three `TransformationContext` mutators in §5.2, so there
-  are precisely three call sites that create links and they cannot be bypassed.
-  No expression-level links: that was considered and rejected as disproportionate
-  plumbing for this milestone.
-* **No source positions.** CRML object-model elements have none — the DOM
-  builders in `:language` receive ANTLR `*Context` objects and discard them.
-  Adding positions (to `crml.xcore`, or as a side-table where the builders
-  already hold the contexts) is a clean, separable follow-on and is what would
-  let traces reach file/line/column. Out of scope here; the trace shape above
-  does not need to change when it lands, since links point at `EObject`s that
-  would then carry positions themselves.
-* **In memory only.** Returned in `TranslationResult`. Rendered into the HTML
-  test report via a new `TraceWrapper implements CustomHtmlReporter` alongside
-  the existing `CodeWrapper`/`ObjectModelWrapper` in
-  `submodules/compiler/src/test/java/crml/compiler/util/` — a two-column table
-  of CRML element (via `PrettyPrint`) → generated Modelica (via
-  `ModelicaPrinter.print`) → kind. That report *is* the evidence base for §8.
+* **Generic over `EObject` on both sides**, so `:modelica` needs no dependency on
+  `:model`; `kind` carries the semantics. If `refers ecore::EObject` resists in
+  Xcore, fall back to a local `abstract class Traceable` marker — validate this
+  in M1, before anything depends on it.
+* Granularity is class / component-declaration / equation (decision #7), which is
+  exactly the three `TransformationContext` mutators — three call sites, no
+  bypass. No expression-level links: disproportionate plumbing for this milestone.
+* **No source positions.** CRML object-model elements have none; the DOM builders
+  receive ANTLR `*Context` objects and discard them. Adding positions is a clean,
+  separable follow-on and would not change the shape above.
+* **In memory only**, returned in `TranslationResult`, rendered by a new
+  `TraceWrapper implements CustomHtmlReporter` alongside `CodeWrapper` /
+  `ObjectModelWrapper`. That report is the evidence base for §10.
 
 ---
 
-## 7. Testing (mechanical parts only)
+## 7. Compatibility check: every mapping, verified
 
-Automated, in `:modelica`:
+Legend: **OK** — target exists in **LIB** with a matching signature.
+**GAP** — CRML defines it (**CSV**/**SPEC**) but **LIB** has no implementation;
+diagnose (§5.5). **BROKEN** — a target is named that does not exist or is
+defective; see §8.
+
+### 7.1 Builtin types (`TypeResolver`)
+
+| CRML `BuiltinType` | Emitted type name | **LIB** | Status |
+|---|---|---|---|
+| BOOLEAN | `CRMLtoModelica.Types.Boolean4` | `type Boolean4 = enumeration(undefined, undecided, false4, true4)` | OK |
+| REQUIREMENT | `CRMLtoModelica.Types.Boolean4` | same | OK |
+| EVENT | `CRMLtoModelica.Types.Event` | `record Event { Boolean4 b; Real t; }` | OK |
+| CLOCK | `CRMLtoModelica.Types.CRMLClock` | `record CRMLClock { Boolean4 b; Real ticks[50]; discrete Integer counter; Boolean4 out; }` | OK |
+| PERIOD | `CRMLtoModelica.Types.CRMLPeriod` | `record CRMLPeriod { Boolean isLeftBoundaryIncluded, isRightBoundaryIncluded; Event start_event, close_event; Boolean is_open; }` | OK |
+| PERIODS | `CRMLtoModelica.Types.CRMLPeriods` | `record CRMLPeriods { … CRMLClock start_event, close_event; … }` | OK |
+| REAL / INTEGER / STRING | `Real` / `Integer` / `String` | Modelica builtins | OK |
+
+### 7.2 Binary operators — checked row-by-row against **CSV**
+
+| Op | **CSV** operand types | Emitted | Status |
+|---|---|---|---|
+| ADD | INTEGER\|INTEGER, REAL\|REAL… | `(l + r)` | OK |
+| ADD | STRING\|… , …\|STRING | `(l + r)` | OK — Modelica `+` concatenates String |
+| ADD | BOOLEAN\|BOOLEAN | `Functions.add4(l, r)` | OK — `add4(Boolean4, Boolean4) -> Boolean4` |
+| ADD | PERIOD;CLOCK \| REAL | `Blocks.ClockAdd` | **BROKEN** — §8.2(a) |
+| ADD | CLOCK \| INTEGER | *(none)* | GAP — no block; tick-delay (**SPEC** p35 §3.7.3) |
+| SUB | numeric | `(l - r)` | OK |
+| SUB | BOOLEAN\|BOOLEAN | *(none)* | GAP — no `diff4` in **LIB** |
+| MUL | numeric | `(l * r)` | OK |
+| MUL | BOOLEAN\|BOOLEAN | `Functions.mul4(l, r)` | OK |
+| DIV | numeric | `(l / r)` | OK |
+| POW | numeric | `(l ^ r)` | OK, but see §8.2(e) |
+| MOD | numeric | `mod(l, r)` | OK — Modelica builtin |
+| AND | BOOLEAN\|BOOLEAN | `Functions.and4(l, r)` | OK |
+| OR | BOOLEAN\|BOOLEAN | `Functions.or4(l, r)` | OK |
+| LT/LE/GT/GE/EQ/NEQ | numeric | `Functions.cvBooleanToBoolean4(l <op> r)` | OK — `cvBooleanToBoolean4(Boolean) -> Boolean4` |
+| LE | EVENT\|EVENT | `Functions.lEV(l, r)` | **BROKEN** — §8.2(c) |
+| GE | EVENT\|EVENT | `Functions.gEV(l, r)` | **BROKEN** — §8.2(c) |
+| LT/GT | EVENT\|EVENT | *(none)* | GAP — only `lEV`/`gEV` exist |
+| LT/LE/GT/GE/EQ/NEQ | BOOLEAN\|BOOLEAN | *(none)* | GAP — the `Blocks.Logical4` package the legacy table named does not exist |
+| LT/LE/EQ/NEQ | REAL\|PERIOD | *(none)* | GAP — `realPeriodeq`/`realPeriodleq` do not exist |
+| FILTER | CLOCK\|BOOLEAN | `Blocks.EventFilter` | **OK** — `EventFilter(r1: CRMLClock, r2: Boolean4) -> out: CRMLClock` matches exactly. Revision 1 wrongly listed this as unmapped. |
+| AT | `*` \| EVENT | *(none)* | GAP — see §8.2(d); **not** "undefined semantics" |
+| WITH, MASTER, ON, LOG/2 | `?` \| `?` | *(none)* | GAP — undefined in **CSV** too |
+
+**`BinaryOperatorGen`'s per-operator flags were checked against CSV and are
+correct**: `periodSupported` is true for LT/LE/EQ/NEQ and false for GT/GE, which
+matches exactly the rows where REAL\|PERIOD appears; `eventSupported` is true for
+LT/LE/GT/GE and false for EQ/NEQ, matching the EVENT\|EVENT rows. Port verbatim.
+
+### 7.3 Unary operators
+
+| Op | **CSV** | Emitted | Status |
+|---|---|---|---|
+| ADD / SUB | INTEGER;REAL | `+x` / `-x` | OK |
+| NOT | BOOLEAN | `Functions.not4(x)` | OK |
+| SUBEXPRESSION | `*` | `(x)` | OK |
+| SIN/ASIN/COS/ACOS/LOG/LOG10/EXP_OP | INTEGER;REAL -> REAL | `Modelica.Math.*` | OK — but adds an MSL dependency absent from `CRMLtoModelica.mo`; the generated `.mo` will not compile without MSL on the load path. Note in the header. |
+| START / END | PERIOD -> EVENT | `Functions.PStart` / `PEnd` | OK |
+| CARD | CLOCK -> INTEGER | `Blocks.CardClock` | OK — `CardClock(r1: CRMLClock) -> out: Integer`; matches **SPEC** p32 (`\|Ω\|` = number of ticks) |
+| TICK | CLOCK -> EVENT | `Blocks.ClockTick` | OK — `ClockTick(r1: CRMLClock) -> out: Event` |
+| PRE, PAR | `?` | *(none)* | GAP |
+
+### 7.4 Value kinds
+
+| CRML `Value` | Emitted | Status |
+|---|---|---|
+| VariableReference | `ComponentReference` | OK |
+| Boolean/Integer/RealConstant, TimeValue | literal / `time` | OK |
+| StringConstant | `StringLiteral` | OK (M5; no producer today) |
+| IfValue | `IfExpression` with `cond == Boolean4.true4` | OK |
+| Binary/UnaryOperator | §7.2, §7.3 | mixed |
+| ConstructorValue -> CLOCK | `CRMLClock c(b=e); CRMLClock_build c_init(clock=c);` | OK — `CRMLClock_build { CRMLClock clock; }`, and **LIB**'s own `EventFilter` uses the same idiom |
+| ConstructorValue -> EVENT | `Event e(b=x); CRMLEvent_build e_init(E=e);` | OK — `CRMLEvent_build { Event E; }` |
+| ConstructorValue -> STRING from BOOLEAN | `Functions.Bool4toString(x)` | **BROKEN** — §8.2(b) |
+| ConstructorValue -> STRING otherwise | `String(x)` | OK — Modelica builtin |
+| ConstructorValue -> INTEGER from REAL | `integer(x)` | OK — Modelica builtin |
+| ConstructorValue -> INTEGER otherwise | `Integer(x)` | Partial — `Integer()` converts enumerations only; a String operand is invalid. Narrow to enum sources, diagnose the rest. |
+| ConstructorValue -> REAL | `real(x)` / `Real(x)` | **BROKEN** — §8.2(f) |
+| ConstructorValue -> BOOLEAN from EVENT | `Functions.Event2Boolean(x)` | OK |
+| ConstructorValue with bindings | component + modifications | OK (M4/M5) — class instantiation, §5.8 |
+| PeriodsValue | `CRMLPeriod p(...); CRMLPeriod_build p_init(P=p);` | **BROKEN** in current code — §8.1 |
+| IntegrateValue | `Blocks.Integrate` | OK — `Integrate(r1: Boolean4, r2: CRMLPeriod, a: Boolean4 = true4) -> out: Boolean4`; bind `integrand`->r1, `interval`->r2, leave `a` defaulted |
+| ComputedValue | function call or block instantiation | §5.7 (M3) |
+| Set | array component | Partial — `setAnd` exists but has an empty equation section |
+| DurationValue, ProjectionValue | *(none)* | GAP |
+
+### 7.5 Structural elements
+
+| CRML | Emitted | Status |
+|---|---|---|
+| Model | `ClassDefinition` kind MODEL, `partial` when it has unbound variables | OK — corrects §8.1 defect 2 |
+| Class | nested `model`, `partial`, `extends` per superclass | OK — §5.8, corrects revision 1 |
+| Variable (no definition) | `ComponentDeclaration` | OK |
+| Variable (with definition) | `ComponentDeclaration` + binding | OK |
+| Variable of user class type | `ComponentDeclaration` of the nested model | OK |
+| Template / UserOperator | nested `function` or `block` | Proposed — §5.7 open question |
+| Set | array `ComponentDeclaration` | Partial |
+| Object, Package, Category, PowerClass, ModelDependency | *(none)* | GAP — and never instantiated by any builder, so zero corpus coverage |
+
+---
+
+## 8. Sanity check: defects found
+
+### 8.1 In `crmlcv2` as it stands
+
+1. `ModelScope.toModelica` emits `model 'Name'` (quoted) but `end Name;`
+   (unquoted). Fixed by §4.2.
+2. The generated model is never `partial`, but a model with `is external`
+   variables has unbound components. Every `*_verif.mo` does `extends <Name>;`
+   and then binds those variables; the hand-written references in `CRML_test/**`
+   are `partial model`. A non-partial generated class is not a legal standalone
+   Modelica class here.
+3. `ModelScope` emits an `equation` keyword even with no equations.
+4. `infix()` unconditionally parenthesises -> `((a + b) + c)`.
+5. Unsupported constructs throw `UnsupportedOperationException`, aborting the
+   whole file. Becomes a diagnostic (§5.5).
+6. `ConstructorGen` holds a `private static final NameAllocator`: generated names
+   depend on how many models were compiled earlier in the same JVM.
+7. **`PeriodsGen` has three separate defects** and must not be ported as-is:
+   * it builds an identifier from `periods.hashCode()` — non-deterministic output;
+   * it concatenates the type name and the variable name with no separator,
+     producing `CRMLtoModelica.Types.CRMLPeriodp12345(` — missing space;
+   * it names the modifier `start=`, but the **LIB** field is **`start_event`**;
+     and it passes a Boolean expression where `start_event`/`close_event` are of
+     type `Types.Event`, so an Event constructor wrapper is required.
+
+### 8.2 In `CRMLtoModelica.mo` (the emission target)
+
+These are upstream defects. **Do not fix them in this work** — emit correctly,
+record a diagnostic, and file them (§8.3).
+
+* **(a) `Blocks.ClockAdd` has an empty equation section.** Its signature
+  (`r1: CRMLClock, r2: Real -> out: CRMLClock`) matches the **CSV** row
+  `ADD,CLOCK,2,PERIOD;CLOCK,REAL` only for the CLOCK operand — a PERIOD left
+  operand has no block at all — and the separate `ADD,CLOCK,2,CLOCK,INTEGER`
+  tick-delay row (**SPEC** p35 §3.7.3) has no block either. So Clock addition is
+  one-third covered and the covered third computes nothing.
+* **(b) `Functions.Bool4toString` does not exist.** `ConstructorGen.generateStringCast`
+  emits a call to it for a Boolean4 operand. This is a **live** bug on an
+  implemented path, not dead code. Verified: the complete set of functions in
+  **LIB** is `cvBooleanToBoolean4, add4, mul4, or4, not4, and4, PStart, PEnd,
+  gEV, lEV, Event2Boolean`.
+* **(c) `Functions.lEV` is a copy of `gEV`.** Both compute
+  `cvBooleanToBoolean4(r1.t > r2.t)`. So `lEV` (mapped from `<=`) implements `>`,
+  and `gEV` (mapped from `>=`) implements strict `>`. Two mappings are
+  semantically wrong through no fault of the compiler.
+* **(d) `AT` has a defined signature but no implementation.** **CSV** has
+  `AT,*,2,*,EVENT`; **GRAMMAR** has `lhs=exp bop6='at' rhs=exp` (crml.g4:147);
+  **CORPUS** has `BooleanAtEvent.crml` (`Boolean b_at_event is b1 at c;`) *with a
+  `_verif.mo` harness*. Revision 1 called this "semantics undefined" following
+  `BinaryOperatorGen`'s comment — that is wrong. It is a library gap on an
+  exercised construct, and should be prioritised accordingly in §8.3.
+* **(e) `POW` returns Integer in **CSV** but Real in Modelica.** `2^3` is `8.0`
+  in Modelica; the `CSV` row says `POW,INTEGER,2,INTEGER,INTEGER`. A type
+  mismatch that only matters if downstream code depends on the inferred type.
+* **(f) `ConstructorGen.generateRealCast` emits `real(x)`.** There is no
+  lowercase `real` function in Modelica or in **LIB**. The Real->Real case is a
+  no-op anyway and should emit the operand unchanged.
+* **(g) `Blocks.setAnd` has an empty equation section**, and is declared `model`
+  with `input`/`output` prefixes rather than `block`.
+
+### 8.3 Follow-on issues to file (not this work)
+
+Priority order, highest first, by corpus impact:
+
+1. **`AT`** — exercised by the corpus with a verification harness; no implementation.
+2. **`ClockAdd`** — empty body, plus two uncovered **CSV** overloads.
+3. **`lEV`** — wrong body; silently breaks `<=` on events.
+4. **`Bool4toString`** — referenced by shipped compiler code, does not exist.
+5. **Boolean4 comparisons and `diff4`** — legal per **CSV**, no implementation.
+6. **Real/Period comparisons** — legal per **CSV**, no implementation.
+7. **`setAnd`** — empty body.
+8. **CRML source positions** — add to `crml.xcore` or as a side-table where the
+   DOM builders already hold ANTLR contexts; the prerequisite for traces reaching
+   file/line/column.
+
+---
+
+## 9. Testing (mechanical parts only)
+
+In `:modelica`:
 
 * Printer unit tests per construct: build a small AST with the §4.3 helpers,
-  assert the exact text. Cover every §3 class at least once.
-* Precedence tests: `a + b * c` prints unparenthesised; `(a + b) * c` gets
-  exactly one pair; deeply nested comparisons round-trip.
+  assert exact text. Cover every §3 class at least once.
+* Precedence: `a + b * c` unparenthesised; `(a + b) * c` gets exactly one pair.
 * Identifier quoting: valid ident unquoted, reserved word quoted, header and
   `end` agree.
 * Determinism: printing the same tree twice is byte-identical.
 
-Automated, in `:compiler`:
+In `:compiler`:
 
-* Existing `crml.compiler.crmlcv2.specification.*` tests keep running unchanged
-  (they assert only "translation did not throw"). After M2 that assertion
-  becomes weaker by design, since unsupported constructs no longer throw —
-  replace it with "no ERROR diagnostic whose construct is in the supported set",
-  and let the report carry the rest.
-* Extend the suite beyond `spec-doc-examples` to `libraries/ETL_test`,
-  `libraries/FORML_test` and `use-cases` once M3 lands, since those only become
-  meaningful when operators are emitted.
+* The existing `crml.compiler.crmlcv2.specification.*` tests keep running. After
+  M2 their "did not throw" assertion is weaker by design, since unsupported
+  constructs no longer throw — replace it with "no ERROR diagnostic whose
+  construct is marked OK in §7".
+* Extend beyond `spec-doc-examples` to `libraries/ETL_test`,
+  `libraries/FORML_test` and `use-cases` once M3 lands.
 
-Explicitly **not** automated, per the non-goals: the semantic read-through in
-§8, and any extraction of the interface contract out of `*_verif.mo`.
+Not automated, per the non-goals: the §10 read-through, and any extraction of
+the interface contract from `*_verif.mo`.
 
 ---
 
-## 8. Verification: the read-through check
+## 10. Verification: the read-through check
 
-For each construct, a human or agent reads the report produced in §6/§7 and
-checks:
+Per construct, read the report from §6/§9 and check:
 
-1. **Reached** — the construct appears in the trace, or in the diagnostics. No
-   silent gap.
-2. **Plausible** — right `CRMLtoModelica` function/block for the operator, right
-   operand order, right runtime type from `TypeResolver`, operands not swapped.
-   `Functions.lEV`'s upstream body is a copy of `gEV`; do not let that mislead
-   the reading of the *call site*, which should still pass `(lhs, rhs)`.
-3. **Contract** — where a `*_verif.mo` exists (28 of 213 models), check against
-   what the harness assumes:
-   * the generated class name equals the identifier after `extends` — which is
-     why conditional quoting (§4.2) matters;
+1. **Reached** — appears in the trace or the diagnostics. No silent gap.
+2. **Plausible** — matches the §7 row: right function/block, right operand order,
+   right runtime type. Note that §8.2(c) means a *correct* call site to `lEV`
+   still yields wrong behaviour; judge the call site, not the library.
+3. **Contract** — where a `*_verif.mo` exists (28 of 213 models):
+   * generated class name equals the identifier after `extends`;
    * every variable the harness binds in its `// Bindings` block exists as a
-     **public** component of the generated class, with the runtime type the
-     harness's `_externals` component supplies;
-   * the generated class is `partial` when it has unbound externals — today it
-     is not, and the hand-written references in `CRML_test/**` are.
+     **public** component with the runtime type the `_externals` component supplies;
+   * the generated class is `partial` when it has unbound externals.
 
-Record the outcome as a checklist in `documentation/design/` alongside this
-plan, one row per construct: `reached / plausible / contract-checked / notes`.
+Record the outcome as a checklist in `documentation/design/`, one row per
+construct: `reached / plausible / contract-checked / notes`.
 
 ---
 
-## 9. Milestones
+## 11. Milestones
 
-Each milestone ends green (`./gradlew build`) and is independently reviewable.
-
-**M1 — Module, metamodel, printer.** No CRML involvement.
-`submodules/modelica` created and wired into `settings.gradle.kts`;
-`modelica.xcore` and `trace.xcore` written and generating Java via the xtext
-builder; `GenmodelMain` mirrored; `Modelica` builder helpers and
-`ModelicaPrinter` written; printer unit tests (§7) passing. Nothing in
-`:compiler` changes.
+**M1 — Module, metamodel, printer.** `submodules/modelica` created and wired;
+`modelica.xcore` (26 classes) and `trace.xcore` generating Java via the xtext
+builder; `GenmodelMain` mirrored; `Modelica` helpers and `ModelicaPrinter`
+written; printer unit tests passing. Validate `refers ecore::EObject` here.
+Nothing in `:compiler` changes.
 *Done when*: `./gradlew :modelica:build` is green and the printer reproduces a
 hand-built AST of `CRMLtoModelica.Types.Event` and `Functions.and4` byte-exactly.
 
-**M2 — Transformation rewrite at parity, plus trace.**
-`TransformationContext`, `Diagnostic`, `TranslationResult`; `TypeResolver`
-returns `TypeSpecifier`; `ModelGen`/`VariableGen`/`ValueGen`/`BinaryOperatorGen`/
-`UnaryOperatorGen`/`ConstructorGen` ported per §5.4; trace links recorded at the
-three context mutators; `TraceWrapper` added to the report. **`scopes/` and
-`util/LineMerger` deleted in this milestone** (decision #6). Fixes §1.1 defects
-1–5. Coverage is unchanged from today — this is a pure architecture swap.
-*Done when*: every `spec-doc-examples` model that generated Modelica before
-generates Modelica now, the diff is explainable (parenthesisation, quoting,
-`partial`, no empty `equation`), and the trace table is populated.
+**M2 — Transformation rewrite at parity, plus trace.** `TransformationContext`,
+`Diagnostic`, `TranslationResult`; `TypeResolver` returns type-name strings;
+`ModelGen`/`VariableGen`/`ValueGen`/`BinaryOperatorGen`/`UnaryOperatorGen`/
+`ConstructorGen` ported per §5.4; trace recorded at the three context mutators;
+`TraceWrapper` added. **`scopes/` and `util/LineMerger` deleted here.** Fixes
+§8.1 defects 1–6. Coverage unchanged — a pure architecture swap.
+*Done when*: every `spec-doc-examples` model that generated Modelica before does
+now, the diff is explainable (parenthesisation, quoting, `partial`, no empty
+`equation`), and the trace table is populated.
 
-**M3 — Operators and templates.** `OperatorTransformer` + `ComputedValue`
-(§5.7). This is the milestone that makes `libraries/ETL_test`,
-`libraries/FORML_test` and `use-cases` produce output at all; extend the test
-suite to them here.
-*Done when*: `BecomesFalse` and `BecomesFalseInside` generate a model
-containing the operator classes and their call sites.
+**M3 — Operators and templates.** §5.7. Resolve the function/block/model question
+first. Unlocks `libraries/**` and `use-cases/**`; extend the test suite to them.
+*Done when*: `BecomesFalse` and `BecomesFalseInside` generate a model containing
+the operator classes and their call sites.
 
-**M4 — Hoisting-dependent constructs.** `instantiateBlock` (§5.6); `CARD`,
-`TICK`, Clock/Period `ADD`, `FILTER`, `IntegrateValue`; `PeriodsTransformer`
-for `PeriodsValue` (deterministic names, not `hashCode()`); `ConstructorValue`
-with a non-empty `bindings` list.
+**M4 — Hoisting-dependent constructs.** `instantiateBlock` (§5.6); `CARD`, `TICK`,
+`FILTER`, `IntegrateValue`; `PeriodsTransformer` with all three §8.1(7) defects
+fixed; `ConstructorValue` with non-empty bindings. Add `ForEquation`/`ForIndex`/
+`RangeExpression` to the metamodel **only if** Periods handling needs them.
 
-**M5 — Remaining coverage and the diagnostic floor.** `Class` → record,
-`Object` → component, `Set` → array component (§5.8); `StringConstant`;
-`Model.frame`. Then the sweep that guarantees decision #3: every CRML class in
-§1.2 is reached by the transformation, and everything in the §5.5 unmapped list
+**M5 — Remaining coverage and the diagnostic floor.** `Class` -> `model` (§5.8),
+class-typed variables, `Set`, `StringConstant`. Then the sweep that guarantees
+decision #3: every CRML class in §1.2 is reached, and every GAP row in §7
 produces a `Diagnostic` + `Placeholder` rather than a throw or a silent skip.
 *Done when*: no model in `testModels/**` aborts translation, and every gap is
 visible in the diagnostics list.
 
-**M6 — Verification pass.** Run the §8 read-through across the corpus, with the
-28 `*_verif.mo` contracts checked. Produce the checklist document. File the
-follow-on work this surfaces (missing `CRMLtoModelica` implementations, the
-`lEV` bug, `setAnd`/`ClockAdd` empty stubs, CRML source positions for
-traceability) as issues rather than fixing them here.
+**M6 — Verification pass.** Run §10 across the corpus with the 28 `*_verif.mo`
+contracts. Produce the checklist. File §8.3 as issues rather than fixing them.
 
-Suggested sequencing note: M1 and M2 are the architecture; M3–M5 are coverage
-and are separable from each other. If the work needs to be split across
-agents, M1+M2 must land first and as one sequence; M3, M4 and M5 can then
-proceed in parallel on top of it.
+M1 and M2 are the architecture and must land first, in sequence. M3, M4 and M5
+can then proceed in parallel.
+
+### Changes from revision 1
+
+* Metamodel cut from 49 EClasses to 26 (+5 deferred). §3.6 lists each cut.
+* **`Class` -> `record` corrected to `Class` -> `model`** (§5.8), with four
+  independent confirmations. Revision 1 asserted this without checking.
+* Revision 1 claimed `ClassBuilder` never populates `superClasses`. It does, via
+  a deferred link task — so `ExtendsClause` is required, not optional.
+* Revision 1 routed class instances through `crml.model.language.Object`, which
+  no builder ever creates. Corrected to `Variable` + `UserTypereference` +
+  `ConstructorValue`.
+* Revision 1 listed `FILTER` as unmapped. `Blocks.EventFilter` matches the
+  **CSV** signature exactly.
+* Revision 1 called `AT` "semantics undefined". It has a **CSV** signature, a
+  grammar rule, and a corpus model with a verification harness (§8.2(d)).
+* Added §7 (full compatibility matrix) and §8 (defect list), which surfaced
+  `Bool4toString` and `real()` as live defects on implemented paths.
+* Revision 1 undercounted its own metamodel as "~40 classes".
 
 ---
 
-## 10. Risks
+## 12. Risks
 
-* **M3 is the hard one.** Operator emission is genuinely new work with no
-  prior implementation to port — the legacy `crmlVisitorImpl` handled operator
-  calls textually via `UserOperatorCall`/`Signature`, and that code is excluded
-  from compilation and predates the current grammar. Budget accordingly, and
-  read `UserOperatorCall.java` and `OperatorMapping.java` for intent before
-  designing the function-vs-block rule, not for code to reuse.
-* **Output diffing across M2.** Because M2 changes parenthesisation, quoting
-  and `partial`, "does the output still look right" cannot be answered by a
-  textual diff alone. Capture the current generated output for the
-  `spec-doc-examples` corpus *before* starting M2 so the diff is reviewable.
-* **Java 8.** The `release 8` constraint is easy to forget when writing ~40
-  classes of builder and printer code. It will fail at compile time, but
-  catching it early saves rework.
-* **Xcore generics and `ecore::EObject`.** `crml.xcore` uses `Set<D>`
-  successfully, so Xcore generics work in this setup; the `refers ecore::EObject`
-  form in `trace.xcore` is the one unproven bit. Validate it in M1, before the
-  transformation depends on it, and fall back to the `Traceable` marker if it
-  resists.
+* **M3 is the hard one.** Operator emission is new work with no implementation to
+  port, and §5.7's function/block rule now has a third precedent (**LEGACY**
+  emitted `model`) to reconcile first.
+* **Output diffing across M2.** M2 changes parenthesisation, quoting and
+  `partial`, so a textual diff alone cannot answer "does this still look right".
+  Capture the current generated output for `spec-doc-examples` *before* starting.
+* **Java 8.** Easy to forget across ~26 classes of builder and printer code.
+  Fails at compile time, but catching it early saves rework.
+* **`refers ecore::EObject` in Xcore** is the one unproven construct. `crml.xcore`
+  uses `Set<D>` successfully so generics work; validate the EObject reference in
+  M1 and fall back to the `Traceable` marker if it resists.
+* **MSL dependency.** §7.3: the seven math operators emit `Modelica.Math.*`,
+  which `CRMLtoModelica.mo` does not depend on. Generated models using them need
+  MSL on the load path — worth stating in the generated file header.
