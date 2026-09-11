@@ -5,6 +5,7 @@ import crml.compiler.crmlcv2.Diagnostics;
 import crml.compiler.crmlcv2.TransformationContext;
 import crml.compiler.crmlcv2.UnsupportedConstruct;
 import crml.compiler.crmlcv2.util.TypeResolver;
+import crml.model.language.Set;
 import crml.model.language.Variable;
 import crml.model.modelica.ComponentDeclaration;
 import crml.model.modelica.Expression;
@@ -50,6 +51,17 @@ public final class VariableTransformer {
         ComponentDeclaration declaration = Modelica.component(typeName, variable.getName(), binding);
         if (Boolean.TRUE.equals(variable.getConstant())) {
             declaration.setVariability(Variability.CONSTANT);
+        }
+        if (variable.getDefinition() instanceof Set<?>) {
+            // A set-valued variable is an array of its element type, which is not
+            // its declared CRML domain: "Periods P3 is { P1, P2, Pn }" declares a
+            // set of Periods, and its elements are Periods, not CRMLPeriods.
+            Set<?> set = (Set<?>) variable.getDefinition();
+            String elementTypeName = SetTransformer.elementTypeName(set);
+            if (elementTypeName != null) {
+                declaration.setTypeName(elementTypeName);
+            }
+            declaration.getArrayDimensions().add(Modelica.dimension(Modelica.integer(SetTransformer.sizeOf(set))));
         }
         ctx.declare(declaration, variable);
     }

@@ -213,6 +213,17 @@ public final class TransformationContext {
         session.visiting.remove(operator);
     }
 
+    /**
+     * Reserves a class name, so a generated name cannot take it. CRML class
+     * names are used verbatim - a class-typed variable refers to its class by
+     * name - so they are claimed before anything is generated.
+     */
+    public void reserveClassName(String name) {
+        if (name != null) {
+            session.classNames.add(name);
+        }
+    }
+
     /** A class name unique within this translation, derived from {@code preferred}. */
     public String allocateClassName(String preferred) {
         if (session.classNames.add(preferred)) {

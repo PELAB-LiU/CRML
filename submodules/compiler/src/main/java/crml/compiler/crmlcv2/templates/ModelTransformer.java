@@ -40,7 +40,16 @@ public final class ModelTransformer {
             ctx.reserveName(set.getName());
         }
 
-        // Operators first: a variable's definition may call one, and every
+        // Classes first: their names are what a class-typed variable refers to,
+        // and reserving them keeps a generated operator name from taking one.
+        for (crml.model.language.Class clazz : model.getClasses()) {
+            ctx.reserveClassName(clazz.getName());
+        }
+        for (crml.model.language.Class clazz : model.getClasses()) {
+            ctx.defineClass(ClassTransformer.transform(ctx, clazz), clazz);
+        }
+
+        // Operators next: a variable's definition may call one, and every
         // operator the model declares is emitted whether or not it is called.
         for (Operator operator : model.getOperators()) {
             if (operator instanceof CustomOperator) {
@@ -50,7 +59,7 @@ public final class ModelTransformer {
                     ctx.reportWithPlaceholder(e.diagnostic());
                 }
             } else {
-                ctx.report(Diagnostics.libraryGap("Operator." + operator.eClass().getName(),
+                ctx.reportWithPlaceholder(Diagnostics.libraryGap("Operator." + operator.eClass().getName(),
                     operator.eClass().getName() + " has no Modelica mapping", operator));
             }
         }
@@ -59,20 +68,20 @@ public final class ModelTransformer {
             VariableTransformer.transform(ctx, variable);
         }
 
-        for (crml.model.language.Class clazz : model.getClasses()) {
-            ctx.report(Diagnostics.notYetImplemented("Class",
-                "class '" + clazz.getName() + "' becomes a nested model (M5)", clazz));
-        }
         for (crml.model.language.Set<?> set : model.getSets()) {
-            ctx.report(Diagnostics.notYetImplemented("Set",
-                "set '" + set.getName() + "' becomes an array component (M5)", set));
+            SetTransformer.declare(ctx, set);
+        }
+        for (crml.model.language.Dependency dependency : model.getSuperlibs()) {
+            ctx.reportWithPlaceholder(Diagnostics.libraryGap("Library.superlibs",
+                "library dependencies are never resolved (RootBuilder.parse returns an empty list), "
+                + "so nothing can be emitted for this one", dependency));
         }
         for (crml.model.language.Object object : model.getObjects()) {
-            ctx.report(Diagnostics.libraryGap("Object",
+            ctx.reportWithPlaceholder(Diagnostics.libraryGap("Object",
                 "Object has no Modelica mapping and is never built by any DOM builder", object));
         }
         if (model.getFrame() != null) {
-            ctx.report(Diagnostics.libraryGap("Model.frame",
+            ctx.reportWithPlaceholder(Diagnostics.libraryGap("Model.frame",
                 "a model frame has no Modelica mapping", model.getFrame()));
         }
 

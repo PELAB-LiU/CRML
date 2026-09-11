@@ -99,8 +99,7 @@ public final class ValueTransformer {
             return IntegrateTransformer.transform(ctx, (IntegrateValue) value);
         }
         if (value instanceof Set<?>) {
-            throw new UnsupportedConstruct(Diagnostics.notYetImplemented("Set",
-                "a set becomes an array component (M5)", value));
+            return SetTransformer.literal(ctx, (Set<?>) value);
         }
         if (value instanceof Sequence) {
             // An unresolved mixfix operator call. crml.xcore states that an object
