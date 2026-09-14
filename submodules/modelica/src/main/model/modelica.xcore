@@ -124,22 +124,25 @@ class ModificationElement extends ModelicaElement {
 // Sections and bodies  //
 //////////////////////////
 
-abstract class Equation extends ModelicaElement {
-    String comment
-}
-
-class SimpleEquation extends Equation {
+// One concrete kind each, so no abstract base above them. Modelica does have
+// when/if/for/connect equations, but §3.3 of the plan keeps all temporal logic
+// inside the runtime library's blocks, and block instances are wired with plain
+// equations rather than connect; the for-loop candidates the plan deferred both
+// turned out unnecessary, Periods being built from record modifiers and Sets
+// from array constructors. Reintroducing a base means inserting a supertype and
+// lifting comment onto it.
+class Equation extends ModelicaElement {
     contains Expression lhs
     contains Expression rhs
-}
-
-abstract class Statement extends ModelicaElement {
     String comment
 }
 
-class AssignmentStatement extends Statement {
+// An assignment: "target := value". The only statement kind the transformation
+// produces, for the algorithm body of an operator compiled to a function.
+class Statement extends ModelicaElement {
     contains ComponentReference target
     contains Expression value
+    String comment
 }
 
 /////////////////

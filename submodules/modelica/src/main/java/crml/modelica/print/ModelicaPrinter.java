@@ -4,7 +4,6 @@ import java.util.List;
 
 import crml.model.modelica.ArrayConstructor;
 import crml.model.modelica.ArrayDimension;
-import crml.model.modelica.AssignmentStatement;
 import crml.model.modelica.BinaryExpression;
 import crml.model.modelica.BinaryOperatorKind;
 import crml.model.modelica.BooleanLiteral;
@@ -25,7 +24,6 @@ import crml.model.modelica.ParenthesizedExpression;
 import crml.model.modelica.Placeholder;
 import crml.model.modelica.RealLiteral;
 import crml.model.modelica.ReferencePart;
-import crml.model.modelica.SimpleEquation;
 import crml.model.modelica.Statement;
 import crml.model.modelica.StringLiteral;
 import crml.model.modelica.UnaryExpression;
@@ -253,30 +251,20 @@ public final class ModelicaPrinter {
     }
 
     private void printEquation(Equation equation) {
-        if (!(equation instanceof SimpleEquation)) {
-            throw new IllegalArgumentException(
-                "No Modelica syntax for equation kind " + equation.eClass().getName());
-        }
-        SimpleEquation simple = (SimpleEquation) equation;
         StringBuilder builder = new StringBuilder()
-            .append(expression(simple.getLhs()))
+            .append(expression(equation.getLhs()))
             .append(" = ")
-            .append(expression(simple.getRhs()));
+            .append(expression(equation.getRhs()));
         appendComment(builder, equation.getComment());
         builder.append(';');
         writer.line(builder.toString());
     }
 
     private void printStatement(Statement statement) {
-        if (!(statement instanceof AssignmentStatement)) {
-            throw new IllegalArgumentException(
-                "No Modelica syntax for statement kind " + statement.eClass().getName());
-        }
-        AssignmentStatement assignment = (AssignmentStatement) statement;
         StringBuilder builder = new StringBuilder()
-            .append(expression(assignment.getTarget()))
+            .append(expression(statement.getTarget()))
             .append(" := ")
-            .append(expression(assignment.getValue()));
+            .append(expression(statement.getValue()));
         appendComment(builder, statement.getComment());
         builder.append(';');
         writer.line(builder.toString());

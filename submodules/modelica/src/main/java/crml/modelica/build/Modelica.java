@@ -5,7 +5,6 @@ import java.util.List;
 
 import crml.model.modelica.ArrayConstructor;
 import crml.model.modelica.ArrayDimension;
-import crml.model.modelica.AssignmentStatement;
 import crml.model.modelica.BinaryExpression;
 import crml.model.modelica.BinaryOperatorKind;
 import crml.model.modelica.BooleanLiteral;
@@ -14,6 +13,7 @@ import crml.model.modelica.ClassDefinition;
 import crml.model.modelica.ClassKind;
 import crml.model.modelica.ComponentDeclaration;
 import crml.model.modelica.ComponentReference;
+import crml.model.modelica.Equation;
 import crml.model.modelica.Expression;
 import crml.model.modelica.ExtendsClause;
 import crml.model.modelica.FunctionCall;
@@ -25,7 +25,7 @@ import crml.model.modelica.ParenthesizedExpression;
 import crml.model.modelica.Placeholder;
 import crml.model.modelica.RealLiteral;
 import crml.model.modelica.ReferencePart;
-import crml.model.modelica.SimpleEquation;
+import crml.model.modelica.Statement;
 import crml.model.modelica.StringLiteral;
 import crml.model.modelica.UnaryExpression;
 import crml.model.modelica.UnaryOperatorKind;
@@ -129,15 +129,15 @@ public final class Modelica {
 
     // --- equations and statements -------------------------------------------
 
-    public static SimpleEquation eq(Expression lhs, Expression rhs) {
-        SimpleEquation equation = FACTORY.createSimpleEquation();
+    public static Equation eq(Expression lhs, Expression rhs) {
+        Equation equation = FACTORY.createEquation();
         equation.setLhs(lhs);
         equation.setRhs(rhs);
         return equation;
     }
 
-    public static AssignmentStatement assign(ComponentReference target, Expression value) {
-        AssignmentStatement statement = FACTORY.createAssignmentStatement();
+    public static Statement assign(ComponentReference target, Expression value) {
+        Statement statement = FACTORY.createStatement();
         statement.setTarget(target);
         statement.setValue(value);
         return statement;

@@ -239,7 +239,7 @@ public class ModelicaPrinterTest {
     public void printsEquationSection() {
         ClassDefinition cls = model("M");
         cls.getComponents().add(component("Real", "a"));
-        crml.model.modelica.SimpleEquation equation = eq(ref("a"), integer(1));
+        crml.model.modelica.Equation equation = eq(ref("a"), integer(1));
         equation.setComment("bound");
         cls.getEquations().add(equation);
         assertEquals(

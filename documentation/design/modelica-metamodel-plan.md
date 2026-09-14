@@ -236,19 +236,28 @@ class ModificationElement  extends ModelicaElement {
   them together. Generators want "declare `x` of type `T` equal to `e`"; the
   printer re-joins them.
 
-### 3.3 Sections and bodies (5)
+### 3.3 Bodies (2)
 
 ```
-abstract class Equation extends ModelicaElement { String comment }
-class SimpleEquation extends Equation { contains Expression lhs  contains Expression rhs }
+class Equation extends ModelicaElement { contains Expression lhs
+                                         contains Expression rhs
+                                         String comment }
 
-abstract class Statement extends ModelicaElement { String comment }
-class AssignmentStatement extends Statement { contains ComponentReference target
-                                              contains Expression value }
+class Statement extends ModelicaElement { contains ComponentReference target
+                                          contains Expression value
+                                          String comment }
 ```
 
-`AssignmentStatement` exists for one producer only: an operator compiled to a
-Modelica `function` needs `algorithm out := expr;` (§5.7).
+`Statement` is an assignment, and exists for one producer only: an operator
+compiled to a Modelica `function` needs `algorithm out := expr;` (§5.7).
+
+Neither has an abstract base above it, because neither has a sibling. Modelica
+does have `when`/`if`/`for`/`connect` equations, so this is a real variation
+point in the target language — but not one this compiler reaches, for the
+reason immediately below, and the two `for` candidates §3.6 deferred both
+turned out unnecessary (M4 builds Periods from record modifiers, M5 builds Sets
+from array constructors). Adding a kind later means inserting a supertype and
+lifting `comment` onto it.
 
 **No `WhenEquation`, `IfEquation`, `ForEquation`, `WhenStatement`, `IfStatement`.**
 This is architectural, not an omission: `CRMLtoModelica.mo` keeps all temporal
@@ -306,9 +315,9 @@ class BooleanLiteral extends Expression { Boolean value }
 |---|---|---|
 | §3.1 Classes | ModelicaElement, ClassDefinition, ExtendsClause, Placeholder | 4 |
 | §3.2 Components | ComponentDeclaration, ArrayDimension, ModificationElement | 3 |
-| §3.3 Bodies | Equation, SimpleEquation, Statement, AssignmentStatement | 4 |
+| §3.3 Bodies | Equation, Statement | 2 |
 | §3.4 Expressions | Expression, ComponentReference, ReferencePart, BinaryExpression, UnaryExpression, FunctionCall, IfExpression, ArrayConstructor, ParenthesizedExpression, IntegerLiteral, RealLiteral, StringLiteral, BooleanLiteral | 13 |
-| **Total** | | **24** |
+| **Total** | | **22** |
 
 Plus 6 EEnums, not counted as EClasses: `ClassKind`, `Visibility`, `Causality`,
 `Variability`, `BinaryOperatorKind`, `UnaryOperatorKind`.
@@ -329,6 +338,7 @@ five are needed.
 | `Modification` | Collapsed; `ComponentDeclaration` holds `ModificationElement[]` directly. |
 | `Section` (abstract) | Only two concrete kinds, each single-valued on `ClassDefinition`. |
 | `EquationSection`, `AlgorithmSection` | Cut after M6. Single-valued wrappers around a list carry nothing a bare list does not: no trace link ever targeted one, and the printer is required to collapse "absent" and "empty" to the same output (§4.2), so their one extra state was unreachable. They cost a lazy-create dance at every producer. |
+| `SimpleEquation`, `AssignmentStatement` as subclasses | Collapsed after M6 into `Equation` and `Statement`. One concrete kind each means the abstract base had no discriminating power: its only use was an `instanceof` guard in the printer that could never fail. The qualifiers named a distinction from siblings that do not exist. |
 | `ModificationElement.nested` | Cut after M6. A feature with no producer: only the printer and one printer test touched it, and CRML cannot express a dotted member path. |
 | `Argument` | Calls are positional; `FunctionCall` holds `Expression[]`. |
 | `ExpressionBranch` | `IfExpression` is flat. |
@@ -512,7 +522,7 @@ ComponentReference instantiateBlock(
     Map<String, Expression> inputs, String outputPort, EObject crmlSource);
 ```
 
-Declares `blockType <allocated>;`, emits one `SimpleEquation` per input
+Declares `blockType <allocated>;`, emits one `Equation` per input
 (`inst.<port> = <expr>;`), returns `ref(inst, outputPort)`.
 
 **LIB** fixes the port names: every block uses `r1`, `r2` for inputs and `out`
@@ -900,8 +910,9 @@ can then proceed in parallel.
 
 ### Changes from revision 1
 
-* Metamodel cut from 49 EClasses to 26 (+5 deferred), and to 24 after M6 when
-  the two section wrappers went. §3.6 lists each cut.
+* Metamodel cut from 49 EClasses to 26 (+5 deferred); to 24 after M6 when the
+  two section wrappers went, and to 22 when the single-subclass `Equation` and
+  `Statement` hierarchies were collapsed. §3.6 lists each cut.
 * **`Class` -> `record` corrected to `Class` -> `model`** (§5.8), with four
   independent confirmations. Revision 1 asserted this without checking.
 * Revision 1 claimed `ClassBuilder` never populates `superClasses`. It does, via
