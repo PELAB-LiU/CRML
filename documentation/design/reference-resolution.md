@@ -152,7 +152,7 @@ reference can only be built from an object already in hand.
 
 | Feature | Today | Becomes | Typical outcome |
 |---|---|---|---|
-| `ComponentDeclaration.typeName` | `String` | `contains Reference type` | raw for library and builtin types; resolved for operator blocks and CRML class instances |
+| `ComponentDeclaration.typeName` | `String` | `contains Reference type` | decided by `TypeResolver` (§5.4): raw for CRML builtin and Modelica primitive types, resolved for CRML classes. Operator-block instances are resolved by `OperatorTransformer`, library blocks are raw. |
 | `ExtendsClause.typeName` | `String` | `contains Reference superClass` | always resolved — the only producer is `ClassTransformer`, over a CRML super-class |
 | `FunctionCall.functionName` | `String` | `contains Reference function` | raw for `CRMLtoModelica.Functions.*`, `Modelica.Math.*` and builtins; resolved for a generated operator function |
 
@@ -180,24 +180,25 @@ models need MSL instead of leaving it as a note.
 There is no parse, so there is no separate build phase over text. The
 transformation constructs the tree and the references together.
 
-### 5.1 References are built in hand, not looked up
+### 5.1 Where resolvable references come from
 
-Every resolvable reference in this project has its target available at the point
-of construction:
+Three producers, and none of them searches by name:
 
-| Producer | Target |
-|---|---|
-| `OperatorTransformer.transformCall` → function call or block instance | `GeneratedOperator.definition()`, just generated or fetched from the registry |
-| `ConstructorTransformer.instantiate` → class instance | the nested `ClassDefinition` for that CRML class, created earlier by `ModelTransformer` |
-| `ClassTransformer` → `extends` | the nested `ClassDefinition` for the CRML super-class |
+| Producer | Target | How it is found |
+|---|---|---|
+| `OperatorTransformer.transformCall` → function call or block instance | the generated operator class | `GeneratedOperator.definition()`, just generated or fetched from the registry |
+| any CRML-typed declaration — variable, class member, set element, constructor instance | the nested class for a CRML class | `TypeResolver` (§5.4), via the class registry |
+| `ClassTransformer` → `extends` | the nested class for the CRML super-class | the class registry |
 
-The first two are unconditionally in hand. Only the third can fail, and only
-because of ordering: `ModelTransformer` transforms classes in declaration order,
-so a class may extend one declared after it.
+Only the first is unconditionally in hand. The other two are registry lookups,
+and both can be asked for a class that has not been generated yet: a model may
+declare a class before the class it extends or uses as a member type.
+`ModelTransformer` transforms classes in declaration order, so ordering alone
+does not save them.
 
-### 5.2 The one deferral, and how to remove it
+### 5.2 Removing the deferral
 
-Two options, and the second is recommended:
+Two options, and the second is required — see §5.4:
 
 1. **Link task**, as the source spec describes: queue a `Runnable` closing over
    the referring `ExtendsClause` and the CRML super-class, run it after all
@@ -211,11 +212,13 @@ Two options, and the second is recommended:
    `ModelTransformer` already does half of this, reserving all class names
    before generating anything.
 
-Option 2 is recommended: it removes a phase rather than adding one, and it makes
+Option 2 is the one to take. It removes a phase rather than adding one, it makes
 the "resolved references are built from objects, never from names" rule
-structural instead of procedural. Option 1 should be revisited only if a Modelica
-*parser* is ever added, at which point the full source-spec machinery — symbol
-table, link tasks, `PARSE_ERROR` — becomes appropriate wholesale.
+structural rather than procedural, and §5.4 needs it: `TypeResolver` is called
+while a class body is being populated, so every nested class has to exist by
+then. Option 1 should be revisited only if a Modelica *parser* is ever added, at
+which point the full source-spec machinery — symbol table, link tasks,
+`PARSE_ERROR` — becomes appropriate wholesale.
 
 ### 5.3 Raw is chosen at construction, not after a failed lookup
 
@@ -232,6 +235,68 @@ the four Modelica builtin functions (`String`, `Integer`, `integer`, `mod`) —
 concentrated in `TypeResolver`, the two operator transformers and
 `RecordBuild`.
 
+### 5.4 `TypeResolver` decides raw against resolved, for types
+
+Rather than each transformer choosing, the one function that already turns a
+CRML type into a Modelica type name makes the call, and its return type carries
+it:
+
+```java
+// today
+public static String resolve(TypeReference type)
+
+// becomes
+public static Reference resolve(TransformationContext ctx, TypeReference type)
+```
+
+| CRML `TypeReference` | Modelica target | Result |
+|---|---|---|
+| `BuiltinTypeReference` → BOOLEAN, REQUIREMENT | `CRMLtoModelica.Types.Boolean4` | raw, `EXTERNAL_LIBRARY` |
+| → EVENT | `CRMLtoModelica.Types.Event` | raw, `EXTERNAL_LIBRARY` |
+| → CLOCK | `CRMLtoModelica.Types.CRMLClock` | raw, `EXTERNAL_LIBRARY` |
+| → PERIOD, PERIODS | `CRMLtoModelica.Types.CRMLPeriod`, `…CRMLPeriods` | raw, `EXTERNAL_LIBRARY` |
+| → REAL, INTEGER, STRING | `Real`, `Integer`, `String` | raw, `MODELICA_BUILTIN` |
+| `UserTypereference` whose domain is a CRML `Class` | the generated nested class | **resolved** |
+| `IndirectTypeReference` | — | recurse into the referred type |
+| null, or a `Domain` that is not a `Class` | — | raw, `UNRESOLVED`, plus an ERROR diagnostic |
+
+"Complex type" and "CRML class" are the same set: `Class` is the only concrete
+subclass of `Domain` in `crml.xcore`, and `PowerClass` neither extends `Domain`
+nor is built by any DOM builder. So the split above is total, and the last row
+is a defect case rather than a category.
+
+This is also where the two `RawReason` values earn their separation. The CRML
+builtin types are records and an enumeration inside `CRMLtoModelica.mo`, which
+is never parsed; `Real`, `Integer` and `String` are part of the Modelica
+language itself. Both are permanently raw, but only the first is a library
+dependency.
+
+Three consequences:
+
+* **`TypeResolver` stops being a context-free static utility.** Resolving a
+  CRML class needs the class-to-`ClassDefinition` registry, so it takes the
+  `TransformationContext`.
+* **This makes §5.2 option 2 mandatory, not merely preferable.** A class member
+  typed by a class declared later in the same model is resolved while
+  `ClassTransformer` is populating the first class, before `ModelTransformer`
+  has reached the second. Creating every nested class as a shell up front is
+  what makes that lookup always succeed.
+* **The existing `throw`/`catch` pair disappears.** `TypeResolver` currently
+  throws a `RuntimeException` on an unresolvable type, and `VariableTransformer`
+  and `ClassTransformer` each wrap the call in a `try`/`catch` to convert it
+  into a diagnostic. With a context in hand, `TypeResolver` reports the
+  diagnostic itself and returns an `UNRESOLVED` reference.
+
+`String resolve(BuiltinType)` stays as it is, as the single place the literal
+library names are written; the reference-returning overload calls it rather than
+transformers calling it directly.
+
+The two type references that do **not** come from `TypeResolver` follow the same
+rule from their own construction sites: `OperatorTransformer` resolves a
+generated operator class from the object in hand, and `BlockInstantiation` emits
+a raw `EXTERNAL_LIBRARY` reference for `CRMLtoModelica.Blocks.*`. Its
+`String blockType` parameter becomes a `Reference` accordingly.
+
 ---
 
 ## 6. Resolution
@@ -239,8 +304,10 @@ concentrated in `TypeResolver`, the two operator transformers and
 ### 6.1 There is no search
 
 With §5.2 option 2 there is no `resolve(scope, path)` function at all. The
-source spec's child-only descent algorithm has no producer here, and is recorded
-as an extension point (§9) rather than written.
+class registry of §5.1 is keyed by the CRML `Class` **object**, not by its name,
+so it is a map lookup rather than name resolution — no scope, no path, no
+ambiguity. The source spec's child-only descent algorithm has no producer here,
+and is recorded as an extension point (§9) rather than written.
 
 ### 6.2 Dotted component references
 
@@ -375,7 +442,8 @@ end BecomesFalse;
 | Reference | Outcome |
 |---|---|
 | `op_becomes_false_1`'s type | **Resolved** to the nested `block op_becomes_false`, in hand from `GeneratedOperator.definition()`. Printed by recomputing the path, so renaming the block renames the declaration too. |
-| `CRMLtoModelica.Types.Boolean4`, `…CRMLClock`, `…CRMLClock_build` | **Raw**, `EXTERNAL_LIBRARY`. Chosen at the construction site in `RecordBuild` and `TypeResolver`, never by a failed lookup, so no diagnostic. |
+| `CRMLtoModelica.Types.Boolean4`, `…CRMLClock` | **Raw**, `EXTERNAL_LIBRARY`, from `TypeResolver` (§5.4) — the CRML types `Boolean` and `Clock`. Chosen by the rule, never by a failed lookup, so no diagnostic. |
+| `CRMLtoModelica.Types.CRMLClock_build` | **Raw**, `EXTERNAL_LIBRARY`, written directly by `RecordBuild`; it has no CRML type to resolve from. |
 | `CRMLtoModelica.Functions.not4` | **Raw**, `EXTERNAL_LIBRARY`, from `UnaryOperatorTransformer`. |
 | `op_becomes_false_1.out` | **Head resolved** to the component declaration; `out` stays a string (§6.2). |
 | `c1`, `b1`, `b` in equations and modifications | Head-only component references; single segment, resolved. |
