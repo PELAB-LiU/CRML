@@ -2,7 +2,6 @@ package crml.modelica.print;
 
 import java.util.List;
 
-import crml.model.modelica.AlgorithmSection;
 import crml.model.modelica.ArrayConstructor;
 import crml.model.modelica.ArrayDimension;
 import crml.model.modelica.AssignmentStatement;
@@ -15,7 +14,6 @@ import crml.model.modelica.ClassKind;
 import crml.model.modelica.ComponentDeclaration;
 import crml.model.modelica.ComponentReference;
 import crml.model.modelica.Equation;
-import crml.model.modelica.EquationSection;
 import crml.model.modelica.Expression;
 import crml.model.modelica.ExtendsClause;
 import crml.model.modelica.FunctionCall;
@@ -74,10 +72,6 @@ public final class ModelicaPrinter {
             printExtends((ExtendsClause) node);
         } else if (node instanceof ComponentDeclaration) {
             printComponent((ComponentDeclaration) node);
-        } else if (node instanceof EquationSection) {
-            printEquationSection((EquationSection) node);
-        } else if (node instanceof AlgorithmSection) {
-            printAlgorithmSection((AlgorithmSection) node);
         } else if (node instanceof Equation) {
             printEquation((Equation) node);
         } else if (node instanceof Statement) {
@@ -124,8 +118,8 @@ public final class ModelicaPrinter {
         printComponents(cls.getComponents(), Visibility.PROTECTED, "protected");
         writer.outdent();
 
-        printEquationSection(cls.getEquations());
-        printAlgorithmSection(cls.getAlgorithm());
+        printEquations(cls.getEquations());
+        printAlgorithm(cls.getStatements());
 
         if (!cls.getPlaceholders().isEmpty()) {
             writer.indent();
@@ -224,16 +218,6 @@ public final class ModelicaPrinter {
 
     private String modification(ModificationElement modification) {
         StringBuilder builder = new StringBuilder(Identifiers.quote(modification.getName()));
-        if (!modification.getNested().isEmpty()) {
-            builder.append('(');
-            for (int i = 0; i < modification.getNested().size(); i++) {
-                if (i > 0) {
-                    builder.append(", ");
-                }
-                builder.append(modification(modification.getNested().get(i)));
-            }
-            builder.append(')');
-        }
         if (modification.getValue() != null) {
             builder.append(" = ").append(expression(modification.getValue()));
         }
@@ -242,26 +226,27 @@ public final class ModelicaPrinter {
 
     // --- sections -----------------------------------------------------------
 
-    private void printEquationSection(EquationSection section) {
-        // An empty section prints nothing at all.
-        if (section == null || section.getEquations().isEmpty()) {
+    private void printEquations(List<Equation> equations) {
+        // No equations, no section: the keyword is only written when something
+        // follows it.
+        if (equations.isEmpty()) {
             return;
         }
         writer.line("equation");
         writer.indent();
-        for (Equation equation : section.getEquations()) {
+        for (Equation equation : equations) {
             printEquation(equation);
         }
         writer.outdent();
     }
 
-    private void printAlgorithmSection(AlgorithmSection section) {
-        if (section == null || section.getStatements().isEmpty()) {
+    private void printAlgorithm(List<Statement> statements) {
+        if (statements.isEmpty()) {
             return;
         }
         writer.line("algorithm");
         writer.indent();
-        for (Statement statement : section.getStatements()) {
+        for (Statement statement : statements) {
             printStatement(statement);
         }
         writer.outdent();

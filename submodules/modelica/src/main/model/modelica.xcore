@@ -43,10 +43,16 @@ class ClassDefinition extends ModelicaElement {
     contains ExtendsClause[] extendsClauses
     contains ClassDefinition[] nestedClasses
     contains ComponentDeclaration[] components
-    // At most one of each: the transformation never produces a second section,
-    // and never an initial equation/algorithm section.
-    contains EquationSection equations
-    contains AlgorithmSection algorithm
+    // Held directly rather than behind an EquationSection/AlgorithmSection
+    // wrapper. Modelica allows several sections per class, but equations are
+    // unordered, so N equation sections mean exactly their concatenation; the
+    // only thing multiplicity could buy is interleaving declarations with the
+    // equations that wire them, and that needs one ordered body list, not a
+    // list of sections. Multiple algorithm sections would be semantically
+    // distinct - each is sorted as an atomic unit - but the transformation
+    // emits exactly one statement, for the function form of an operator.
+    contains Equation[] equations
+    contains Statement[] statements
     contains Placeholder[] placeholders
 }
 
@@ -106,23 +112,17 @@ class ArrayDimension extends ModelicaElement {
     contains Expression size
 }
 
+// Flat: a modification binds one member to one expression. Modelica allows
+// nesting - T t(m(start = 0)) - but CRML cannot express it, because a Binding
+// refers to a single Element and so has no dotted member path.
 class ModificationElement extends ModelicaElement {
     String name
     contains Expression value
-    contains ModificationElement[] nested
 }
 
 //////////////////////////
 // Sections and bodies  //
 //////////////////////////
-
-class EquationSection extends ModelicaElement {
-    contains Equation[] equations
-}
-
-class AlgorithmSection extends ModelicaElement {
-    contains Statement[] statements
-}
 
 abstract class Equation extends ModelicaElement {
     String comment

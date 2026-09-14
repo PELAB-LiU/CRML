@@ -19,9 +19,7 @@ import crml.model.modelica.ClassKind;
 import crml.model.modelica.ComponentDeclaration;
 import crml.model.modelica.ComponentReference;
 import crml.model.modelica.Equation;
-import crml.model.modelica.EquationSection;
 import crml.model.modelica.ModelicaElement;
-import crml.model.modelica.ModelicaFactory;
 import crml.model.modelica.Placeholder;
 import crml.model.trace.TraceFactory;
 import crml.model.trace.TraceLink;
@@ -116,14 +114,9 @@ public final class TransformationContext {
         return Modelica.ref(declaration.getName());
     }
 
-    /** Adds an equation to the target class's equation section, creating it on first use. */
+    /** Adds an equation to the target class. */
     public void equate(Equation equation, EObject crmlSource) {
-        EquationSection section = target.getEquations();
-        if (section == null) {
-            section = ModelicaFactory.eINSTANCE.createEquationSection();
-            target.setEquations(section);
-        }
-        section.getEquations().add(equation);
+        target.getEquations().add(equation);
         link(crmlSource, equation, equationKind(crmlSource));
     }
 

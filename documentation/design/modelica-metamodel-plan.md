@@ -169,8 +169,8 @@ class ClassDefinition extends ModelicaElement {
     contains ExtendsClause[]        extendsClauses
     contains ClassDefinition[]      nestedClasses
     contains ComponentDeclaration[] components
-    contains EquationSection        equations       // at most one
-    contains AlgorithmSection        algorithm       // at most one
+    contains Equation[]             equations
+    contains Statement[]            statements
     contains Placeholder[]          placeholders
 }
 
@@ -180,10 +180,16 @@ class Placeholder   extends ModelicaElement { String message }
 
 * One concrete `ClassDefinition` with a `kind` enum, not a subclass per Modelica
   class kind. The printer differs only in the keyword it writes.
-* `equations`/`algorithm` are single-valued, not a `Section[]` list. The
-  transformation never produces more than one of each per class, and never an
-  `initial` section (**LIB** shows `initial equation`/`initial algorithm` only
-  inside library classes we reference, never generate).
+* `equations`/`statements` are held directly, with no `EquationSection`/
+  `AlgorithmSection` wrapper and no `Section[]` list. Modelica permits several
+  sections per class, but equations are unordered, so N equation sections mean
+  exactly their concatenation; the only thing multiplicity could buy is
+  interleaving declarations with the equations that wire them, and that needs
+  one ordered body list, not a list of sections. Multiple *algorithm* sections
+  would be semantically distinct - each is sorted as an atomic unit - but the
+  transformation emits exactly one statement, for the function form of an
+  operator. No `initial` section either (**LIB** shows `initial equation`/
+  `initial algorithm` only inside library classes we reference, never generate).
 * `ExtendsClause` carries a bare `String typeName`. Justified by **CORPUS**:
   `Contract.crml` has `class ECS is { ... } extends System;`, and **DOM**
   (`ClassBuilder`) populates `superClasses` via a deferred link task.
@@ -213,7 +219,6 @@ class ArrayDimension       extends ModelicaElement { contains Expression size } 
 class ModificationElement  extends ModelicaElement {
     String name
     contains Expression value
-    contains ModificationElement[] nested
 }
 ```
 
@@ -221,7 +226,9 @@ class ModificationElement  extends ModelicaElement {
   `TypeResolver` already yields `"CRMLtoModelica.Types.Boolean4"` as a literal,
   and trace granularity (decision #7) has nothing to anchor at type level.
 * `Modification` as a wrapper class is gone; `ComponentDeclaration` holds the
-  element list directly, and `ModificationElement` nests itself.
+  element list directly. `ModificationElement` does not nest: Modelica allows
+  `T t(m(start = 0))`, but a CRML `Binding` refers to a single `Element` and so
+  has no dotted member path, which leaves nesting with no possible producer.
 * `Variability` keeps only `CONSTANT` (justified: `crml.xcore` has
   `Variable.constant`). `DISCRETE`/`PARAMETER` have no producer.
 * `each` and `final` modifier flags are dropped — no producer.
@@ -232,9 +239,6 @@ class ModificationElement  extends ModelicaElement {
 ### 3.3 Sections and bodies (5)
 
 ```
-class EquationSection  extends ModelicaElement { contains Equation[]  equations  }
-class AlgorithmSection extends ModelicaElement { contains Statement[] statements }
-
 abstract class Equation extends ModelicaElement { String comment }
 class SimpleEquation extends Equation { contains Expression lhs  contains Expression rhs }
 
@@ -243,8 +247,8 @@ class AssignmentStatement extends Statement { contains ComponentReference target
                                               contains Expression value }
 ```
 
-`AlgorithmSection` + `AssignmentStatement` exist for one producer only: an
-operator compiled to a Modelica `function` needs `algorithm out := expr;` (§5.7).
+`AssignmentStatement` exists for one producer only: an operator compiled to a
+Modelica `function` needs `algorithm out := expr;` (§5.7).
 
 **No `WhenEquation`, `IfEquation`, `ForEquation`, `WhenStatement`, `IfStatement`.**
 This is architectural, not an omission: `CRMLtoModelica.mo` keeps all temporal
@@ -302,9 +306,9 @@ class BooleanLiteral extends Expression { Boolean value }
 |---|---|---|
 | §3.1 Classes | ModelicaElement, ClassDefinition, ExtendsClause, Placeholder | 4 |
 | §3.2 Components | ComponentDeclaration, ArrayDimension, ModificationElement | 3 |
-| §3.3 Sections | EquationSection, AlgorithmSection, Equation, SimpleEquation, Statement, AssignmentStatement | 6 |
+| §3.3 Bodies | Equation, SimpleEquation, Statement, AssignmentStatement | 4 |
 | §3.4 Expressions | Expression, ComponentReference, ReferencePart, BinaryExpression, UnaryExpression, FunctionCall, IfExpression, ArrayConstructor, ParenthesizedExpression, IntegerLiteral, RealLiteral, StringLiteral, BooleanLiteral | 13 |
-| **Total** | | **26** |
+| **Total** | | **24** |
 
 Plus 6 EEnums, not counted as EClasses: `ClassKind`, `Visibility`, `Causality`,
 `Variability`, `BinaryOperatorKind`, `UnaryOperatorKind`.
@@ -324,6 +328,8 @@ five are needed.
 | `TypeSpecifier` | Collapsed to a `String` attribute (§3.2). |
 | `Modification` | Collapsed; `ComponentDeclaration` holds `ModificationElement[]` directly. |
 | `Section` (abstract) | Only two concrete kinds, each single-valued on `ClassDefinition`. |
+| `EquationSection`, `AlgorithmSection` | Cut after M6. Single-valued wrappers around a list carry nothing a bare list does not: no trace link ever targeted one, and the printer is required to collapse "absent" and "empty" to the same output (§4.2), so their one extra state was unreachable. They cost a lazy-create dance at every producer. |
+| `ModificationElement.nested` | Cut after M6. A feature with no producer: only the printer and one printer test touched it, and CRML cannot express a dotted member path. |
 | `Argument` | Calls are positional; `FunctionCall` holds `Expression[]`. |
 | `ExpressionBranch` | `IfExpression` is flat. |
 | **Deferred, not cut** | |
@@ -365,7 +371,8 @@ render single expressions.
   **same** decision governs the class header and its `end` — fixing the current
   `model 'X' … end X;` mismatch. The §10 contract check depends on the generated
   name matching what `_verif.mo` writes after `extends`.
-* **No empty sections.** An `EquationSection` with zero equations prints nothing.
+* **No empty sections.** A class with no equations prints no `equation`
+  keyword, and likewise for `algorithm`.
 * **Deterministic.** Output depends only on the tree: no hash codes, no unordered
   map iteration, no timestamps.
 * **Class layout**: `partial` prefix, `kind` keyword, quoted name, string comment,
@@ -893,7 +900,8 @@ can then proceed in parallel.
 
 ### Changes from revision 1
 
-* Metamodel cut from 49 EClasses to 26 (+5 deferred). §3.6 lists each cut.
+* Metamodel cut from 49 EClasses to 26 (+5 deferred), and to 24 after M6 when
+  the two section wrappers went. §3.6 lists each cut.
 * **`Class` -> `record` corrected to `Class` -> `model`** (§5.8), with four
   independent confirmations. Revision 1 asserted this without checking.
 * Revision 1 claimed `ClassBuilder` never populates `superClasses`. It does, via

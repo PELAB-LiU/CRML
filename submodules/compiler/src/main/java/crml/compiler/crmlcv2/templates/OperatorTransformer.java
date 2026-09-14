@@ -17,13 +17,10 @@ import crml.model.language.CustomOperator;
 import crml.model.language.Keyword;
 import crml.model.language.Value;
 import crml.model.language.Variable;
-import crml.model.modelica.AlgorithmSection;
 import crml.model.modelica.ClassDefinition;
 import crml.model.modelica.ClassKind;
 import crml.model.modelica.ComponentDeclaration;
-import crml.model.modelica.EquationSection;
 import crml.model.modelica.Expression;
-import crml.model.modelica.ModelicaFactory;
 import crml.modelica.build.Modelica;
 
 /**
@@ -113,8 +110,7 @@ public final class OperatorTransformer {
             bodyCtx.reserveName(parameter.getName());
         }
         Expression result = ValueTransformer.transform(bodyCtx, operator.getDefinition());
-        boolean hoisted = !body.getComponents().isEmpty()
-            || (body.getEquations() != null && !body.getEquations().getEquations().isEmpty());
+        boolean hoisted = !body.getComponents().isEmpty() || !body.getEquations().isEmpty();
 
         // Parameters first, then the output, then whatever the body hoisted.
         int index = 0;
@@ -125,17 +121,10 @@ public final class OperatorTransformer {
             resolve(operator.getDomain(), operator, "result"), GeneratedOperator.OUTPUT_PORT));
 
         if (hoisted) {
-            EquationSection equations = body.getEquations();
-            if (equations == null) {
-                equations = ModelicaFactory.eINSTANCE.createEquationSection();
-                body.setEquations(equations);
-            }
-            equations.getEquations().add(Modelica.eq(Modelica.ref(GeneratedOperator.OUTPUT_PORT), result));
+            body.getEquations().add(Modelica.eq(Modelica.ref(GeneratedOperator.OUTPUT_PORT), result));
         } else {
             body.setKind(ClassKind.FUNCTION);
-            AlgorithmSection algorithm = ModelicaFactory.eINSTANCE.createAlgorithmSection();
-            algorithm.getStatements().add(Modelica.assign(Modelica.ref(GeneratedOperator.OUTPUT_PORT), result));
-            body.setAlgorithm(algorithm);
+            body.getStatements().add(Modelica.assign(Modelica.ref(GeneratedOperator.OUTPUT_PORT), result));
         }
 
         GeneratedOperator generated = new GeneratedOperator(body, hoisted, parameters);

@@ -13,9 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
 
-import crml.model.modelica.AlgorithmSection;
 import crml.model.modelica.ClassDefinition;
-import crml.model.modelica.ModelicaFactory;
 
 /**
  * The M1 gate: hand-build two classes that exist verbatim in
@@ -49,12 +47,10 @@ public class LibraryRoundTripTest {
         and4.getComponents().add(input("Boolean4", "r2"));
         and4.getComponents().add(output("Boolean4", "out"));
 
-        AlgorithmSection algorithm = ModelicaFactory.eINSTANCE.createAlgorithmSection();
-        algorithm.getStatements().add(assign(ref("out"),
+        and4.getStatements().add(assign(ref("out"),
             ifExpr(call("isUndefined", ref("r1")),
                 ref("Boolean4.undefined"),
                 ref("Boolean4.true4"))));
-        and4.setAlgorithm(algorithm);
 
         assertEquals(
             "function and4\n"

@@ -29,11 +29,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
 
-import crml.model.modelica.AlgorithmSection;
 import crml.model.modelica.BinaryOperatorKind;
 import crml.model.modelica.ClassDefinition;
 import crml.model.modelica.ComponentDeclaration;
-import crml.model.modelica.EquationSection;
 import crml.model.modelica.Expression;
 import crml.model.modelica.ModelicaElement;
 import crml.model.modelica.ModelicaFactory;
@@ -200,15 +198,6 @@ public class ModelicaPrinterTest {
     }
 
     @Test
-    public void printsNestedModifications() {
-        ComponentDeclaration component = component("T", "t");
-        crml.model.modelica.ModificationElement outer = mod("m", null);
-        outer.getNested().add(mod("start", integer(0)));
-        component.getModifications().add(outer);
-        assertEquals("T t(m(start = 0));\n", print(component));
-    }
-
-    @Test
     public void printsArrayDimensions() {
         ComponentDeclaration fixed = component("CRMLtoModelica.Types.Boolean4", "bs");
         fixed.getArrayDimensions().add(dimension(integer(3)));
@@ -240,10 +229,8 @@ public class ModelicaPrinterTest {
     // --- sections -----------------------------------------------------------
 
     @Test
-    public void omitsEmptySections() {
+    public void omitsSectionKeywordsWhenThereIsNothingInThem() {
         ClassDefinition cls = model("M");
-        cls.setEquations(ModelicaFactory.eINSTANCE.createEquationSection());
-        cls.setAlgorithm(ModelicaFactory.eINSTANCE.createAlgorithmSection());
         cls.getComponents().add(component("Real", "a"));
         assertEquals("model M\n    Real a;\nend M;\n", print(cls));
     }
@@ -252,11 +239,9 @@ public class ModelicaPrinterTest {
     public void printsEquationSection() {
         ClassDefinition cls = model("M");
         cls.getComponents().add(component("Real", "a"));
-        EquationSection section = ModelicaFactory.eINSTANCE.createEquationSection();
         crml.model.modelica.SimpleEquation equation = eq(ref("a"), integer(1));
         equation.setComment("bound");
-        section.getEquations().add(equation);
-        cls.setEquations(section);
+        cls.getEquations().add(equation);
         assertEquals(
             "model M\n"
           + "    Real a;\n"
@@ -271,9 +256,7 @@ public class ModelicaPrinterTest {
         ClassDefinition fn = function("f");
         fn.getComponents().add(input("Real", "x"));
         fn.getComponents().add(output("Real", "out"));
-        AlgorithmSection section = ModelicaFactory.eINSTANCE.createAlgorithmSection();
-        section.getStatements().add(assign(ref("out"), binary(BinaryOperatorKind.MUL, ref("x"), integer(2))));
-        fn.setAlgorithm(section);
+        fn.getStatements().add(assign(ref("out"), binary(BinaryOperatorKind.MUL, ref("x"), integer(2))));
         assertEquals(
             "function f\n"
           + "    input Real x;\n"
@@ -310,9 +293,7 @@ public class ModelicaPrinterTest {
     public void printingIsDeterministic() {
         ClassDefinition cls = model("M");
         cls.getComponents().add(component("Real", "a", binary(BinaryOperatorKind.ADD, ref("b"), ref("c"))));
-        EquationSection section = ModelicaFactory.eINSTANCE.createEquationSection();
-        section.getEquations().add(eq(ref("a"), call("CRMLtoModelica.Functions.not4", ref("b"))));
-        cls.setEquations(section);
+        cls.getEquations().add(eq(ref("a"), call("CRMLtoModelica.Functions.not4", ref("b"))));
         assertEquals(print(cls), print(cls));
     }
 
