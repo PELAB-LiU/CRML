@@ -126,12 +126,31 @@ enum RawReason {
     UNRESOLVED          // lookup was attempted and found nothing
 }
 
-class Reference extends ModelicaElement {
-    refers ClassDefinition target   // set iff this is a resolved reference
+class Reference<T extends ModelicaElement> extends ModelicaElement {
+    refers T target                 // set iff this is a resolved reference
     String rawText                  // set iff target is null
     RawReason reason                // set iff target is null
 }
 ```
+
+**Validated.** Xcore accepts this and generates what the source spec's
+per-feature type checking needs:
+
+```java
+public interface Reference<T extends ModelicaElement> extends ModelicaElement {
+    T getTarget();
+    void setTarget(T value);
+}
+// and on the referring classes:
+Reference<ClassDefinition> getDeclaredType();   // ComponentDeclaration
+Reference<ClassDefinition> getSuperClass();     // ExtendsClause
+Reference<ClassDefinition> getFunction();       // FunctionCall
+```
+
+One trap found while validating: **`type` is a reserved word in Xcore**, so the
+feature on `ComponentDeclaration` is `declaredType`, not `type`. This is the
+same class of trap as `op` in M1, and it fails at generation with
+`extraneous input 'type' expecting RULE_ID` rather than anywhere useful.
 
 **Invariant:** exactly one of `target` and `rawText` is set. It is enforced by
 construction (§4.1), not by validation, because nothing else constructs these.
@@ -152,9 +171,9 @@ reference can only be built from an object already in hand.
 
 | Feature | Today | Becomes | Typical outcome |
 |---|---|---|---|
-| `ComponentDeclaration.typeName` | `String` | `contains Reference type` | decided by `TypeResolver` (§5.4): raw for CRML builtin and Modelica primitive types, resolved for CRML classes. Operator-block instances are resolved by `OperatorTransformer`, library blocks are raw. |
-| `ExtendsClause.typeName` | `String` | `contains Reference superClass` | always resolved — the only producer is `ClassTransformer`, over a CRML super-class |
-| `FunctionCall.functionName` | `String` | `contains Reference function` | raw for `CRMLtoModelica.Functions.*`, `Modelica.Math.*` and builtins; resolved for a generated operator function |
+| `ComponentDeclaration.typeName` | `String` | `contains Reference<ClassDefinition> declaredType` | decided by `TypeResolver` (§5.4): raw for CRML builtin and Modelica primitive types, resolved for CRML classes. Operator-block instances are resolved by `OperatorTransformer`, library blocks are raw. |
+| `ExtendsClause.typeName` | `String` | `contains Reference<ClassDefinition> superClass` | always resolved — the only producer is `ClassTransformer`, over a CRML super-class |
+| `FunctionCall.functionName` | `String` | `contains Reference<ClassDefinition> function` | raw for `CRMLtoModelica.Functions.*`, `Modelica.Math.*` and builtins; resolved for a generated operator function |
 
 **Unchanged, and deliberately so:**
 
@@ -329,25 +348,57 @@ covers the case that matters — a renamed component breaking its own references
 and stops where the tree stops. Whole-path resolution is an extension point
 (§9), reachable only if `CRMLtoModelica.mo` is ever parsed.
 
-This is a change to `Reference.target`'s type: it must then admit a
-`ComponentDeclaration` as well as a `ClassDefinition`. Two ways, mirroring a
-choice M1 already faced:
-
-- **Generic `class Reference<T>`.** Xcore supports generics — `crml.xcore` uses
-  `Set<D>` — so `contains Reference<ClassDefinition> type` is plausible and
-  keeps the source spec's per-feature type checking.
-- **`refers ModelicaElement target`**, one non-generic class, with the feature's
-  declared intent documented rather than checked.
-
-Generics are the unproven construct here, exactly as `refers ecore::EObject` was
-in M1 §12. **Validate it before anything depends on it**, and fall back to the
-non-generic form if it resists — which is precisely the trade the trace model
-already took, and it has been fine.
+This needs `Reference.target` to admit a `ComponentDeclaration` as well as a
+`ClassDefinition`, which the generic form in §4 handles directly:
+`contains Reference<ComponentDeclaration> component` on the head
+`ReferencePart`. No second reference class, and the target type stays checked by
+javac at every call site.
 
 ### 6.3 Applying a result
 
 Only relevant under §5.2 option 1. A lookup that finds nothing sets
 `rawRef(path, UNRESOLVED)` and reports a `Diagnostic` — see §8.
+
+### 6.4 Why not `:language`'s linker architecture
+
+`DOMVisitor` already has a deferred-link mechanism — `link(host, feature, id,
+options)` queues a `LinkerTask`, `linker()` drives
+`while(crossrefTasks.removeIf(task -> task.apply())){}` to a fixpoint and throws
+on leftovers, and `ScopeResolver` does the lookup. Reusing it here is mechanically
+possible and is **not recommended**, for four reasons.
+
+1. **There are no names to resolve.** `:language` links source text, so
+   `ScopeResolver.link` takes a `String id` and searches. By the time the
+   compiler runs, those names are already resolved: a `UserTypereference` holds
+   `refers Domain domain`, a pointer to the CRML `Class` object. `TypeResolver`'s
+   question is not "what does this name mean" but "which `ClassDefinition` did I
+   generate for this object", which is a map lookup on identity. Routing it
+   through a name-based linker would reintroduce ambiguity that has already been
+   eliminated upstream, and could fail in ways a map cannot.
+2. **The fixpoint loop would have nothing to do.** It exists because one task may
+   only become resolvable after another succeeds. With class shells created up
+   front (§5.2) every lookup succeeds on the first attempt, and `Model.classes`
+   is a flat list — CRML classes do not nest — so there is no ordering subtlety
+   left to absorb.
+3. **Its failure mode is the one M2 removed.** `linker()` throws
+   `RuntimeException("Unable to resolve tasks: …")`, which is exactly what aborts
+   `FORML_test/AfterBefore.crml` and `FORML_test/EnsureAtEnd.crml` today. Since
+   M2 nothing throws out of the transformation: every gap is a `Diagnostic` and a
+   `Placeholder`, which was §8.1 defect 5 of the plan. Adopting the driver as it
+   stands would reinstate abort-the-whole-file; changing its failure mode is not
+   reuse, it is a rewrite.
+4. **Deferred `eSet` would defeat the generic `Reference<T>`.** `:language`
+   assigns reflectively — `target.eSet(feature, v)`, with `ModificationTask`
+   catching `ClassCastException` — because a generic task list cannot know the
+   feature's type. The whole value of `Reference<ClassDefinition>` is that javac
+   checks it at every call site; going through `EStructuralFeature` moves that
+   check to runtime.
+
+What is worth taking from `:language` is the registry idea, not the task list.
+The deferred-task machinery becomes the right answer in one specific future: if
+a Modelica **parser** is added, names come back, ordering becomes unknown, and
+the source spec's symbol table, link tasks and `PARSE_ERROR` should be adopted
+together (§9).
 
 ---
 
