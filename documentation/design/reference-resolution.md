@@ -1,7 +1,7 @@
 # Reference resolution in the Modelica object model
 
-**Status:** Draft — adaptation of the general Reference Resolution Specification
-to this codebase.
+**Status:** Implemented, except §6.2 — see the note there.
+Adaptation of the general Reference Resolution Specification to this codebase.
 **Scope:** `crml.model.modelica` (the `:modelica` submodule), the transformation
 in `:compiler`'s `crml.compiler.crmlcv2` that produces it, and the serializer in
 `crml.modelica.print`.
@@ -347,6 +347,28 @@ component such as `r1.ticks` there is no type object to step into.
 covers the case that matters — a renamed component breaking its own references —
 and stops where the tree stops. Whole-path resolution is an extension point
 (§9), reachable only if `CRMLtoModelica.mo` is ever parsed.
+
+> **Not implemented, deliberately.** The rest of this specification shipped;
+> this section did not, for two reasons found while building it.
+>
+> It buys nothing today. Both defects in §1.1 are defects in *type and function*
+> names: the printer already quotes `ReferencePart.name` through
+> `Identifiers.quote`, so there is no quoting inconsistency to fix, and a
+> component's name is allocated by `TransformationContext` and never changed
+> afterwards, so there is nothing to drift. The benefit is entirely
+> forward-looking — a future pass that renames components.
+>
+> And it costs a redundancy this metamodel has been cutting all along.
+> `ReferencePart` would carry both a `name` and an optional reference, two
+> spellings of one thing; or it would drop `name`, and then every tail part
+> (`out`, `ticks`, `r1`) needs a `RawReason`, none of which fits — those members
+> are neither external nor builtin nor a failed lookup. Of the component
+> references the transformation actually builds, only three or four have a
+> declaration in hand; the rest are library enum literals, `time`, or port
+> paths.
+>
+> Revisit it when something renames components, or when a fifth `RawReason`
+> earns its place.
 
 This needs `Reference.target` to admit a `ComponentDeclaration` as well as a
 `ClassDefinition`, which the generic form in §4 handles directly:

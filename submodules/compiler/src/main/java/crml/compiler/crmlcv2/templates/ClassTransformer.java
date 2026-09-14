@@ -9,6 +9,7 @@ import crml.model.language.Variable;
 import crml.model.modelica.ClassDefinition;
 import crml.model.modelica.ComponentDeclaration;
 import crml.model.modelica.Expression;
+import crml.model.modelica.Reference;
 import crml.model.modelica.Variability;
 import crml.modelica.build.Modelica;
 
@@ -30,17 +31,29 @@ public final class ClassTransformer {
     private ClassTransformer() {
     }
 
-    public static ClassDefinition transform(TransformationContext ctx, crml.model.language.Class clazz) {
+    /**
+     * The empty class, name and kind only. Every class is shelled before any
+     * body is populated, so a member or a super-class that names a class
+     * declared later in the model still resolves to an object.
+     */
+    public static ClassDefinition shell(crml.model.language.Class clazz) {
         ClassDefinition definition = Modelica.model(clazz.getName());
         definition.setPartial(Boolean.valueOf(Boolean.TRUE.equals(clazz.getPartial())));
+        return definition;
+    }
 
+    /** Fills in the extends clauses and members of an already-shelled class. */
+    public static void populate(TransformationContext ctx, crml.model.language.Class clazz,
+            ClassDefinition definition) {
         for (crml.model.language.Class superClass : clazz.getSuperClasses()) {
-            if (superClass.getName() == null) {
+            ClassDefinition superDefinition = ctx.generatedClass(superClass);
+            if (superDefinition == null) {
                 ctx.report(Diagnostics.error("Class.superClasses",
-                    "class '" + clazz.getName() + "' extends an unnamed class", clazz));
+                    "class '" + clazz.getName() + "' extends a class with no generated counterpart",
+                    clazz));
                 continue;
             }
-            definition.getExtendsClauses().add(Modelica.extendsClause(superClass.getName()));
+            definition.getExtendsClauses().add(Modelica.extendsClause(Modelica.resolvedRef(superDefinition)));
         }
 
         TransformationContext body = ctx.nested(definition);
@@ -50,7 +63,6 @@ public final class ClassTransformer {
         for (Variable variable : clazz.getVariables()) {
             declare(body, variable);
         }
-        return definition;
     }
 
     /**
@@ -60,14 +72,7 @@ public final class ClassTransformer {
      * record.
      */
     private static void declare(TransformationContext ctx, Variable variable) {
-        String typeName;
-        try {
-            typeName = TypeResolver.resolve(variable.getDomain());
-        } catch (RuntimeException e) {
-            ctx.reportWithPlaceholder(Diagnostics.error("Class.variables",
-                "cannot resolve the type of member '" + variable.getName() + "': " + e.getMessage(), variable));
-            return;
-        }
+        Reference<ClassDefinition> declaredType = TypeResolver.resolve(ctx, variable.getDomain());
 
         Expression definition = null;
         if (variable.getDefinition() != null && !ValueTransformer.isDeclarationOnly(variable.getDefinition())) {
@@ -82,7 +87,7 @@ public final class ClassTransformer {
             }
         }
 
-        ComponentDeclaration component = Modelica.component(typeName, variable.getName());
+        ComponentDeclaration component = Modelica.component(declaredType, variable.getName());
         if (Boolean.TRUE.equals(variable.getConstant())) {
             component.setVariability(Variability.CONSTANT);
         }

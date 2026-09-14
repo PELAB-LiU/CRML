@@ -1,6 +1,11 @@
 package crml.modelica.print;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+
+import org.eclipse.emf.ecore.EObject;
 
 import crml.model.modelica.ArrayConstructor;
 import crml.model.modelica.ArrayDimension;
@@ -22,6 +27,7 @@ import crml.model.modelica.ModelicaElement;
 import crml.model.modelica.ModificationElement;
 import crml.model.modelica.ParenthesizedExpression;
 import crml.model.modelica.Placeholder;
+import crml.model.modelica.Reference;
 import crml.model.modelica.RealLiteral;
 import crml.model.modelica.ReferencePart;
 import crml.model.modelica.Statement;
@@ -165,7 +171,71 @@ public final class ModelicaPrinter {
     }
 
     private void printExtends(ExtendsClause clause) {
-        writer.line("extends " + Identifiers.quotePath(clause.getTypeName()) + ";");
+        writer.line("extends " + name(clause, clause.getSuperClass()) + ";");
+    }
+
+    /**
+     * The text for a reference, as written at {@code context}.
+     *
+     * <p>A raw reference prints its stored text verbatim - quoting it would
+     * break {@code CRMLtoModelica.Functions.and4} and turn {@code der} into
+     * {@code 'der'}. A resolved reference has its path recomputed from live
+     * containment and quoted, so it cannot drift from the declaration it names
+     * and cannot disagree with it about quoting.
+     */
+    private static String name(ModelicaElement context, Reference<?> reference) {
+        if (reference == null) {
+            return "";
+        }
+        if (reference.getTarget() == null) {
+            return reference.getRawText() == null ? "" : reference.getRawText();
+        }
+        return Identifiers.quotePath(path(context, reference.getTarget()));
+    }
+
+    /**
+     * The dotted path naming {@code target} from {@code context}: the names of
+     * the elements from just below their nearest common container down to the
+     * target. In this metamodel that is almost always a single segment, since
+     * the tree is one model class with a flat layer of nested classes.
+     */
+    private static String path(ModelicaElement context, ModelicaElement target) {
+        Set<EObject> contextChain = new HashSet<EObject>();
+        for (EObject e = context; e != null; e = e.eContainer()) {
+            contextChain.add(e);
+        }
+        List<String> segments = new ArrayList<String>();
+        for (EObject e = target; e != null; e = e.eContainer()) {
+            if (contextChain.contains(e)) {
+                break;
+            }
+            String segment = nameOf(e);
+            if (segment != null) {
+                segments.add(0, segment);
+            }
+        }
+        if (segments.isEmpty()) {
+            String own = nameOf(target);
+            return own == null ? "" : own;
+        }
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < segments.size(); i++) {
+            if (i > 0) {
+                builder.append('.');
+            }
+            builder.append(segments.get(i));
+        }
+        return builder.toString();
+    }
+
+    private static String nameOf(EObject element) {
+        if (element instanceof ClassDefinition) {
+            return ((ClassDefinition) element).getName();
+        }
+        if (element instanceof ComponentDeclaration) {
+            return ((ComponentDeclaration) element).getName();
+        }
+        return null;
     }
 
     private void printPlaceholder(Placeholder placeholder) {
@@ -187,7 +257,8 @@ public final class ModelicaPrinter {
         } else if (component.getCausality() == Causality.OUTPUT) {
             builder.append("output ");
         }
-        builder.append(component.getTypeName()).append(' ').append(Identifiers.quote(component.getName()));
+        builder.append(name(component, component.getDeclaredType()))
+               .append(' ').append(Identifiers.quote(component.getName()));
 
         for (ArrayDimension dimension : component.getArrayDimensions()) {
             builder.append(arrayDimension(dimension));
@@ -396,10 +467,7 @@ public final class ModelicaPrinter {
     }
 
     private String functionCall(FunctionCall call) {
-        // Verbatim, like a component's type name: these are dotted paths into
-        // CRMLtoModelica or Modelica builtins (der, integer, String, ...), some
-        // of which are reserved words that must not be quoted away.
-        StringBuilder builder = new StringBuilder(call.getFunctionName()).append('(');
+        StringBuilder builder = new StringBuilder(name(call, call.getFunction())).append('(');
         for (int i = 0; i < call.getArguments().size(); i++) {
             if (i > 0) {
                 builder.append(", ");

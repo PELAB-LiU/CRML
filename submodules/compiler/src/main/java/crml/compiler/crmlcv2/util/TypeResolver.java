@@ -1,19 +1,82 @@
 package crml.compiler.crmlcv2.util;
 
+import crml.compiler.crmlcv2.Diagnostics;
+import crml.compiler.crmlcv2.TransformationContext;
 import crml.model.language.BuiltinType;
 import crml.model.language.BuiltinTypeReference;
 import crml.model.language.ConstructorValue;
+import crml.model.language.Domain;
 import crml.model.language.IndirectTypeReference;
 import crml.model.language.TypeReference;
 import crml.model.language.UserTypereference;
 import crml.model.language.Value;
 import crml.model.language.Variable;
 import crml.model.language.VariableReference;
+import crml.model.modelica.ClassDefinition;
+import crml.model.modelica.RawReason;
+import crml.model.modelica.Reference;
+import crml.modelica.build.Modelica;
 
 public class TypeResolver {
-    public static String resolve(TypeReference type){
+
+    /**
+     * The Modelica type a CRML type reference names.
+     *
+     * <p>This is the one place the raw-against-resolved decision is taken for
+     * types. CRML's builtin types are records and an enumeration inside
+     * CRMLtoModelica.mo, which is never parsed; Real, Integer and String are
+     * part of the Modelica language. Both are permanently raw, and only a CRML
+     * class has an object in the generated tree to point at.
+     *
+     * <p>Never throws: an unresolvable type is reported and comes back as an
+     * UNRESOLVED reference, so the caller drops one declaration rather than the
+     * whole model.
+     */
+    public static Reference<ClassDefinition> resolve(TransformationContext ctx, TypeReference type){
+        if (type instanceof IndirectTypeReference) {
+            return resolve(ctx, ((IndirectTypeReference) type).getReferredType());
+        }
+        if (type instanceof BuiltinTypeReference) {
+            BuiltinType builtin = ((BuiltinTypeReference) type).getBuiltinType();
+            String name = resolve(builtin);
+            return isModelicaPrimitive(builtin) ? Modelica.<ClassDefinition>builtinRef(name)
+                                                : Modelica.<ClassDefinition>libraryRef(name);
+        }
+        if (type instanceof UserTypereference) {
+            Domain domain = ((UserTypereference) type).getDomain();
+            if (domain instanceof crml.model.language.Class) {
+                crml.model.language.Class clazz = (crml.model.language.Class) domain;
+                ClassDefinition definition = ctx.generatedClass(clazz);
+                if (definition != null) {
+                    return Modelica.resolvedRef(definition);
+                }
+                return unresolved(ctx, type, "no Modelica class was generated for CRML class '"
+                    + clazz.getName() + "'");
+            }
+            return unresolved(ctx, type, "a user type reference whose domain is "
+                + (domain == null ? "unset" : domain.eClass().getName()) + " has no Modelica mapping");
+        }
+        if (type == null) {
+            return unresolved(ctx, null, "no type reference to resolve");
+        }
+        return unresolved(ctx, type, "unable to resolve type reference: " + type.eClass().getName());
+    }
+
+    /** Real, Integer and String are the language's own; the rest come from the library. */
+    private static boolean isModelicaPrimitive(BuiltinType type) {
+        return type == BuiltinType.REAL || type == BuiltinType.INTEGER || type == BuiltinType.STRING;
+    }
+
+    private static Reference<ClassDefinition> unresolved(TransformationContext ctx, TypeReference type,
+            String message) {
+        ctx.report(Diagnostics.error("TypeReference", message, type));
+        return Modelica.<ClassDefinition>rawRef("", RawReason.UNRESOLVED);
+    }
+
+    /** The legacy name-only resolution, kept for the two callers that need a bare name. */
+    public static String resolveName(TypeReference type){
         if(type instanceof IndirectTypeReference){
-            return resolve(((IndirectTypeReference) type).getReferredType());
+            return resolveName(((IndirectTypeReference) type).getReferredType());
         } else if(type instanceof BuiltinTypeReference) {
             BuiltinTypeReference btr = (BuiltinTypeReference) type;
             return resolve(btr.getBuiltinType());

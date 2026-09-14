@@ -19,11 +19,14 @@ import crml.model.modelica.ExtendsClause;
 import crml.model.modelica.FunctionCall;
 import crml.model.modelica.IfExpression;
 import crml.model.modelica.IntegerLiteral;
+import crml.model.modelica.ModelicaElement;
 import crml.model.modelica.ModelicaFactory;
 import crml.model.modelica.ModificationElement;
 import crml.model.modelica.ParenthesizedExpression;
 import crml.model.modelica.Placeholder;
+import crml.model.modelica.RawReason;
 import crml.model.modelica.RealLiteral;
+import crml.model.modelica.Reference;
 import crml.model.modelica.ReferencePart;
 import crml.model.modelica.Statement;
 import crml.model.modelica.StringLiteral;
@@ -41,6 +44,42 @@ public final class Modelica {
     private static final ModelicaFactory FACTORY = ModelicaFactory.eINSTANCE;
 
     private Modelica() {
+    }
+
+    // --- references ---------------------------------------------------------
+
+    /**
+     * A reference to an element of this tree. There is deliberately no overload
+     * taking a name: a resolved reference can only be built from an object
+     * already in hand.
+     */
+    public static <T extends ModelicaElement> Reference<T> resolvedRef(T target) {
+        Reference<T> reference = FACTORY.createReference();
+        reference.setTarget(target);
+        return reference;
+    }
+
+    /** A reference to something outside this tree. The reason is not optional. */
+    public static <T extends ModelicaElement> Reference<T> rawRef(String text, RawReason reason) {
+        Reference<T> reference = FACTORY.createReference();
+        reference.setRawText(text);
+        reference.setReason(reason);
+        return reference;
+    }
+
+    /** A member of CRMLtoModelica.mo. */
+    public static <T extends ModelicaElement> Reference<T> libraryRef(String name) {
+        return rawRef(name, RawReason.EXTERNAL_LIBRARY);
+    }
+
+    /** Part of the Modelica language itself. */
+    public static <T extends ModelicaElement> Reference<T> builtinRef(String name) {
+        return rawRef(name, RawReason.MODELICA_BUILTIN);
+    }
+
+    /** A member of the Modelica Standard Library. */
+    public static <T extends ModelicaElement> Reference<T> mslRef(String name) {
+        return rawRef(name, RawReason.STANDARD_LIBRARY);
     }
 
     // --- classes ------------------------------------------------------------
@@ -72,9 +111,9 @@ public final class Modelica {
         return classDefinition(ClassKind.PACKAGE, name);
     }
 
-    public static ExtendsClause extendsClause(String typeName) {
+    public static ExtendsClause extendsClause(Reference<ClassDefinition> superClass) {
         ExtendsClause clause = FACTORY.createExtendsClause();
-        clause.setTypeName(typeName);
+        clause.setSuperClass(superClass);
         return clause;
     }
 
@@ -86,29 +125,30 @@ public final class Modelica {
 
     // --- components ---------------------------------------------------------
 
-    public static ComponentDeclaration component(String typeName, String name) {
+    public static ComponentDeclaration component(Reference<ClassDefinition> declaredType, String name) {
         ComponentDeclaration component = FACTORY.createComponentDeclaration();
-        component.setTypeName(typeName);
+        component.setDeclaredType(declaredType);
         component.setName(name);
         component.setVisibility(Visibility.PUBLIC);
         component.setCausality(Causality.NONE);
         return component;
     }
 
-    public static ComponentDeclaration component(String typeName, String name, Expression binding) {
-        ComponentDeclaration component = component(typeName, name);
+    public static ComponentDeclaration component(Reference<ClassDefinition> declaredType, String name,
+            Expression binding) {
+        ComponentDeclaration component = component(declaredType, name);
         component.setBinding(binding);
         return component;
     }
 
-    public static ComponentDeclaration input(String typeName, String name) {
-        ComponentDeclaration component = component(typeName, name);
+    public static ComponentDeclaration input(Reference<ClassDefinition> declaredType, String name) {
+        ComponentDeclaration component = component(declaredType, name);
         component.setCausality(Causality.INPUT);
         return component;
     }
 
-    public static ComponentDeclaration output(String typeName, String name) {
-        ComponentDeclaration component = component(typeName, name);
+    public static ComponentDeclaration output(Reference<ClassDefinition> declaredType, String name) {
+        ComponentDeclaration component = component(declaredType, name);
         component.setCausality(Causality.OUTPUT);
         return component;
     }
@@ -161,16 +201,16 @@ public final class Modelica {
         return part;
     }
 
-    public static FunctionCall call(String functionName, Expression... arguments) {
+    public static FunctionCall call(Reference<ClassDefinition> function, Expression... arguments) {
         FunctionCall call = FACTORY.createFunctionCall();
-        call.setFunctionName(functionName);
+        call.setFunction(function);
         call.getArguments().addAll(Arrays.asList(arguments));
         return call;
     }
 
-    public static FunctionCall call(String functionName, List<? extends Expression> arguments) {
+    public static FunctionCall call(Reference<ClassDefinition> function, List<? extends Expression> arguments) {
         FunctionCall call = FACTORY.createFunctionCall();
-        call.setFunctionName(functionName);
+        call.setFunction(function);
         call.getArguments().addAll(arguments);
         return call;
     }

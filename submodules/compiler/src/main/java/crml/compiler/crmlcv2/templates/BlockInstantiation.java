@@ -5,8 +5,10 @@ import java.util.Map;
 import org.eclipse.emf.ecore.EObject;
 
 import crml.compiler.crmlcv2.TransformationContext;
+import crml.model.modelica.ClassDefinition;
 import crml.model.modelica.ComponentReference;
 import crml.model.modelica.Expression;
+import crml.model.modelica.Reference;
 import crml.modelica.build.Modelica;
 
 /**
@@ -36,8 +38,9 @@ public final class BlockInstantiation {
      * @param inputs port name to the expression driving it; iteration order
      *               decides equation order, so pass an ordered map
      */
-    public static ComponentReference instantiate(TransformationContext ctx, String blockType,
-            String namePrefix, Map<String, Expression> inputs, String outputPort, EObject crmlSource) {
+    public static ComponentReference instantiate(TransformationContext ctx,
+            Reference<ClassDefinition> blockType, String namePrefix, Map<String, Expression> inputs,
+            String outputPort, EObject crmlSource) {
         String name = ctx.allocateName(namePrefix);
         ctx.declare(Modelica.component(blockType, name), crmlSource);
 

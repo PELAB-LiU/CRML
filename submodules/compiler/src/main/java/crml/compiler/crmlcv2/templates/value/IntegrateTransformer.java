@@ -10,6 +10,7 @@ import crml.compiler.crmlcv2.templates.BlockInstantiation;
 import crml.compiler.crmlcv2.templates.ValueTransformer;
 import crml.model.language.IntegrateValue;
 import crml.model.modelica.Expression;
+import crml.modelica.build.Modelica;
 
 /**
  * Integrating a Boolean4 over a period, backed by
@@ -32,7 +33,7 @@ public final class IntegrateTransformer {
         Map<String, Expression> inputs = new LinkedHashMap<String, Expression>();
         inputs.put("r1", ValueTransformer.transform(ctx, integrate.getIntegrand()));
         inputs.put("r2", ValueTransformer.transform(ctx, integrate.getInterval()));
-        return BlockInstantiation.instantiate(ctx, "CRMLtoModelica.Blocks.Integrate", "integrate",
-            inputs, "out", integrate);
+        return BlockInstantiation.instantiate(ctx, Modelica.libraryRef("CRMLtoModelica.Blocks.Integrate"),
+            "integrate", inputs, "out", integrate);
     }
 }

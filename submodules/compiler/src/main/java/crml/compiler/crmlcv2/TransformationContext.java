@@ -57,6 +57,15 @@ public final class TransformationContext {
             new HashMap<CustomOperator, UnsupportedConstruct>();
         /** Class names already used, so generated names never collide. */
         final Set<String> classNames = new HashSet<String>();
+        /**
+         * The Modelica class generated for each CRML class. Keyed by the CRML
+         * object, not by its name, so a lookup is a map hit rather than name
+         * resolution - there is no scope, no path and no ambiguity.
+         */
+        final Map<crml.model.language.Class, ClassDefinition> generatedClasses =
+            new LinkedHashMap<crml.model.language.Class, ClassDefinition>();
+        /** Keys already reported through reportOnce. */
+        final Set<String> reportedOnce = new HashSet<String>();
     }
 
     private final Session session;
@@ -153,6 +162,24 @@ public final class TransformationContext {
 
     public void report(Diagnostic diagnostic) {
         session.diagnostics.add(diagnostic);
+    }
+
+    /** Reports at most one diagnostic per key per translation. */
+    public void reportOnce(String key, Diagnostic diagnostic) {
+        if (session.reportedOnce.add(key)) {
+            report(diagnostic);
+        }
+    }
+
+    // --- generated classes for CRML classes ----------------------------------
+
+    public void registerClass(crml.model.language.Class clazz, ClassDefinition definition) {
+        session.generatedClasses.put(clazz, definition);
+    }
+
+    /** The class generated for {@code clazz}, or null if there is none. */
+    public ClassDefinition generatedClass(crml.model.language.Class clazz) {
+        return session.generatedClasses.get(clazz);
     }
 
     /**

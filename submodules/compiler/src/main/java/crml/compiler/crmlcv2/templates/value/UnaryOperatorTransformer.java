@@ -5,6 +5,8 @@ import static crml.compiler.crmlcv2.templates.value.TypeCategories.isClockOrUnkn
 import static crml.compiler.crmlcv2.templates.value.TypeCategories.isNumericOrUnknown;
 import static crml.compiler.crmlcv2.templates.value.TypeCategories.isPeriodOrUnknown;
 import static crml.modelica.build.Modelica.call;
+import static crml.modelica.build.Modelica.mslRef;
+import static crml.modelica.build.Modelica.libraryRef;
 import static crml.modelica.build.Modelica.parens;
 import static crml.modelica.build.Modelica.unary;
 
@@ -51,19 +53,19 @@ public final class UnaryOperatorTransformer {
                 // Modelica's own not.
                 return transformNot(op, opType, operand, t);
             case SIN:
-                return transformMath(op, opType, operand, t, "Modelica.Math.sin");
+                return transformMath(ctx, op, opType, operand, t, "Modelica.Math.sin");
             case ASIN:
-                return transformMath(op, opType, operand, t, "Modelica.Math.asin");
+                return transformMath(ctx, op, opType, operand, t, "Modelica.Math.asin");
             case COS:
-                return transformMath(op, opType, operand, t, "Modelica.Math.cos");
+                return transformMath(ctx, op, opType, operand, t, "Modelica.Math.cos");
             case ACOS:
-                return transformMath(op, opType, operand, t, "Modelica.Math.acos");
+                return transformMath(ctx, op, opType, operand, t, "Modelica.Math.acos");
             case LOG:
-                return transformMath(op, opType, operand, t, "Modelica.Math.log");
+                return transformMath(ctx, op, opType, operand, t, "Modelica.Math.log");
             case LOG10:
-                return transformMath(op, opType, operand, t, "Modelica.Math.log10");
+                return transformMath(ctx, op, opType, operand, t, "Modelica.Math.log10");
             case EXP_OP:
-                return transformMath(op, opType, operand, t, "Modelica.Math.exp");
+                return transformMath(ctx, op, opType, operand, t, "Modelica.Math.exp");
             case START:
                 return transformPeriodEndpoint(op, opType, operand, t, "CRMLtoModelica.Functions.PStart");
             case END:
@@ -109,7 +111,7 @@ public final class UnaryOperatorTransformer {
         }
         Map<String, Expression> inputs = new LinkedHashMap<String, Expression>();
         inputs.put("r1", operand);
-        return BlockInstantiation.instantiate(ctx, blockType, prefix, inputs,
+        return BlockInstantiation.instantiate(ctx, libraryRef(blockType), prefix, inputs,
             "out", op);
     }
 
@@ -124,18 +126,22 @@ public final class UnaryOperatorTransformer {
     private static Expression transformNot(UnaryOperator op, BuiltinUnaryOperatorKind opType,
             Expression operand, BuiltinType t) {
         if (isBooleanOrUnknown(t)) {
-            return call("CRMLtoModelica.Functions.not4", operand);
+            return call(libraryRef("CRMLtoModelica.Functions.not4"), operand);
         }
         throw new UnsupportedConstruct(Diagnostics.incompatibleTypes(opType, t, op));
     }
 
-    private static Expression transformMath(UnaryOperator op, BuiltinUnaryOperatorKind opType,
-            Expression operand, BuiltinType t, String function) {
+    private static Expression transformMath(TransformationContext ctx, UnaryOperator op,
+            BuiltinUnaryOperatorKind opType, Expression operand, BuiltinType t, String function) {
         if (isNumericOrUnknown(t)) {
             // Modelica.Math is the standard library, which CRMLtoModelica.mo does
             // not itself depend on: a generated model using these needs MSL on the
-            // load path.
-            return call(function, operand);
+            // load path. The reference records that, and the model is told once.
+            ctx.reportOnce("STANDARD_LIBRARY", Diagnostics.info("UnaryOperator",
+                "this model calls the Modelica Standard Library (" + function + "), which "
+                + "CRMLtoModelica.mo does not depend on; the generated model needs MSL on the "
+                + "load path", op));
+            return call(mslRef(function), operand);
         }
         throw new UnsupportedConstruct(Diagnostics.incompatibleTypes(opType, t, op));
     }
@@ -143,7 +149,7 @@ public final class UnaryOperatorTransformer {
     private static Expression transformPeriodEndpoint(UnaryOperator op, BuiltinUnaryOperatorKind opType,
             Expression operand, BuiltinType t, String function) {
         if (isPeriodOrUnknown(t)) {
-            return call(function, operand);
+            return call(libraryRef(function), operand);
         }
         throw new UnsupportedConstruct(Diagnostics.incompatibleTypes(opType, t, op));
     }

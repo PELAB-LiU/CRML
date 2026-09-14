@@ -40,13 +40,18 @@ public final class ModelTransformer {
             ctx.reserveName(set.getName());
         }
 
-        // Classes first: their names are what a class-typed variable refers to,
-        // and reserving them keeps a generated operator name from taking one.
+        // Classes first, in two passes. Every class is shelled and registered
+        // before any body is populated, so a member or a super-class naming a
+        // class declared later in the model still finds an object to point at -
+        // which is what removes the need for a link phase entirely.
         for (crml.model.language.Class clazz : model.getClasses()) {
             ctx.reserveClassName(clazz.getName());
+            ClassDefinition shell = ClassTransformer.shell(clazz);
+            ctx.registerClass(clazz, shell);
+            ctx.defineClass(shell, clazz);
         }
         for (crml.model.language.Class clazz : model.getClasses()) {
-            ctx.defineClass(ClassTransformer.transform(ctx, clazz), clazz);
+            ClassTransformer.populate(ctx, clazz, ctx.generatedClass(clazz));
         }
 
         // Operators next: a variable's definition may call one, and every

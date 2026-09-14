@@ -91,13 +91,13 @@ public final class RecordBuild {
             EObject crmlSource) {
         String name = ctx.allocateName(prefix);
 
-        ComponentDeclaration record = Modelica.component(recordType, name);
+        ComponentDeclaration record = Modelica.component(Modelica.libraryRef(recordType), name);
         for (crml.model.modelica.ModificationElement modification : modifications) {
             record.getModifications().add(modification);
         }
         ctx.declare(record, crmlSource);
 
-        ComponentDeclaration companion = Modelica.component(buildType, name + "_init");
+        ComponentDeclaration companion = Modelica.component(Modelica.libraryRef(buildType), name + "_init");
         // A fresh reference per use: these are contained objects, so handing the
         // same node to two parents would silently move it out of the first.
         companion.getModifications().add(Modelica.mod(buildParam, Modelica.ref(name)));

@@ -22,6 +22,35 @@ package crml.model.modelica
 abstract class ModelicaElement {
 }
 
+/////////////////
+// References  //
+/////////////////
+
+// Why a name is text rather than a link to an element of this tree. Every one
+// but UNRESOLVED is permanent and expected: the target is outside the tree by
+// nature, not by failure.
+enum RawReason {
+    // A member of CRMLtoModelica.mo, which this compiler never parses.
+    EXTERNAL_LIBRARY = 0
+    // Part of the Modelica language: Real, Integer, String, mod, integer, time.
+    MODELICA_BUILTIN = 1
+    // The Modelica Standard Library, which CRMLtoModelica.mo does not itself
+    // depend on - a model using these needs MSL on the load path.
+    STANDARD_LIBRARY = 2
+    // A lookup was attempted and found nothing. Unlike the others, a defect.
+    UNRESOLVED = 3
+}
+
+// A cross-reference. Exactly one of target and rawText is set, enforced by the
+// factories in crml.modelica.build.Modelica rather than by validation, because
+// nothing else constructs these. Generic so each referring feature keeps its
+// expected target type checkable.
+class Reference<T extends ModelicaElement> extends ModelicaElement {
+    refers T target
+    String rawText
+    RawReason reason
+}
+
 /////////////
 // Classes //
 /////////////
@@ -56,10 +85,8 @@ class ClassDefinition extends ModelicaElement {
     contains Placeholder[] placeholders
 }
 
-// A bare dotted type name; the CRML object model resolves super-classes to
-// names, and trace granularity has nothing to anchor below class level.
 class ExtendsClause extends ModelicaElement {
-    String typeName
+    contains Reference<ClassDefinition> superClass
 }
 
 // The only raw-text node. Prints as a Modelica line comment, so it can never
@@ -90,8 +117,9 @@ enum Variability {
 
 class ComponentDeclaration extends ModelicaElement {
     String name
-    // Flat dotted path, verbatim: "CRMLtoModelica.Types.Boolean4".
-    String typeName
+    // Resolved to a generated class, or raw for a library or builtin type.
+    // "declaredType" rather than "type": type is a reserved word in Xcore.
+    contains Reference<ClassDefinition> declaredType
     Visibility visibility
     Causality causality
     Variability variability
@@ -200,7 +228,7 @@ class UnaryExpression extends Expression {
 // positional, and Modelica builtins (pre, edge, time, integer, String, ...) are
 // ordinary calls here - the printer treats them identically.
 class FunctionCall extends Expression {
-    String functionName
+    contains Reference<ClassDefinition> function
     contains Expression[] arguments
 }
 

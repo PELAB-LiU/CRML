@@ -7,6 +7,8 @@ import static crml.compiler.crmlcv2.templates.value.TypeCategories.isNumericOrUn
 import static crml.compiler.crmlcv2.templates.value.TypeCategories.isStringCompatible;
 import static crml.modelica.build.Modelica.binary;
 import static crml.modelica.build.Modelica.call;
+import static crml.modelica.build.Modelica.builtinRef;
+import static crml.modelica.build.Modelica.libraryRef;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -118,7 +120,7 @@ public final class BinaryOperatorTransformer {
         Map<String, Expression> inputs = new LinkedHashMap<String, Expression>();
         inputs.put("r1", lhs);
         inputs.put("r2", rhs);
-        return BlockInstantiation.instantiate(ctx, "CRMLtoModelica.Blocks.EventFilter", "filter",
+        return BlockInstantiation.instantiate(ctx, libraryRef("CRMLtoModelica.Blocks.EventFilter"), "filter",
             inputs, "out", op);
     }
 
@@ -129,7 +131,7 @@ public final class BinaryOperatorTransformer {
         if (isNumericOrUnknown(lt) && isNumericOrUnknown(rt)) {
             return binary(BinaryOperatorKind.ADD, lhs, rhs);
         } else if ((lt == BuiltinType.BOOLEAN || rt == BuiltinType.BOOLEAN) && isBooleanOrUnknown(lt) && isBooleanOrUnknown(rt)) {
-            return call("CRMLtoModelica.Functions.add4", lhs, rhs);
+            return call(libraryRef("CRMLtoModelica.Functions.add4"), lhs, rhs);
         } else if ((lt == BuiltinType.STRING || rt == BuiltinType.STRING) && isStringCompatible(lt) && isStringCompatible(rt)) {
             // Modelica's + concatenates String.
             return binary(BinaryOperatorKind.ADD, lhs, rhs);
@@ -161,7 +163,7 @@ public final class BinaryOperatorTransformer {
         if (isNumericOrUnknown(lt) && isNumericOrUnknown(rt)) {
             return binary(BinaryOperatorKind.MUL, lhs, rhs);
         } else if ((lt == BuiltinType.BOOLEAN || rt == BuiltinType.BOOLEAN) && isBooleanOrUnknown(lt) && isBooleanOrUnknown(rt)) {
-            return call("CRMLtoModelica.Functions.mul4", lhs, rhs);
+            return call(libraryRef("CRMLtoModelica.Functions.mul4"), lhs, rhs);
         } else {
             throw new UnsupportedConstruct(Diagnostics.incompatibleTypes(opType, lt, rt, op));
         }
@@ -188,7 +190,7 @@ public final class BinaryOperatorTransformer {
     private static Expression transformMod(BinaryOperator op, BuiltinBinaryOperatorKind opType,
             Expression lhs, Expression rhs, BuiltinType lt, BuiltinType rt) {
         if (isNumericOrUnknown(lt) && isNumericOrUnknown(rt)) {
-            return call("mod", lhs, rhs);
+            return call(builtinRef("mod"), lhs, rhs);
         } else {
             throw new UnsupportedConstruct(Diagnostics.incompatibleTypes(opType, lt, rt, op));
         }
@@ -199,7 +201,7 @@ public final class BinaryOperatorTransformer {
     private static Expression transformAnd(BinaryOperator op, BuiltinBinaryOperatorKind opType,
             Expression lhs, Expression rhs, BuiltinType lt, BuiltinType rt) {
         if (isBooleanOrUnknown(lt) && isBooleanOrUnknown(rt)) {
-            return call("CRMLtoModelica.Functions.and4", lhs, rhs);
+            return call(libraryRef("CRMLtoModelica.Functions.and4"), lhs, rhs);
         } else {
             throw new UnsupportedConstruct(Diagnostics.incompatibleTypes(opType, lt, rt, op));
         }
@@ -208,7 +210,7 @@ public final class BinaryOperatorTransformer {
     private static Expression transformOr(BinaryOperator op, BuiltinBinaryOperatorKind opType,
             Expression lhs, Expression rhs, BuiltinType lt, BuiltinType rt) {
         if (isBooleanOrUnknown(lt) && isBooleanOrUnknown(rt)) {
-            return call("CRMLtoModelica.Functions.or4", lhs, rhs);
+            return call(libraryRef("CRMLtoModelica.Functions.or4"), lhs, rhs);
         } else {
             throw new UnsupportedConstruct(Diagnostics.incompatibleTypes(opType, lt, rt, op));
         }
@@ -221,14 +223,14 @@ public final class BinaryOperatorTransformer {
             BinaryOperatorKind modelicaOp, String symbol,
             boolean eventSupported, String eventFunction, boolean periodSupported) {
         if (isNumericOrUnknown(lt) && isNumericOrUnknown(rt)) {
-            return call("CRMLtoModelica.Functions.cvBooleanToBoolean4", binary(modelicaOp, lhs, rhs));
+            return call(libraryRef("CRMLtoModelica.Functions.cvBooleanToBoolean4"), binary(modelicaOp, lhs, rhs));
         } else if (eventSupported && lt == BuiltinType.EVENT && rt == BuiltinType.EVENT) {
             if (eventFunction == null) {
                 throw new UnsupportedConstruct(Diagnostics.unsupported(opType,
                     "no CRMLtoModelica.Functions implementation exists for a strict Event "
                     + symbol + " comparison (only lEV/gEV exist)", op));
             }
-            return call(eventFunction, lhs, rhs);
+            return call(libraryRef(eventFunction), lhs, rhs);
         } else if ((lt == BuiltinType.BOOLEAN || rt == BuiltinType.BOOLEAN) && isBooleanOrUnknown(lt) && isBooleanOrUnknown(rt)) {
             throw new UnsupportedConstruct(Diagnostics.unsupported(opType,
                 "Boolean4 " + symbol + " comparison has no implementation in CRMLtoModelica.mo "

@@ -1,6 +1,8 @@
 package crml.compiler.crmlcv2.templates.value;
 
 import static crml.modelica.build.Modelica.call;
+import static crml.modelica.build.Modelica.builtinRef;
+import static crml.modelica.build.Modelica.libraryRef;
 import static crml.modelica.build.Modelica.component;
 import static crml.modelica.build.Modelica.mod;
 
@@ -83,15 +85,8 @@ public final class ConstructorTransformer {
      * so the expression can be a reference to it.
      */
     private static ComponentReference instantiate(TransformationContext ctx, ConstructorValue constructor) {
-        String typeName;
-        try {
-            typeName = TypeResolver.resolve(constructor.getDomain());
-        } catch (RuntimeException e) {
-            throw new UnsupportedConstruct(Diagnostics.error("ConstructorValue.bindings",
-                "cannot resolve the type being constructed: " + e.getMessage(), constructor));
-        }
-
-        ComponentDeclaration instance = component(typeName, ctx.allocateName("inst"));
+        ComponentDeclaration instance = component(
+            TypeResolver.resolve(ctx, constructor.getDomain()), ctx.allocateName("inst"));
         for (Binding binding : constructor.getBindings()) {
             Element member = binding.getElement();
             if (member == null || member.getName() == null) {
@@ -119,19 +114,19 @@ public final class ConstructorTransformer {
                 "String(Boolean4) needs CRMLtoModelica.Functions.Bool4toString, which does not exist "
                 + "in CRMLtoModelica.mo", constructor));
         }
-        return call("String", operand);
+        return call(builtinRef("String"), operand);
     }
 
     private static Expression integerCast(ConstructorValue constructor, Expression operand) {
         BuiltinType sourceType = TypeResolver.resolveBuiltin(constructor.getValue().getReturnType());
         if (sourceType == BuiltinType.REAL) {
-            return call("integer", operand);
+            return call(builtinRef("integer"), operand);
         }
         // Modelica's Integer() converts enumerations only, and Boolean4 is the one
         // enumeration in play. A String or Event operand has no conversion.
         if (sourceType == null || sourceType == BuiltinType.BOOLEAN
                 || sourceType == BuiltinType.REQUIREMENT || sourceType == BuiltinType.INTEGER) {
-            return call("Integer", operand);
+            return call(builtinRef("Integer"), operand);
         }
         throw new UnsupportedConstruct(Diagnostics.error("ConstructorValue.INTEGER",
             "Modelica's Integer() converts enumerations and Real only; operand type is " + sourceType, constructor));
@@ -156,7 +151,7 @@ public final class ConstructorTransformer {
         // rather than rejecting every non-constant operand.
         BuiltinType sourceType = TypeResolver.resolveBuiltin(constructor.getValue().getReturnType());
         if (sourceType == null || sourceType == BuiltinType.EVENT) {
-            return call("CRMLtoModelica.Functions.Event2Boolean", operand);
+            return call(libraryRef("CRMLtoModelica.Functions.Event2Boolean"), operand);
         }
         throw new UnsupportedConstruct(Diagnostics.error("ConstructorValue.BOOLEAN",
             "the Boolean constructor is only defined for an Event operand (got " + sourceType + ")", constructor));

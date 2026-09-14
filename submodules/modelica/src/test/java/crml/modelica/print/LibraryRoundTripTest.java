@@ -9,6 +9,7 @@ import static crml.modelica.build.Modelica.input;
 import static crml.modelica.build.Modelica.output;
 import static crml.modelica.build.Modelica.record;
 import static crml.modelica.build.Modelica.ref;
+import static crml.modelica.build.Modelica.builtinRef;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
@@ -28,8 +29,8 @@ public class LibraryRoundTripTest {
     @Test
     public void reproducesEventRecord() {
         ClassDefinition event = record("Event");
-        event.getComponents().add(component("Boolean4", "b"));
-        event.getComponents().add(component("Real", "t"));
+        event.getComponents().add(component(builtinRef("Boolean4"), "b"));
+        event.getComponents().add(component(builtinRef("Real"), "t"));
 
         assertEquals(
             "record Event\n"
@@ -43,12 +44,12 @@ public class LibraryRoundTripTest {
     @Test
     public void reproducesAnd4Function() {
         ClassDefinition and4 = function("and4");
-        and4.getComponents().add(input("Boolean4", "r1"));
-        and4.getComponents().add(input("Boolean4", "r2"));
-        and4.getComponents().add(output("Boolean4", "out"));
+        and4.getComponents().add(input(builtinRef("Boolean4"), "r1"));
+        and4.getComponents().add(input(builtinRef("Boolean4"), "r2"));
+        and4.getComponents().add(output(builtinRef("Boolean4"), "out"));
 
         and4.getStatements().add(assign(ref("out"),
-            ifExpr(call("isUndefined", ref("r1")),
+            ifExpr(call(builtinRef("isUndefined"), ref("r1")),
                 ref("Boolean4.undefined"),
                 ref("Boolean4.true4"))));
 

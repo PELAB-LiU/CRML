@@ -20,6 +20,8 @@ import crml.model.language.Variable;
 import crml.model.modelica.ClassDefinition;
 import crml.model.modelica.ClassKind;
 import crml.model.modelica.ComponentDeclaration;
+import crml.model.modelica.RawReason;
+import crml.model.modelica.Reference;
 import crml.model.modelica.Expression;
 import crml.modelica.build.Modelica;
 
@@ -115,10 +117,10 @@ public final class OperatorTransformer {
         // Parameters first, then the output, then whatever the body hoisted.
         int index = 0;
         for (Variable parameter : parameters) {
-            body.getComponents().add(index++, input(parameter, operator));
+            body.getComponents().add(index++, input(root, parameter, operator));
         }
         body.getComponents().add(index, Modelica.output(
-            resolve(operator.getDomain(), operator, "result"), GeneratedOperator.OUTPUT_PORT));
+            resolve(root, operator.getDomain(), operator, "result"), GeneratedOperator.OUTPUT_PORT));
 
         if (hoisted) {
             body.getEquations().add(Modelica.eq(Modelica.ref(GeneratedOperator.OUTPUT_PORT), result));
@@ -133,23 +135,31 @@ public final class OperatorTransformer {
         return generated;
     }
 
-    private static ComponentDeclaration input(Variable parameter, CustomOperator operator) {
-        return Modelica.input(resolve(parameter.getDomain(), operator, "parameter '" + parameter.getName() + "'"),
+    private static ComponentDeclaration input(TransformationContext ctx, Variable parameter,
+            CustomOperator operator) {
+        return Modelica.input(
+            resolve(ctx, parameter.getDomain(), operator, "parameter '" + parameter.getName() + "'"),
             parameter.getName());
     }
 
-    private static String resolve(crml.model.language.TypeReference type, CustomOperator operator, String what) {
+    /**
+     * An operator whose parameter or result type cannot be resolved is dropped
+     * whole: emitting the class with a hole in a declaration would produce
+     * invalid Modelica, where dropping it leaves a diagnostic and a placeholder.
+     */
+    private static Reference<ClassDefinition> resolve(TransformationContext ctx,
+            crml.model.language.TypeReference type, CustomOperator operator, String what) {
         if (type == null) {
             throw new UnsupportedConstruct(Diagnostics.error("CustomOperator",
                 "the " + what + " of operator '" + describe(operator) + "' has no declared type", operator));
         }
-        try {
-            return TypeResolver.resolve(type);
-        } catch (RuntimeException e) {
+        Reference<ClassDefinition> reference = TypeResolver.resolve(ctx, type);
+        if (reference.getTarget() == null && reference.getReason() == RawReason.UNRESOLVED) {
             throw new UnsupportedConstruct(Diagnostics.error("CustomOperator",
-                "cannot resolve the type of the " + what + " of operator '" + describe(operator)
-                + "': " + e.getMessage(), operator));
+                "cannot resolve the type of the " + what + " of operator '" + describe(operator) + "'",
+                operator));
         }
+        return reference;
     }
 
     // --- call sites ---------------------------------------------------------
@@ -167,7 +177,9 @@ public final class OperatorTransformer {
             for (Variable parameter : generated.parameters()) {
                 inputs.put(parameter.getName(), argument(ctx, call, operator, parameter));
             }
-            return BlockInstantiation.instantiate(ctx, generated.name(),
+            // The generated class itself, not its name: this is the reference
+            // that makes renaming it impossible to get wrong.
+            return BlockInstantiation.instantiate(ctx, Modelica.resolvedRef(generated.definition()),
                 generated.name() + "_", inputs, GeneratedOperator.OUTPUT_PORT, call);
         }
 
@@ -175,7 +187,7 @@ public final class OperatorTransformer {
         for (Variable parameter : generated.parameters()) {
             arguments.add(argument(ctx, call, operator, parameter));
         }
-        return Modelica.call(generated.name(), arguments);
+        return Modelica.call(Modelica.resolvedRef(generated.definition()), arguments);
     }
 
     /**

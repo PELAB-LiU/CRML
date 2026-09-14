@@ -15,6 +15,8 @@ import static crml.modelica.build.Modelica.ifExpr;
 import static crml.modelica.build.Modelica.input;
 import static crml.modelica.build.Modelica.integer;
 import static crml.modelica.build.Modelica.mod;
+import static crml.modelica.build.Modelica.libraryRef;
+import static crml.modelica.build.Modelica.builtinRef;
 import static crml.modelica.build.Modelica.model;
 import static crml.modelica.build.Modelica.output;
 import static crml.modelica.build.Modelica.parens;
@@ -22,6 +24,7 @@ import static crml.modelica.build.Modelica.part;
 import static crml.modelica.build.Modelica.placeholder;
 import static crml.modelica.build.Modelica.real;
 import static crml.modelica.build.Modelica.record;
+import static crml.modelica.build.Modelica.resolvedRef;
 import static crml.modelica.build.Modelica.ref;
 import static crml.modelica.build.Modelica.string;
 import static crml.modelica.build.Modelica.unary;
@@ -82,7 +85,7 @@ public class ModelicaPrinterTest {
     @Test
     public void printsCallsAndConstructors() {
         assertEquals("CRMLtoModelica.Functions.and4(a, b)",
-            expr(call("CRMLtoModelica.Functions.and4", ref("a"), ref("b"))));
+            expr(call(libraryRef("CRMLtoModelica.Functions.and4"), ref("a"), ref("b"))));
         assertEquals("time", expr(ref("time")));
         assertEquals("{a, b, c}", expr(array(ref("a"), ref("b"), ref("c"))));
         assertEquals("(a)", expr(parens(ref("a"))));
@@ -176,7 +179,7 @@ public class ModelicaPrinterTest {
     @Test
     public void quotesComponentNames() {
         ClassDefinition cls = model("M");
-        cls.getComponents().add(component("Real", "a b"));
+        cls.getComponents().add(component(builtinRef("Real"), "a b"));
         assertEquals("model M\n    Real 'a b';\nend M;\n", print(cls));
     }
 
@@ -184,14 +187,14 @@ public class ModelicaPrinterTest {
 
     @Test
     public void printsComponentModifiersAndBinding() {
-        ComponentDeclaration component = component("CRMLtoModelica.Types.Event", "e");
+        ComponentDeclaration component = component(libraryRef("CRMLtoModelica.Types.Event"), "e");
         component.getModifications().add(mod("b", ref("x")));
         assertEquals("CRMLtoModelica.Types.Event e(b = x);\n", print(component));
 
-        ComponentDeclaration bound = component("Real", "r", binary(BinaryOperatorKind.ADD, ref("a"), ref("b")));
+        ComponentDeclaration bound = component(builtinRef("Real"), "r", binary(BinaryOperatorKind.ADD, ref("a"), ref("b")));
         assertEquals("Real r = a + b;\n", print(bound));
 
-        ComponentDeclaration constant = component("Integer", "n", integer(3));
+        ComponentDeclaration constant = component(builtinRef("Integer"), "n", integer(3));
         constant.setVariability(Variability.CONSTANT);
         constant.setComment("a count");
         assertEquals("constant Integer n = 3 \"a count\";\n", print(constant));
@@ -199,11 +202,11 @@ public class ModelicaPrinterTest {
 
     @Test
     public void printsArrayDimensions() {
-        ComponentDeclaration fixed = component("CRMLtoModelica.Types.Boolean4", "bs");
+        ComponentDeclaration fixed = component(libraryRef("CRMLtoModelica.Types.Boolean4"), "bs");
         fixed.getArrayDimensions().add(dimension(integer(3)));
         assertEquals("CRMLtoModelica.Types.Boolean4 bs[3];\n", print(fixed));
 
-        ComponentDeclaration open = component("CRMLtoModelica.Types.Boolean4", "bs");
+        ComponentDeclaration open = component(libraryRef("CRMLtoModelica.Types.Boolean4"), "bs");
         open.getArrayDimensions().add(dimension(null));
         assertEquals("CRMLtoModelica.Types.Boolean4 bs[:];\n", print(open));
     }
@@ -211,9 +214,9 @@ public class ModelicaPrinterTest {
     @Test
     public void printsCausalityAndVisibility() {
         ClassDefinition blk = block("B");
-        blk.getComponents().add(input("Real", "r1"));
-        blk.getComponents().add(output("Real", "out"));
-        ComponentDeclaration hidden = component("Real", "h");
+        blk.getComponents().add(input(builtinRef("Real"), "r1"));
+        blk.getComponents().add(output(builtinRef("Real"), "out"));
+        ComponentDeclaration hidden = component(builtinRef("Real"), "h");
         hidden.setVisibility(Visibility.PROTECTED);
         blk.getComponents().add(hidden);
         assertEquals(
@@ -231,14 +234,14 @@ public class ModelicaPrinterTest {
     @Test
     public void omitsSectionKeywordsWhenThereIsNothingInThem() {
         ClassDefinition cls = model("M");
-        cls.getComponents().add(component("Real", "a"));
+        cls.getComponents().add(component(builtinRef("Real"), "a"));
         assertEquals("model M\n    Real a;\nend M;\n", print(cls));
     }
 
     @Test
     public void printsEquationSection() {
         ClassDefinition cls = model("M");
-        cls.getComponents().add(component("Real", "a"));
+        cls.getComponents().add(component(builtinRef("Real"), "a"));
         crml.model.modelica.Equation equation = eq(ref("a"), integer(1));
         equation.setComment("bound");
         cls.getEquations().add(equation);
@@ -254,8 +257,8 @@ public class ModelicaPrinterTest {
     @Test
     public void printsAlgorithmSection() {
         ClassDefinition fn = function("f");
-        fn.getComponents().add(input("Real", "x"));
-        fn.getComponents().add(output("Real", "out"));
+        fn.getComponents().add(input(builtinRef("Real"), "x"));
+        fn.getComponents().add(output(builtinRef("Real"), "out"));
         fn.getStatements().add(assign(ref("out"), binary(BinaryOperatorKind.MUL, ref("x"), integer(2))));
         assertEquals(
             "function f\n"
@@ -274,14 +277,17 @@ public class ModelicaPrinterTest {
         ClassDefinition cls = model("Outer");
         cls.setPartial(Boolean.TRUE);
         cls.setComment("a model");
-        cls.getExtendsClauses().add(extendsClause("System"));
-        cls.getNestedClasses().add(record("Inner"));
+        // The extends target is a real nested class, so the printed name is
+        // recomputed from containment rather than stored.
+        ClassDefinition system = model("System");
+        cls.getNestedClasses().add(system);
+        cls.getExtendsClauses().add(extendsClause(resolvedRef(system)));
         cls.getPlaceholders().add(placeholder("AT: no CRMLtoModelica implementation"));
         assertEquals(
             "partial model Outer \"a model\"\n"
           + "    extends System;\n"
-          + "    record Inner\n"
-          + "    end Inner;\n"
+          + "    model System\n"
+          + "    end System;\n"
           + "    // AT: no CRMLtoModelica implementation\n"
           + "end Outer;\n",
             print(cls));
@@ -292,15 +298,15 @@ public class ModelicaPrinterTest {
     @Test
     public void printingIsDeterministic() {
         ClassDefinition cls = model("M");
-        cls.getComponents().add(component("Real", "a", binary(BinaryOperatorKind.ADD, ref("b"), ref("c"))));
-        cls.getEquations().add(eq(ref("a"), call("CRMLtoModelica.Functions.not4", ref("b"))));
+        cls.getComponents().add(component(builtinRef("Real"), "a", binary(BinaryOperatorKind.ADD, ref("b"), ref("c"))));
+        cls.getEquations().add(eq(ref("a"), call(libraryRef("CRMLtoModelica.Functions.not4"), ref("b"))));
         assertEquals(print(cls), print(cls));
     }
 
     @Test
     public void honoursPrinterOptions() {
         ClassDefinition cls = model("M");
-        cls.getComponents().add(component("Real", "a"));
+        cls.getComponents().add(component(builtinRef("Real"), "a"));
         assertEquals("model M\r\n  Real a;\r\nend M;\r\n",
             ModelicaPrinter.print(cls, new PrinterOptions("  ", "\r\n")));
     }

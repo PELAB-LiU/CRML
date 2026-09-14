@@ -12,8 +12,10 @@ import crml.model.language.BuiltinType;
 import crml.model.language.Set;
 import crml.model.language.Value;
 import crml.model.modelica.ArrayConstructor;
+import crml.model.modelica.ClassDefinition;
 import crml.model.modelica.ComponentDeclaration;
 import crml.model.modelica.Expression;
+import crml.model.modelica.Reference;
 import crml.modelica.build.Modelica;
 
 /**
@@ -56,12 +58,16 @@ public final class SetTransformer {
      * Periods, and it is Period that the array elements are. So the element type
      * comes from the elements themselves.
      */
-    public static String elementTypeName(Set<?> set) {
+    public static Reference<ClassDefinition> elementType(Set<?> set) {
         for (Object element : set.getElements()) {
             if (element instanceof Value) {
                 BuiltinType elementType = TypeResolver.inferBuiltin((Value) element);
                 if (elementType != null) {
-                    return TypeResolver.resolve(elementType);
+                    String name = TypeResolver.resolve(elementType);
+                    return elementType == BuiltinType.REAL || elementType == BuiltinType.INTEGER
+                        || elementType == BuiltinType.STRING
+                        ? Modelica.<ClassDefinition>builtinRef(name)
+                        : Modelica.<ClassDefinition>libraryRef(name);
                 }
             }
         }
@@ -70,15 +76,9 @@ public final class SetTransformer {
 
     /** A set declared on the model itself, rather than used as a value. */
     public static void declare(TransformationContext ctx, Set<?> set) {
-        String typeName = elementTypeName(set);
-        if (typeName == null) {
-            try {
-                typeName = TypeResolver.resolve(set.getDomain());
-            } catch (RuntimeException e) {
-                ctx.reportWithPlaceholder(Diagnostics.error("Set",
-                    "cannot work out the element type of set '" + set.getName() + "': " + e.getMessage(), set));
-                return;
-            }
+        Reference<ClassDefinition> elementType = elementType(set);
+        if (elementType == null) {
+            elementType = TypeResolver.resolve(ctx, set.getDomain());
         }
 
         ArrayConstructor elements;
@@ -92,7 +92,7 @@ public final class SetTransformer {
             return;
         }
 
-        ComponentDeclaration component = Modelica.component(typeName, set.getName());
+        ComponentDeclaration component = Modelica.component(elementType, set.getName());
         component.getArrayDimensions().add(Modelica.dimension(Modelica.integer(elements.getElements().size())));
         component.setBinding(elements);
         ctx.declare(component, set);

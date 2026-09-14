@@ -7,8 +7,10 @@ import crml.compiler.crmlcv2.UnsupportedConstruct;
 import crml.compiler.crmlcv2.util.TypeResolver;
 import crml.model.language.Set;
 import crml.model.language.Variable;
+import crml.model.modelica.ClassDefinition;
 import crml.model.modelica.ComponentDeclaration;
 import crml.model.modelica.Expression;
+import crml.model.modelica.Reference;
 import crml.model.modelica.Variability;
 import crml.modelica.build.Modelica;
 
@@ -26,14 +28,7 @@ public final class VariableTransformer {
     }
 
     public static void transform(TransformationContext ctx, Variable variable) {
-        String typeName;
-        try {
-            typeName = TypeResolver.resolve(variable.getDomain());
-        } catch (RuntimeException e) {
-            ctx.reportWithPlaceholder(Diagnostics.error("Variable",
-                "cannot resolve the type of variable '" + variable.getName() + "': " + e.getMessage(), variable));
-            return;
-        }
+        Reference<ClassDefinition> declaredType = TypeResolver.resolve(ctx, variable.getDomain());
 
         Expression binding = null;
         if (variable.getDefinition() != null && !ValueTransformer.isDeclarationOnly(variable.getDefinition())) {
@@ -48,7 +43,7 @@ public final class VariableTransformer {
             }
         }
 
-        ComponentDeclaration declaration = Modelica.component(typeName, variable.getName(), binding);
+        ComponentDeclaration declaration = Modelica.component(declaredType, variable.getName(), binding);
         if (Boolean.TRUE.equals(variable.getConstant())) {
             declaration.setVariability(Variability.CONSTANT);
         }
@@ -57,9 +52,9 @@ public final class VariableTransformer {
             // its declared CRML domain: "Periods P3 is { P1, P2, Pn }" declares a
             // set of Periods, and its elements are Periods, not CRMLPeriods.
             Set<?> set = (Set<?>) variable.getDefinition();
-            String elementTypeName = SetTransformer.elementTypeName(set);
-            if (elementTypeName != null) {
-                declaration.setTypeName(elementTypeName);
+            Reference<ClassDefinition> elementType = SetTransformer.elementType(set);
+            if (elementType != null) {
+                declaration.setDeclaredType(elementType);
             }
             declaration.getArrayDimensions().add(Modelica.dimension(Modelica.integer(SetTransformer.sizeOf(set))));
         }
