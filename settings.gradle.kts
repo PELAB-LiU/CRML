@@ -11,6 +11,7 @@ rootProject.name = "crml-compiler"
 
 include(
         "model",
+        "modelica",
         "language",
         "compiler",
         "util",
