@@ -13,10 +13,10 @@
     ["{", "}"],
     ["(", ")"]
   ],
+  // No auto-closing for [ either: intervals often close with [ or open with ].
   "autoClosingPairs": [
     { "open": "{", "close": "}" },
     { "open": "(", "close": ")" },
-    { "open": "[", "close": "]" },
     { "open": "\"", "close": "\"" },
     { "open": "'", "close": "'" }
   ],
