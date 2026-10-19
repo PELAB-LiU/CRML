@@ -1,0 +1,9 @@
+node_modules/
+dist/
+dist-test/
+src/generated/
+*.vsix
+
+# The repository ignores .vscode folders; keep this one, it holds the launch
+# configuration for the extension development host.
+!.vscode/

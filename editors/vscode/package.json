@@ -1,0 +1,81 @@
+{
+  "name": "crml",
+  "displayName": "CRML",
+  "description": "Language support for CRML, the Common Requirement Modeling Language",
+  "version": "0.0.1",
+  "publisher": "openmodelica",
+  "license": "SEE LICENSE IN OSMC-License.txt",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OpenModelica/CRML"
+  },
+  "engines": {
+    "vscode": "^1.91.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "crml",
+        "aliases": [
+          "CRML",
+          "crml"
+        ],
+        "extensions": [
+          ".crml"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "semanticTokenTypes": [
+      {
+        "id": "userOperator",
+        "superType": "operator",
+        "description": "A user-defined CRML operator, such as 'during'."
+      }
+    ],
+    "configurationDefaults": {
+      "[crml]": {
+        "editor.semanticHighlighting.enabled": true
+      },
+      "editor.semanticTokenColorCustomizations": {
+        "[*Light*]": {
+          "rules": {
+            "keyword:crml": { "foreground": "#800021", "bold": true },
+            "type:crml": "#1f3699",
+            "userOperator:crml": "#a55717",
+            "comment:crml": "#1f623d"
+          }
+        },
+        "[*Dark*]": {
+          "rules": {
+            "keyword:crml": { "foreground": "#ec6a82", "bold": true },
+            "type:crml": "#7a9cff",
+            "userOperator:crml": "#e0954f",
+            "comment:crml": "#6abf8a"
+          }
+        }
+      }
+    }
+  },
+  "scripts": {
+    "generate": "antlr-ng -Dlanguage=TypeScript --generate-listener false -o src/generated ../../submodules/language/src/main/antlr/crml/language/grammar/crml.g4 && node scripts/grammar-info.mjs",
+    "typecheck": "tsc --noEmit",
+    "build": "npm run generate && node esbuild.mjs",
+    "test": "npm run generate && node esbuild.mjs --test && node --test --enable-source-maps \"dist-test/**/*.test.js\""
+  },
+  "dependencies": {
+    "antlr4ng": "3.0.16"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/vscode": "~1.91.0",
+    "antlr-ng": "1.0.10",
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2"
+  }
+}
