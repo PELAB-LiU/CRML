@@ -8,3 +8,10 @@ src/generated/
 # The repository ignores .vscode folders; keep this one, it holds the launch
 # configuration for the extension development host.
 !.vscode/
+
+# Packaging output, and the files scripts/package.mjs copies in or downloads
+dist-vsix/
+jre/
+.cache/
+OSMC-License.txt
+THIRD-PARTY-NOTICES.md

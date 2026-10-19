@@ -1,0 +1,13 @@
+# The package holds only what runs: the bundled dist/extension.js, the
+# language server in server/, a Java runtime in jre/ for platform packages,
+# package.json, language-configuration.json, README and the license files.
+# Dependencies are bundled by esbuild, so node_modules is left out too.
+**
+!package.json
+!language-configuration.json
+!README.md
+!OSMC-License.txt
+!THIRD-PARTY-NOTICES.md
+!dist/extension.js
+!server/crml-language-server.jar
+!jre/**

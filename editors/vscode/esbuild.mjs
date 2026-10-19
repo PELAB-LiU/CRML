@@ -1,13 +1,16 @@
 // Bundles the extension, or with --test the unit tests, into plain CommonJS.
+// --production minifies and leaves out source maps, for packaging.
 import { build } from "esbuild";
 import { readdirSync } from "node:fs";
 
+const production = process.argv.includes("--production");
 const common = {
     bundle: true,
     platform: "node",
     format: "cjs",
     target: "node20",
-    sourcemap: true,
+    sourcemap: !production,
+    minify: production,
     logLevel: "warning",
 };
 
