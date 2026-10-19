@@ -42,6 +42,10 @@ export async function startLanguageServer(context: vscode.ExtensionContext,
     const clientOptions: LanguageClientOptions = {
         documentSelector: [{ language: "crml" }],
         outputChannel: output,
+        // The extension highlights from its own lexer, instantly; the server's
+        // tokens would only repeat that. Merging comes back once the server
+        // knows more than the lexer, such as what an identifier refers to.
+        initializationOptions: { clientHighlighting: true },
     };
 
     // The id "crml" also names the crml.trace.server setting.
