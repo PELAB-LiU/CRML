@@ -1,5 +1,7 @@
 import * as vscode from "vscode";
+import { LanguageClient } from "vscode-languageclient/node";
 import { lexicalTokens, TOKEN_TYPES } from "./lexical.js";
+import { startLanguageServer } from "./server.js";
 
 const legend = new vscode.SemanticTokensLegend([...TOKEN_TYPES], []);
 
@@ -17,9 +19,33 @@ class LexicalSemanticTokensProvider implements vscode.DocumentSemanticTokensProv
     }
 }
 
+let client: LanguageClient | undefined;
+
 export function activate(context: vscode.ExtensionContext): void {
     context.subscriptions.push(vscode.languages.registerDocumentSemanticTokensProvider(
         { language: "crml" }, new LexicalSemanticTokensProvider(), legend));
+
+    const output = vscode.window.createOutputChannel("CRML Language Server", { log: true });
+    context.subscriptions.push(output);
+
+    const start = async () => {
+        try {
+            client = await startLanguageServer(context, output);
+        } catch (error) {
+            output.error(`The language server failed to start: ${(error as Error).message}`);
+            output.show(true);
+        }
+    };
+    context.subscriptions.push(vscode.commands.registerCommand("crml.restartLanguageServer", async () => {
+        await client?.stop();
+        client = undefined;
+        await start();
+    }));
+
+    // Not awaited: highlighting is already registered and must not wait for the JVM.
+    void start();
 }
 
-export function deactivate(): void {}
+export function deactivate(): Thenable<void> | undefined {
+    return client?.stop();
+}

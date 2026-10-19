@@ -38,6 +38,38 @@
         "description": "A user-defined CRML operator, such as 'during'."
       }
     ],
+    "configuration": {
+      "title": "CRML",
+      "properties": {
+        "crml.java.home": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "scope": "machine-overridable",
+          "markdownDescription": "Folder of the Java 11+ installation that runs the CRML language server. When unset, a Java runtime bundled with the extension, `JAVA_HOME` or the `PATH` is used."
+        },
+        "crml.trace.server": {
+          "type": "string",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
+          "default": "off",
+          "scope": "window",
+          "description": "Logs the messages between VS Code and the CRML language server to its output channel."
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "crml.restartLanguageServer",
+        "title": "Restart Language Server",
+        "category": "CRML"
+      }
+    ],
     "configurationDefaults": {
       "[crml]": {
         "editor.semanticHighlighting.enabled": true
@@ -45,7 +77,10 @@
       "editor.semanticTokenColorCustomizations": {
         "[*Light*]": {
           "rules": {
-            "keyword:crml": { "foreground": "#800021", "bold": true },
+            "keyword:crml": {
+              "foreground": "#800021",
+              "bold": true
+            },
             "type:crml": "#1f3699",
             "userOperator:crml": "#a55717",
             "comment:crml": "#1f623d"
@@ -53,7 +88,10 @@
         },
         "[*Dark*]": {
           "rules": {
-            "keyword:crml": { "foreground": "#ec6a82", "bold": true },
+            "keyword:crml": {
+              "foreground": "#ec6a82",
+              "bold": true
+            },
             "type:crml": "#7a9cff",
             "userOperator:crml": "#e0954f",
             "comment:crml": "#6abf8a"
@@ -66,11 +104,13 @@
     "generate": "antlr-ng -Dlanguage=TypeScript --generate-listener false -o src/generated ../../submodules/language/src/main/antlr/crml/language/grammar/crml.g4 && node scripts/grammar-info.mjs",
     "typecheck": "tsc --noEmit",
     "build": "npm run generate && node esbuild.mjs",
+    "build:server": "node scripts/build-server.mjs",
     "test": "npm run generate && node esbuild.mjs --test && node --test --enable-source-maps \"dist-test/**/*.test.js\"",
     "test:parity": "node scripts/java-tokens.mjs && npm test"
   },
   "dependencies": {
-    "antlr4ng": "3.0.16"
+    "antlr4ng": "3.0.16",
+    "vscode-languageclient": "10.1.2"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
