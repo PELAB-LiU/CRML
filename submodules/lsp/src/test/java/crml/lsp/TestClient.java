@@ -3,6 +3,7 @@ package crml.lsp;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
 
 import org.eclipse.lsp4j.MessageActionItem;
 import org.eclipse.lsp4j.MessageParams;
@@ -21,7 +22,25 @@ class TestClient implements LanguageClient {
 
     @Override
     public void publishDiagnostics(PublishDiagnosticsParams params) {
-        diagnostics.add(params);
+        synchronized (diagnostics) {
+            diagnostics.add(params);
+            diagnostics.notifyAll();
+        }
+    }
+
+    /** Waits for the count-th diagnostics published for a document. */
+    PublishDiagnosticsParams awaitDiagnostics(String uri, int count) throws InterruptedException {
+        long deadline = System.currentTimeMillis() + 10_000;
+        synchronized (diagnostics) {
+            while (true) {
+                List<PublishDiagnosticsParams> forUri = diagnostics.stream()
+                    .filter(d -> d.getUri().equals(uri)).collect(Collectors.toList());
+                if (forUri.size() >= count) return forUri.get(count - 1);
+                long left = deadline - System.currentTimeMillis();
+                if (left <= 0) throw new AssertionError("no diagnostics #" + count + " for " + uri + ": " + diagnostics);
+                diagnostics.wait(left);
+            }
+        }
     }
 
     @Override

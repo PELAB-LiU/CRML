@@ -8,9 +8,13 @@ repositories {
     mavenCentral()
 }
 
+val antlr4Version: String by rootProject.extra
+
 dependencies {
     implementation(project(":language"))
     implementation(project(":model"))
+    // Parsing for the editor uses the generated lexer and parser directly.
+    implementation("org.antlr:antlr4-runtime:$antlr4Version")
 
     // LSP4J 1.0 needs Java 11; see the release setting below.
     implementation("org.eclipse.lsp4j:org.eclipse.lsp4j:1.0.0")
