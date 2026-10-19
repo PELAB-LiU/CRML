@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022"],
+    "types": ["node", "vscode"],
+    "strict": true,
+    "noEmit": true,
+    "isolatedModules": true,
+    "skipLibCheck": true
+  },
+  "include": ["src", "test"],
+  // Only the lexer is used. The generated parser does not compile, because
+  // the grammar's `constructor` rule clashes with the class constructor.
+  "exclude": ["src/generated/crmlParser.ts"]
+}
