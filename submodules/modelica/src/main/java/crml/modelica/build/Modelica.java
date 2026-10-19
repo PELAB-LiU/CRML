@@ -38,13 +38,13 @@ import crml.model.modelica.Visibility;
  * Hand-written construction helpers for the Modelica object model. Everything
  * here is a thin wrapper over {@link ModelicaFactory}; the point is that a
  * transformation reads as Modelica rather than as EMF plumbing.
+ *
+ * <p>Implement this interface to use the helpers unqualified; every method is a
+ * default, so an implementor can override any of them.
  */
-public final class Modelica {
+public interface Modelica {
 
-    private static final ModelicaFactory FACTORY = ModelicaFactory.eINSTANCE;
-
-    private Modelica() {
-    }
+    ModelicaFactory FACTORY = ModelicaFactory.eINSTANCE;
 
     // --- references ---------------------------------------------------------
 
@@ -53,14 +53,14 @@ public final class Modelica {
      * taking a name: a resolved reference can only be built from an object
      * already in hand.
      */
-    public static <T extends ModelicaElement> Reference<T> resolvedRef(T target) {
+    default <T extends ModelicaElement> Reference<T> resolvedRef(T target) {
         Reference<T> reference = FACTORY.createReference();
         reference.setTarget(target);
         return reference;
     }
 
     /** A reference to something outside this tree. The reason is not optional. */
-    public static <T extends ModelicaElement> Reference<T> rawRef(String text, RawReason reason) {
+    default <T extends ModelicaElement> Reference<T> rawRef(String text, RawReason reason) {
         Reference<T> reference = FACTORY.createReference();
         reference.setRawText(text);
         reference.setReason(reason);
@@ -68,56 +68,56 @@ public final class Modelica {
     }
 
     /** A member of CRMLtoModelica.mo. */
-    public static <T extends ModelicaElement> Reference<T> libraryRef(String name) {
+    default <T extends ModelicaElement> Reference<T> libraryRef(String name) {
         return rawRef(name, RawReason.EXTERNAL_LIBRARY);
     }
 
     /** Part of the Modelica language itself. */
-    public static <T extends ModelicaElement> Reference<T> builtinRef(String name) {
+    default <T extends ModelicaElement> Reference<T> builtinRef(String name) {
         return rawRef(name, RawReason.MODELICA_BUILTIN);
     }
 
     /** A member of the Modelica Standard Library. */
-    public static <T extends ModelicaElement> Reference<T> mslRef(String name) {
+    default <T extends ModelicaElement> Reference<T> mslRef(String name) {
         return rawRef(name, RawReason.STANDARD_LIBRARY);
     }
 
     // --- classes ------------------------------------------------------------
 
-    public static ClassDefinition classDefinition(ClassKind kind, String name) {
+    default ClassDefinition classDefinition(ClassKind kind, String name) {
         ClassDefinition cls = FACTORY.createClassDefinition();
         cls.setKind(kind);
         cls.setName(name);
         return cls;
     }
 
-    public static ClassDefinition model(String name) {
+    default ClassDefinition model(String name) {
         return classDefinition(ClassKind.MODEL, name);
     }
 
-    public static ClassDefinition record(String name) {
+    default ClassDefinition record(String name) {
         return classDefinition(ClassKind.RECORD, name);
     }
 
-    public static ClassDefinition block(String name) {
+    default ClassDefinition block(String name) {
         return classDefinition(ClassKind.BLOCK, name);
     }
 
-    public static ClassDefinition function(String name) {
+    default ClassDefinition function(String name) {
         return classDefinition(ClassKind.FUNCTION, name);
     }
 
-    public static ClassDefinition packageDefinition(String name) {
+    default ClassDefinition packageDefinition(String name) {
         return classDefinition(ClassKind.PACKAGE, name);
     }
 
-    public static ExtendsClause extendsClause(Reference<ClassDefinition> superClass) {
+    default ExtendsClause extendsClause(Reference<ClassDefinition> superClass) {
         ExtendsClause clause = FACTORY.createExtendsClause();
         clause.setSuperClass(superClass);
         return clause;
     }
 
-    public static Placeholder placeholder(String message) {
+    default Placeholder placeholder(String message) {
         Placeholder placeholder = FACTORY.createPlaceholder();
         placeholder.setMessage(message);
         return placeholder;
@@ -125,7 +125,7 @@ public final class Modelica {
 
     // --- components ---------------------------------------------------------
 
-    public static ComponentDeclaration component(Reference<ClassDefinition> declaredType, String name) {
+    default ComponentDeclaration component(Reference<ClassDefinition> declaredType, String name) {
         ComponentDeclaration component = FACTORY.createComponentDeclaration();
         component.setDeclaredType(declaredType);
         component.setName(name);
@@ -134,26 +134,26 @@ public final class Modelica {
         return component;
     }
 
-    public static ComponentDeclaration component(Reference<ClassDefinition> declaredType, String name,
+    default ComponentDeclaration component(Reference<ClassDefinition> declaredType, String name,
             Expression binding) {
         ComponentDeclaration component = component(declaredType, name);
         component.setBinding(binding);
         return component;
     }
 
-    public static ComponentDeclaration input(Reference<ClassDefinition> declaredType, String name) {
+    default ComponentDeclaration input(Reference<ClassDefinition> declaredType, String name) {
         ComponentDeclaration component = component(declaredType, name);
         component.setCausality(Causality.INPUT);
         return component;
     }
 
-    public static ComponentDeclaration output(Reference<ClassDefinition> declaredType, String name) {
+    default ComponentDeclaration output(Reference<ClassDefinition> declaredType, String name) {
         ComponentDeclaration component = component(declaredType, name);
         component.setCausality(Causality.OUTPUT);
         return component;
     }
 
-    public static ModificationElement mod(String name, Expression value) {
+    default ModificationElement mod(String name, Expression value) {
         ModificationElement modification = FACTORY.createModificationElement();
         modification.setName(name);
         modification.setValue(value);
@@ -161,7 +161,7 @@ public final class Modelica {
     }
 
     /** An array dimension of the given size; a null size prints as ":". */
-    public static ArrayDimension dimension(Expression size) {
+    default ArrayDimension dimension(Expression size) {
         ArrayDimension dimension = FACTORY.createArrayDimension();
         dimension.setSize(size);
         return dimension;
@@ -169,14 +169,14 @@ public final class Modelica {
 
     // --- equations and statements -------------------------------------------
 
-    public static Equation eq(Expression lhs, Expression rhs) {
+    default Equation eq(Expression lhs, Expression rhs) {
         Equation equation = FACTORY.createEquation();
         equation.setLhs(lhs);
         equation.setRhs(rhs);
         return equation;
     }
 
-    public static Statement assign(ComponentReference target, Expression value) {
+    default Statement assign(ComponentReference target, Expression value) {
         Statement statement = FACTORY.createStatement();
         statement.setTarget(target);
         statement.setValue(value);
@@ -186,7 +186,7 @@ public final class Modelica {
     // --- expressions --------------------------------------------------------
 
     /** A dotted component reference: {@code ref("a.b.c")}. */
-    public static ComponentReference ref(String dottedName) {
+    default ComponentReference ref(String dottedName) {
         ComponentReference reference = FACTORY.createComponentReference();
         for (String part : dottedName.split("\\.")) {
             reference.getParts().add(part(part));
@@ -194,28 +194,28 @@ public final class Modelica {
         return reference;
     }
 
-    public static ReferencePart part(String name, Expression... subscripts) {
+    default ReferencePart part(String name, Expression... subscripts) {
         ReferencePart part = FACTORY.createReferencePart();
         part.setName(name);
         part.getSubscripts().addAll(Arrays.asList(subscripts));
         return part;
     }
 
-    public static FunctionCall call(Reference<ClassDefinition> function, Expression... arguments) {
+    default FunctionCall call(Reference<ClassDefinition> function, Expression... arguments) {
         FunctionCall call = FACTORY.createFunctionCall();
         call.setFunction(function);
         call.getArguments().addAll(Arrays.asList(arguments));
         return call;
     }
 
-    public static FunctionCall call(Reference<ClassDefinition> function, List<? extends Expression> arguments) {
+    default FunctionCall call(Reference<ClassDefinition> function, List<? extends Expression> arguments) {
         FunctionCall call = FACTORY.createFunctionCall();
         call.setFunction(function);
         call.getArguments().addAll(arguments);
         return call;
     }
 
-    public static BinaryExpression binary(BinaryOperatorKind operator, Expression lhs, Expression rhs) {
+    default BinaryExpression binary(BinaryOperatorKind operator, Expression lhs, Expression rhs) {
         BinaryExpression expression = FACTORY.createBinaryExpression();
         expression.setOperator(operator);
         expression.setLhs(lhs);
@@ -223,14 +223,14 @@ public final class Modelica {
         return expression;
     }
 
-    public static UnaryExpression unary(UnaryOperatorKind operator, Expression operand) {
+    default UnaryExpression unary(UnaryOperatorKind operator, Expression operand) {
         UnaryExpression expression = FACTORY.createUnaryExpression();
         expression.setOperator(operator);
         expression.setOperand(operand);
         return expression;
     }
 
-    public static IfExpression ifExpr(Expression condition, Expression thenExpression, Expression elseExpression) {
+    default IfExpression ifExpr(Expression condition, Expression thenExpression, Expression elseExpression) {
         IfExpression expression = FACTORY.createIfExpression();
         expression.setCondition(condition);
         expression.setThenExpression(thenExpression);
@@ -238,13 +238,13 @@ public final class Modelica {
         return expression;
     }
 
-    public static ArrayConstructor array(Expression... elements) {
+    default ArrayConstructor array(Expression... elements) {
         ArrayConstructor constructor = FACTORY.createArrayConstructor();
         constructor.getElements().addAll(Arrays.asList(elements));
         return constructor;
     }
 
-    public static ArrayConstructor array(List<? extends Expression> elements) {
+    default ArrayConstructor array(List<? extends Expression> elements) {
         ArrayConstructor constructor = FACTORY.createArrayConstructor();
         constructor.getElements().addAll(elements);
         return constructor;
@@ -254,38 +254,38 @@ public final class Modelica {
      * Parentheses the CRML author wrote. The printer parenthesises on its own
      * wherever precedence requires it, so do not use this defensively.
      */
-    public static ParenthesizedExpression parens(Expression inner) {
+    default ParenthesizedExpression parens(Expression inner) {
         ParenthesizedExpression expression = FACTORY.createParenthesizedExpression();
         expression.setInner(inner);
         return expression;
     }
 
-    public static IntegerLiteral integer(int value) {
+    default IntegerLiteral integer(int value) {
         IntegerLiteral literal = FACTORY.createIntegerLiteral();
         literal.setValue(value);
         return literal;
     }
 
-    public static RealLiteral real(double value) {
+    default RealLiteral real(double value) {
         RealLiteral literal = FACTORY.createRealLiteral();
         literal.setValue(value);
         return literal;
     }
 
     /** A Real literal that keeps the spelling it had in the CRML source. */
-    public static RealLiteral real(String literalText) {
+    default RealLiteral real(String literalText) {
         RealLiteral literal = FACTORY.createRealLiteral();
         literal.setLiteral(literalText);
         return literal;
     }
 
-    public static StringLiteral string(String value) {
+    default StringLiteral string(String value) {
         StringLiteral literal = FACTORY.createStringLiteral();
         literal.setValue(value);
         return literal;
     }
 
-    public static BooleanLiteral bool(boolean value) {
+    default BooleanLiteral bool(boolean value) {
         BooleanLiteral literal = FACTORY.createBooleanLiteral();
         literal.setValue(value);
         return literal;

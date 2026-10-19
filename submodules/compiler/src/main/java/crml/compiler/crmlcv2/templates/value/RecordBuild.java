@@ -20,23 +20,20 @@ import crml.modelica.build.Modelica;
  * takes. The instance name comes from the context's allocator, which is scoped
  * per class.
  */
-public final class RecordBuild {
-
-    private RecordBuild() {
-    }
+public final class RecordBuild implements Modelica {
 
     /** {@code CRMLClock cN(b = condition); CRMLClock_build cN_init(clock = cN);} */
-    public static ComponentReference clock(TransformationContext ctx, Expression condition, EObject crmlSource) {
+    public ComponentReference clock(TransformationContext ctx, Expression condition, EObject crmlSource) {
         return build(ctx, "c", TypeResolver.resolve(BuiltinType.CLOCK),
             "CRMLtoModelica.Types.CRMLClock_build", "clock",
-            Modelica.mod("b", condition), crmlSource);
+            mod("b", condition), crmlSource);
     }
 
     /** {@code Event eN(b = condition); CRMLEvent_build eN_init(E = eN);} */
-    public static ComponentReference event(TransformationContext ctx, Expression condition, EObject crmlSource) {
+    public ComponentReference event(TransformationContext ctx, Expression condition, EObject crmlSource) {
         return build(ctx, "e", TypeResolver.resolve(BuiltinType.EVENT),
             "CRMLtoModelica.Types.CRMLEvent_build", "E",
-            Modelica.mod("b", condition), crmlSource);
+            mod("b", condition), crmlSource);
     }
 
     /**
@@ -47,15 +44,15 @@ public final class RecordBuild {
      * {@code Types.Event} records, so a Boolean condition has to go through
      * {@link #event} first.
      */
-    public static ComponentReference period(TransformationContext ctx, boolean leftIncluded, boolean rightIncluded,
+    public ComponentReference period(TransformationContext ctx, boolean leftIncluded, boolean rightIncluded,
             Expression startEvent, Expression closeEvent, EObject crmlSource) {
         return build(ctx, "p", TypeResolver.resolve(BuiltinType.PERIOD),
             "CRMLtoModelica.Types.CRMLPeriod_build", "P",
             new crml.model.modelica.ModificationElement[] {
-                Modelica.mod("isLeftBoundaryIncluded", Modelica.bool(leftIncluded)),
-                Modelica.mod("isRightBoundaryIncluded", Modelica.bool(rightIncluded)),
-                Modelica.mod("start_event", startEvent),
-                Modelica.mod("close_event", closeEvent)
+                mod("isLeftBoundaryIncluded", bool(leftIncluded)),
+                mod("isRightBoundaryIncluded", bool(rightIncluded)),
+                mod("start_event", startEvent),
+                mod("close_event", closeEvent)
             }, crmlSource);
     }
 
@@ -67,42 +64,42 @@ public final class RecordBuild {
      * {@code Types.CRMLClock}, not {@code Types.Event}, which is what a CRML
      * "Periods" literal over clocks needs.
      */
-    public static ComponentReference periods(TransformationContext ctx, boolean leftIncluded, boolean rightIncluded,
+    public ComponentReference periods(TransformationContext ctx, boolean leftIncluded, boolean rightIncluded,
             Expression startClock, Expression closeClock, EObject crmlSource) {
         return build(ctx, "ps", TypeResolver.resolve(BuiltinType.PERIODS),
             "CRMLtoModelica.Types.CRMLPeriods_build", "ps",
             new crml.model.modelica.ModificationElement[] {
-                Modelica.mod("isLeftBoundaryIncluded", Modelica.bool(leftIncluded)),
-                Modelica.mod("isRightBoundaryIncluded", Modelica.bool(rightIncluded)),
-                Modelica.mod("start_event", startClock),
-                Modelica.mod("close_event", closeClock)
+                mod("isLeftBoundaryIncluded", bool(leftIncluded)),
+                mod("isRightBoundaryIncluded", bool(rightIncluded)),
+                mod("start_event", startClock),
+                mod("close_event", closeClock)
             }, crmlSource);
     }
 
-    private static ComponentReference build(TransformationContext ctx, String prefix, String recordType,
+    private ComponentReference build(TransformationContext ctx, String prefix, String recordType,
             String buildType, String buildParam, crml.model.modelica.ModificationElement modification,
             EObject crmlSource) {
         return build(ctx, prefix, recordType, buildType, buildParam,
             new crml.model.modelica.ModificationElement[] { modification }, crmlSource);
     }
 
-    private static ComponentReference build(TransformationContext ctx, String prefix, String recordType,
+    private ComponentReference build(TransformationContext ctx, String prefix, String recordType,
             String buildType, String buildParam, crml.model.modelica.ModificationElement[] modifications,
             EObject crmlSource) {
         String name = ctx.allocateName(prefix);
 
-        ComponentDeclaration record = Modelica.component(Modelica.libraryRef(recordType), name);
+        ComponentDeclaration record = component(libraryRef(recordType), name);
         for (crml.model.modelica.ModificationElement modification : modifications) {
             record.getModifications().add(modification);
         }
         ctx.declare(record, crmlSource);
 
-        ComponentDeclaration companion = Modelica.component(Modelica.libraryRef(buildType), name + "_init");
+        ComponentDeclaration companion = component(libraryRef(buildType), name + "_init");
         // A fresh reference per use: these are contained objects, so handing the
         // same node to two parents would silently move it out of the first.
-        companion.getModifications().add(Modelica.mod(buildParam, Modelica.ref(name)));
+        companion.getModifications().add(mod(buildParam, ref(name)));
         ctx.declare(companion, crmlSource);
 
-        return Modelica.ref(name);
+        return ref(name);
     }
 }

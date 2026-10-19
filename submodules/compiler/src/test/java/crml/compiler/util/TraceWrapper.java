@@ -42,8 +42,8 @@ public class TraceWrapper implements CustomHtmlReporter {
         for (TraceLink link : trace.getLinks()) {
             rows.add(tr(
                 td(String.valueOf(link.getKind())),
-                td(describe(link.getSource())),
-                td(describe(link.getTarget())),
+                td(describe(link.getCrml())),
+                td(describe(link.getModelica())),
                 td(link.getNote() == null ? "" : link.getNote())));
         }
         return table(

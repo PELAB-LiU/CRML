@@ -1,6 +1,6 @@
 package crml.compiler.crmlcv2;
 
-import crml.compiler.crmlcv2.templates.ModelTransformer;
+import crml.compiler.crmlcv2.templates.Transformer;
 import crml.model.language.Model;
 
 /**
@@ -8,20 +8,13 @@ import crml.model.language.Model;
  */
 public class OMCv2 {
 
-    /**
-     * Translates one CRML model, returning the Modelica object model, the trace
-     * back to the CRML elements, and everything that could not be mapped.
-     *
-     * <p>This never throws for an untranslatable construct: the construct is
-     * reached, a {@link Diagnostic} is recorded and a placeholder comment marks
-     * the gap in the generated text.
-     */
+    private final Transformer transformer = new Transformer();
+
     public TranslationResult translateModel(Model model) {
-        TransformationContext ctx = ModelTransformer.transform(model);
+        TransformationContext ctx = transformer.transform(model);
         return new TranslationResult(ctx.target(), ctx.trace(), ctx.diagnostics());
     }
 
-    /** The generated .mo text for one CRML model. */
     public String translate(Model model) {
         return translateModel(model).text();
     }

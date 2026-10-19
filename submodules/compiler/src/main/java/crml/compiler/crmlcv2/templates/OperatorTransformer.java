@@ -56,9 +56,12 @@ import crml.modelica.build.Modelica;
  * input/output prefixes - {@code Blocks.setAnd} - is listed as a defect in the
  * plan (§8.2(g)), which is the most likely origin of the legacy choice.
  */
-public final class OperatorTransformer {
+public final class OperatorTransformer implements Modelica {
 
-    private OperatorTransformer() {
+    private final Transformer transformer;
+
+    public OperatorTransformer(Transformer transformer) {
+        this.transformer = transformer;
     }
 
     // --- declaration --------------------------------------------------------
@@ -67,7 +70,7 @@ public final class OperatorTransformer {
      * Generates the class for {@code operator} and nests it in the model, or
      * returns the one already generated.
      */
-    public static GeneratedOperator declare(TransformationContext ctx, CustomOperator operator) {
+    public GeneratedOperator declare(TransformationContext ctx, CustomOperator operator) {
         GeneratedOperator existing = ctx.generatedOperator(operator);
         if (existing != null) {
             return existing;
@@ -92,7 +95,7 @@ public final class OperatorTransformer {
         }
     }
 
-    private static GeneratedOperator generate(TransformationContext ctx, CustomOperator operator) {
+    private GeneratedOperator generate(TransformationContext ctx, CustomOperator operator) {
         List<Variable> parameters = new ArrayList<Variable>(operator.getVariables());
         TransformationContext root = ctx.root();
         String name = root.allocateClassName(modelicaName(operator));
@@ -105,13 +108,13 @@ public final class OperatorTransformer {
         // Transform the body into a scratch class. If it turns out to be pure,
         // the scratch stays empty and only the expression is kept; if it hoisted
         // anything, the scratch already is the block's body.
-        ClassDefinition body = Modelica.block(name);
+        ClassDefinition body = block(name);
         TransformationContext bodyCtx = root.nested(body);
         bodyCtx.reserveName(GeneratedOperator.OUTPUT_PORT);
         for (Variable parameter : parameters) {
             bodyCtx.reserveName(parameter.getName());
         }
-        Expression result = ValueTransformer.transform(bodyCtx, operator.getDefinition());
+        Expression result = transformer.values().transform(bodyCtx, operator.getDefinition());
         boolean hoisted = !body.getComponents().isEmpty() || !body.getEquations().isEmpty();
 
         // Parameters first, then the output, then whatever the body hoisted.
@@ -119,14 +122,14 @@ public final class OperatorTransformer {
         for (Variable parameter : parameters) {
             body.getComponents().add(index++, input(root, parameter, operator));
         }
-        body.getComponents().add(index, Modelica.output(
+        body.getComponents().add(index, output(
             resolve(root, operator.getDomain(), operator, "result"), GeneratedOperator.OUTPUT_PORT));
 
         if (hoisted) {
-            body.getEquations().add(Modelica.eq(Modelica.ref(GeneratedOperator.OUTPUT_PORT), result));
+            body.getEquations().add(eq(ref(GeneratedOperator.OUTPUT_PORT), result));
         } else {
             body.setKind(ClassKind.FUNCTION);
-            body.getStatements().add(Modelica.assign(Modelica.ref(GeneratedOperator.OUTPUT_PORT), result));
+            body.getStatements().add(assign(ref(GeneratedOperator.OUTPUT_PORT), result));
         }
 
         GeneratedOperator generated = new GeneratedOperator(body, hoisted, parameters);
@@ -135,9 +138,9 @@ public final class OperatorTransformer {
         return generated;
     }
 
-    private static ComponentDeclaration input(TransformationContext ctx, Variable parameter,
+    private ComponentDeclaration input(TransformationContext ctx, Variable parameter,
             CustomOperator operator) {
-        return Modelica.input(
+        return input(
             resolve(ctx, parameter.getDomain(), operator, "parameter '" + parameter.getName() + "'"),
             parameter.getName());
     }
@@ -147,13 +150,13 @@ public final class OperatorTransformer {
      * whole: emitting the class with a hole in a declaration would produce
      * invalid Modelica, where dropping it leaves a diagnostic and a placeholder.
      */
-    private static Reference<ClassDefinition> resolve(TransformationContext ctx,
+    private Reference<ClassDefinition> resolve(TransformationContext ctx,
             crml.model.language.TypeReference type, CustomOperator operator, String what) {
         if (type == null) {
             throw new UnsupportedConstruct(Diagnostics.error("CustomOperator",
                 "the " + what + " of operator '" + describe(operator) + "' has no declared type", operator));
         }
-        Reference<ClassDefinition> reference = TypeResolver.resolve(ctx, type);
+        Reference<ClassDefinition> reference = transformer.types().resolve(ctx, type);
         if (reference.getTarget() == null && reference.getReason() == RawReason.UNRESOLVED) {
             throw new UnsupportedConstruct(Diagnostics.error("CustomOperator",
                 "cannot resolve the type of the " + what + " of operator '" + describe(operator) + "'",
@@ -164,7 +167,7 @@ public final class OperatorTransformer {
 
     // --- call sites ---------------------------------------------------------
 
-    public static Expression transformCall(TransformationContext ctx, ComputedValue call) {
+    public Expression transformCall(TransformationContext ctx, ComputedValue call) {
         CustomOperator operator = call.getOperator();
         if (operator == null) {
             throw new UnsupportedConstruct(Diagnostics.error("ComputedValue",
@@ -179,7 +182,7 @@ public final class OperatorTransformer {
             }
             // The generated class itself, not its name: this is the reference
             // that makes renaming it impossible to get wrong.
-            return BlockInstantiation.instantiate(ctx, Modelica.resolvedRef(generated.definition()),
+            return transformer.blocks().instantiate(ctx, resolvedRef(generated.definition()),
                 generated.name() + "_", inputs, GeneratedOperator.OUTPUT_PORT, call);
         }
 
@@ -187,7 +190,7 @@ public final class OperatorTransformer {
         for (Variable parameter : generated.parameters()) {
             arguments.add(argument(ctx, call, operator, parameter));
         }
-        return Modelica.call(Modelica.resolvedRef(generated.definition()), arguments);
+        return call(resolvedRef(generated.definition()), arguments);
     }
 
     /**
@@ -195,7 +198,7 @@ public final class OperatorTransformer {
      * operators interleave keywords and values, so a binding's position in the
      * list says nothing about which parameter it fills.
      */
-    private static Expression argument(TransformationContext ctx, ComputedValue call,
+    private Expression argument(TransformationContext ctx, ComputedValue call,
             CustomOperator operator, Variable parameter) {
         for (Binding binding : call.getBindings()) {
             if (binding.getElement() == parameter) {
@@ -205,7 +208,7 @@ public final class OperatorTransformer {
                         "parameter '" + parameter.getName() + "' of operator '" + describe(operator)
                         + "' is bound to nothing", call));
                 }
-                return ValueTransformer.transform(ctx, value);
+                return transformer.values().transform(ctx, value);
             }
         }
         throw new UnsupportedConstruct(Diagnostics.error("ComputedValue",

@@ -39,7 +39,7 @@ val xtextVersion:      String by rootProject.extra
 // ─────────────────────────────────────────────
 //  Dependencies
 // ─────────────────────────────────────────────
-dependencies {
+dependencies { 
     implementation("org.eclipse.emf:org.eclipse.emf.codegen.ecore:$emfCodegenVersion")
 
     // ── Xcore language support (build-time only) ──────────────────────────

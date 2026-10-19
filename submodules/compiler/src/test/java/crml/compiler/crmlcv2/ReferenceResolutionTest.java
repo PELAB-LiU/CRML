@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
-import crml.compiler.crmlcv2.util.TypeResolver;
+import crml.compiler.crmlcv2.templates.Transformer;
 import crml.model.language.BuiltinType;
 import crml.model.language.BuiltinTypeReference;
 import crml.model.language.LanguageFactory;
@@ -25,7 +25,7 @@ import crml.modelica.print.ModelicaPrinter;
  * Type and function names are references to generated classes where one exists,
  * and raw text otherwise.
  */
-public class ReferenceResolutionTest {
+public class ReferenceResolutionTest implements Modelica {
 
     private static final LanguageFactory F = LanguageFactory.eINSTANCE;
 
@@ -35,7 +35,7 @@ public class ReferenceResolutionTest {
         return reference;
     }
 
-    private static Model model(String name) {
+    private static Model crmlModel(String name) {
         Model model = F.createModel();
         model.setName(name);
         return model;
@@ -44,13 +44,14 @@ public class ReferenceResolutionTest {
     private static Reference<ClassDefinition> resolveIn(Model model, crml.model.language.TypeReference type) {
         // Run a real translation so the class registry is populated, then ask
         // the resolver the same question the transformation would.
-        TransformationContext ctx = crml.compiler.crmlcv2.templates.ModelTransformer.transform(model);
-        return TypeResolver.resolve(ctx, type);
+        Transformer transformer = new Transformer();
+        TransformationContext ctx = transformer.transform(model);
+        return transformer.types().resolve(ctx, type);
     }
 
     @Test
     public void crmlBuiltinTypesAreRawAgainstTheLibrary() {
-        Reference<ClassDefinition> reference = resolveIn(model("M"), builtin(BuiltinType.BOOLEAN));
+        Reference<ClassDefinition> reference = resolveIn(crmlModel("M"), builtin(BuiltinType.BOOLEAN));
         assertNull(reference.getTarget());
         assertEquals(RawReason.EXTERNAL_LIBRARY, reference.getReason());
         assertEquals("CRMLtoModelica.Types.Boolean4", reference.getRawText());
@@ -58,7 +59,7 @@ public class ReferenceResolutionTest {
 
     @Test
     public void modelicaPrimitivesAreRawAgainstTheLanguage() {
-        Reference<ClassDefinition> reference = resolveIn(model("M"), builtin(BuiltinType.REAL));
+        Reference<ClassDefinition> reference = resolveIn(crmlModel("M"), builtin(BuiltinType.REAL));
         assertNull(reference.getTarget());
         assertEquals(RawReason.MODELICA_BUILTIN, reference.getReason());
         assertEquals("Real", reference.getRawText());
@@ -68,7 +69,7 @@ public class ReferenceResolutionTest {
     public void aCrmlClassResolvesToItsGeneratedClass() {
         crml.model.language.Class clazz = F.createClass();
         clazz.setName("Contract");
-        Model model = model("M");
+        Model model = crmlModel("M");
         model.getClasses().add(clazz);
 
         UserTypereference type = F.createUserTypereference();
@@ -98,7 +99,7 @@ public class ReferenceResolutionTest {
         instance.setName("i");
         instance.setDomain(declared);
 
-        Model model = model("M");
+        Model model = crmlModel("M");
         model.getClasses().add(clazz);
         model.getVariables().add(instance);
 
@@ -122,7 +123,7 @@ public class ReferenceResolutionTest {
         instance.setName("c");
         instance.setDomain(declared);
 
-        Model model = model("M");
+        Model model = crmlModel("M");
         model.getClasses().add(clazz);
         model.getVariables().add(instance);
 
@@ -152,7 +153,7 @@ public class ReferenceResolutionTest {
         earlier.setName("Earlier");
         earlier.getVariables().add(member);
 
-        Model model = model("M");
+        Model model = crmlModel("M");
         model.getClasses().add(earlier);
         model.getClasses().add(later);
 
@@ -164,9 +165,9 @@ public class ReferenceResolutionTest {
     /** A raw name is printed exactly as stored - quoting it would break der, and4 and friends. */
     @Test
     public void rawNamesAreNeverQuoted() {
-        ClassDefinition cls = Modelica.model("M");
-        cls.getComponents().add(Modelica.component(
-            Modelica.<ClassDefinition>libraryRef("CRMLtoModelica.Types.Boolean4"), "b"));
+        ClassDefinition cls = model("M");
+        cls.getComponents().add(component(
+            libraryRef("CRMLtoModelica.Types.Boolean4"), "b"));
         String text = ModelicaPrinter.print(cls);
         assertTrue(text.contains("CRMLtoModelica.Types.Boolean4 b;"), text);
         assertFalse(text.contains("'"), text);

@@ -1,11 +1,5 @@
 package crml.compiler.crmlcv2.templates;
 
-import static crml.modelica.build.Modelica.bool;
-import static crml.modelica.build.Modelica.ifExpr;
-import static crml.modelica.build.Modelica.integer;
-import static crml.modelica.build.Modelica.real;
-import static crml.modelica.build.Modelica.ref;
-import static crml.modelica.build.Modelica.string;
 
 import crml.compiler.crmlcv2.Diagnostics;
 import crml.compiler.crmlcv2.TransformationContext;
@@ -47,12 +41,15 @@ import crml.modelica.build.Modelica;
  * {@link UnsupportedConstruct}, which the enclosing declaration or equation
  * turns into a diagnostic and a placeholder.
  */
-public final class ValueTransformer {
+public final class ValueTransformer implements Modelica {
 
-    private ValueTransformer() {
+    private final Transformer transformer;
+
+    public ValueTransformer(Transformer transformer) {
+        this.transformer = transformer;
     }
 
-    public static Expression transform(TransformationContext ctx, Value value) {
+    public Expression transform(TransformationContext ctx, Value value) {
         if (value == null) {
             throw new UnsupportedConstruct(Diagnostics.error("Value",
                 "a value is missing from the object model", null));
@@ -80,26 +77,26 @@ public final class ValueTransformer {
             return ref("time");
         }
         if (value instanceof BinaryOperator) {
-            return BinaryOperatorTransformer.transform(ctx, (BinaryOperator) value);
+            return transformer.binaryOperators().transform(ctx, (BinaryOperator) value);
         }
         if (value instanceof UnaryOperator) {
-            return UnaryOperatorTransformer.transform(ctx, (UnaryOperator) value);
+            return transformer.unaryOperators().transform(ctx, (UnaryOperator) value);
         }
         if (value instanceof ConstructorValue) {
-            return ConstructorTransformer.transform(ctx, (ConstructorValue) value);
+            return transformer.constructors().transform(ctx, (ConstructorValue) value);
         }
         if (value instanceof ComputedValue) {
-            return OperatorTransformer.transformCall(ctx, (ComputedValue) value);
+            return transformer.operators().transformCall(ctx, (ComputedValue) value);
         }
         // --- planned, not yet built ----------------------------------------
         if (value instanceof PeriodsValue) {
-            return PeriodsTransformer.transform(ctx, (PeriodsValue) value);
+            return transformer.periods().transform(ctx, (PeriodsValue) value);
         }
         if (value instanceof IntegrateValue) {
-            return IntegrateTransformer.transform(ctx, (IntegrateValue) value);
+            return transformer.integrals().transform(ctx, (IntegrateValue) value);
         }
         if (value instanceof Set<?>) {
-            return SetTransformer.literal(ctx, (Set<?>) value);
+            return transformer.sets().literal(ctx, (Set<?>) value);
         }
         if (value instanceof Sequence) {
             // An unresolved mixfix operator call. crml.xcore states that an object
@@ -124,18 +121,18 @@ public final class ValueTransformer {
             "no Modelica mapping for value kind " + value.eClass().getName(), value));
     }
 
-    private static Expression transformIf(TransformationContext ctx, IfValue value) {
+    private Expression transformIf(TransformationContext ctx, IfValue value) {
         Expression condition = transform(ctx, value.getCondition());
         Expression thenBranch = transform(ctx, value.getThen());
         Expression elseBranch = transform(ctx, value.getOthervise());
         // CRML conditions are Boolean4, which is an enumeration, so the Modelica
         // condition has to be a two-valued comparison against true4.
         return ifExpr(
-            Modelica.binary(BinaryOperatorKind.EQ, condition, ref("CRMLtoModelica.Types.Boolean4.true4")),
+            binary(BinaryOperatorKind.EQ, condition, ref("CRMLtoModelica.Types.Boolean4.true4")),
             thenBranch, elseBranch);
     }
 
-    private static Expression transformBooleanConstant(BooleanConstant constant) {
+    private Expression transformBooleanConstant(BooleanConstant constant) {
         switch (constant.getValue()) {
             case TRUE: return ref("CRMLtoModelica.Types.Boolean4.true4");
             case FALSE: return ref("CRMLtoModelica.Types.Boolean4.false4");

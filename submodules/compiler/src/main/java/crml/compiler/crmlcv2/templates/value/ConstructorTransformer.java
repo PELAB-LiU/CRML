@@ -1,15 +1,10 @@
 package crml.compiler.crmlcv2.templates.value;
 
-import static crml.modelica.build.Modelica.call;
-import static crml.modelica.build.Modelica.builtinRef;
-import static crml.modelica.build.Modelica.libraryRef;
-import static crml.modelica.build.Modelica.component;
-import static crml.modelica.build.Modelica.mod;
 
 import crml.compiler.crmlcv2.Diagnostics;
 import crml.compiler.crmlcv2.TransformationContext;
 import crml.compiler.crmlcv2.UnsupportedConstruct;
-import crml.compiler.crmlcv2.templates.ValueTransformer;
+import crml.compiler.crmlcv2.templates.Transformer;
 import crml.compiler.crmlcv2.util.TypeResolver;
 import crml.model.language.Binding;
 import crml.model.language.BuiltinType;
@@ -19,6 +14,7 @@ import crml.model.language.PeriodsValue;
 import crml.model.modelica.ComponentDeclaration;
 import crml.model.modelica.ComponentReference;
 import crml.model.modelica.Expression;
+import crml.modelica.build.Modelica;
 
 /**
  * CRML constructors ("new T e") to Modelica.
@@ -28,9 +24,12 @@ import crml.model.modelica.Expression;
  * class and the expression becomes a reference to the first. The remaining
  * domains are casts, which stay inline.
  */
-public final class ConstructorTransformer {
+public final class ConstructorTransformer implements Modelica {
 
-    private ConstructorTransformer() {
+    private final Transformer transformer;
+
+    public ConstructorTransformer(Transformer transformer) {
+        this.transformer = transformer;
     }
 
     /** True for a bare {@code new} - nothing to translate as an expression. */
@@ -38,7 +37,7 @@ public final class ConstructorTransformer {
         return constructor.getValue() == null && constructor.getBindings().isEmpty();
     }
 
-    public static Expression transform(TransformationContext ctx, ConstructorValue constructor) {
+    public Expression transform(TransformationContext ctx, ConstructorValue constructor) {
         if (!constructor.getBindings().isEmpty()) {
             return instantiate(ctx, constructor);
         }
@@ -49,12 +48,12 @@ public final class ConstructorTransformer {
         }
 
         BuiltinType domain = TypeResolver.resolveBuiltin(constructor.getDomain());
-        Expression operand = ValueTransformer.transform(ctx, constructor.getValue());
+        Expression operand = transformer.values().transform(ctx, constructor.getValue());
 
         if (domain == BuiltinType.CLOCK) {
-            return RecordBuild.clock(ctx, operand, constructor);
+            return transformer.records().clock(ctx, operand, constructor);
         } else if (domain == BuiltinType.EVENT) {
-            return RecordBuild.event(ctx, operand, constructor);
+            return transformer.records().event(ctx, operand, constructor);
         } else if (domain == BuiltinType.STRING) {
             return stringCast(constructor, operand);
         } else if (domain == BuiltinType.INTEGER) {
@@ -84,9 +83,9 @@ public final class ConstructorTransformer {
      * whose modifications bind the named members, hoisted onto the target class
      * so the expression can be a reference to it.
      */
-    private static ComponentReference instantiate(TransformationContext ctx, ConstructorValue constructor) {
+    private ComponentReference instantiate(TransformationContext ctx, ConstructorValue constructor) {
         ComponentDeclaration instance = component(
-            TypeResolver.resolve(ctx, constructor.getDomain()), ctx.allocateName("inst"));
+            transformer.types().resolve(ctx, constructor.getDomain()), ctx.allocateName("inst"));
         for (Binding binding : constructor.getBindings()) {
             Element member = binding.getElement();
             if (member == null || member.getName() == null) {
@@ -98,12 +97,12 @@ public final class ConstructorTransformer {
                     "member '" + member.getName() + "' is bound to nothing", constructor));
             }
             instance.getModifications().add(
-                mod(member.getName(), ValueTransformer.transform(ctx, binding.getValue())));
+                mod(member.getName(), transformer.values().transform(ctx, binding.getValue())));
         }
         return ctx.declare(instance, constructor);
     }
 
-    private static Expression stringCast(ConstructorValue constructor, Expression operand) {
+    private Expression stringCast(ConstructorValue constructor, Expression operand) {
         BuiltinType sourceType = TypeResolver.resolveBuiltin(constructor.getValue().getReturnType());
         if (sourceType == BuiltinType.BOOLEAN) {
             // The string generator emitted CRMLtoModelica.Functions.Bool4toString
@@ -117,7 +116,7 @@ public final class ConstructorTransformer {
         return call(builtinRef("String"), operand);
     }
 
-    private static Expression integerCast(ConstructorValue constructor, Expression operand) {
+    private Expression integerCast(ConstructorValue constructor, Expression operand) {
         BuiltinType sourceType = TypeResolver.resolveBuiltin(constructor.getValue().getReturnType());
         if (sourceType == BuiltinType.REAL) {
             return call(builtinRef("integer"), operand);
@@ -132,7 +131,7 @@ public final class ConstructorTransformer {
             "Modelica's Integer() converts enumerations and Real only; operand type is " + sourceType, constructor));
     }
 
-    private static Expression realCast(ConstructorValue constructor, Expression operand) {
+    private Expression realCast(ConstructorValue constructor, Expression operand) {
         BuiltinType sourceType = TypeResolver.resolveBuiltin(constructor.getValue().getReturnType());
         // The string generator emitted real(x)/Real(x); neither exists as a
         // conversion function. Real -> Real is a no-op, and Integer -> Real is
@@ -144,7 +143,7 @@ public final class ConstructorTransformer {
             "Modelica has no conversion to Real from " + sourceType, constructor));
     }
 
-    private static Expression booleanCast(ConstructorValue constructor, Expression operand) {
+    private Expression booleanCast(ConstructorValue constructor, Expression operand) {
         // Return-type inference only populates constants today, so a computed
         // operand such as "Boolean((P end))" arrives with a null type. The only
         // defined Boolean constructor is from an Event, so proceed optimistically

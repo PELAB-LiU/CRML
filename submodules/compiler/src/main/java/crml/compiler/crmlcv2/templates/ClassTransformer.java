@@ -26,9 +26,12 @@ import crml.modelica.build.Modelica;
  * <p>A CRML partial class - one that "cannot have any instances because [it is]
  * incompletely defined" - is a Modelica {@code partial} model.
  */
-public final class ClassTransformer {
+public final class ClassTransformer implements Modelica {
 
-    private ClassTransformer() {
+    private final Transformer transformer;
+
+    public ClassTransformer(Transformer transformer) {
+        this.transformer = transformer;
     }
 
     /**
@@ -36,14 +39,14 @@ public final class ClassTransformer {
      * body is populated, so a member or a super-class that names a class
      * declared later in the model still resolves to an object.
      */
-    public static ClassDefinition shell(crml.model.language.Class clazz) {
-        ClassDefinition definition = Modelica.model(clazz.getName());
+    public ClassDefinition shell(crml.model.language.Class clazz) {
+        ClassDefinition definition = model(clazz.getName());
         definition.setPartial(Boolean.valueOf(Boolean.TRUE.equals(clazz.getPartial())));
         return definition;
     }
 
     /** Fills in the extends clauses and members of an already-shelled class. */
-    public static void populate(TransformationContext ctx, crml.model.language.Class clazz,
+    public void populate(TransformationContext ctx, crml.model.language.Class clazz,
             ClassDefinition definition) {
         for (crml.model.language.Class superClass : clazz.getSuperClasses()) {
             ClassDefinition superDefinition = ctx.generatedClass(superClass);
@@ -53,7 +56,7 @@ public final class ClassTransformer {
                     clazz));
                 continue;
             }
-            definition.getExtendsClauses().add(Modelica.extendsClause(Modelica.resolvedRef(superDefinition)));
+            definition.getExtendsClauses().add(extendsClause(resolvedRef(superDefinition)));
         }
 
         TransformationContext body = ctx.nested(definition);
@@ -71,13 +74,13 @@ public final class ClassTransformer {
      * because that is what makes the enclosing class a model rather than a
      * record.
      */
-    private static void declare(TransformationContext ctx, Variable variable) {
-        Reference<ClassDefinition> declaredType = TypeResolver.resolve(ctx, variable.getDomain());
+    private void declare(TransformationContext ctx, Variable variable) {
+        Reference<ClassDefinition> declaredType = transformer.types().resolve(ctx, variable.getDomain());
 
         Expression definition = null;
         if (variable.getDefinition() != null && !ValueTransformer.isDeclarationOnly(variable.getDefinition())) {
             try {
-                definition = ValueTransformer.transform(ctx, variable.getDefinition());
+                definition = transformer.values().transform(ctx, variable.getDefinition());
             } catch (UnsupportedConstruct e) {
                 Diagnostic cause = e.diagnostic();
                 ctx.reportWithPlaceholder(new Diagnostic(cause.severity(), cause.constructKind(),
@@ -87,14 +90,14 @@ public final class ClassTransformer {
             }
         }
 
-        ComponentDeclaration component = Modelica.component(declaredType, variable.getName());
+        ComponentDeclaration component = component(declaredType, variable.getName());
         if (Boolean.TRUE.equals(variable.getConstant())) {
             component.setVariability(Variability.CONSTANT);
         }
         ctx.declare(component, variable);
 
         if (definition != null) {
-            ctx.equate(Modelica.eq(Modelica.ref(variable.getName()), definition), variable);
+            ctx.equate(eq(ref(variable.getName()), definition), variable);
         }
     }
 }

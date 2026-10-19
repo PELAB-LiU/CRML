@@ -26,25 +26,28 @@ import crml.modelica.build.Modelica;
  * equation section is empty, so a model that relies on it computes nothing.
  * That is recorded as an INFO rather than silently emitted.
  */
-public final class SetTransformer {
+public final class SetTransformer implements Modelica {
 
-    private SetTransformer() {
+    private final Transformer transformer;
+
+    public SetTransformer(Transformer transformer) {
+        this.transformer = transformer;
     }
 
     /** The {@code {a, b, c}} literal for a set used as a value. */
-    public static ArrayConstructor literal(TransformationContext ctx, Set<?> set) {
+    public ArrayConstructor literal(TransformationContext ctx, Set<?> set) {
         List<Expression> elements = new ArrayList<Expression>();
         for (Object element : set.getElements()) {
             if (!(element instanceof Value)) {
                 throw new UnsupportedConstruct(Diagnostics.error("Set",
                     "a set element is not a value: " + element, set));
             }
-            elements.add(ValueTransformer.transform(ctx, (Value) element));
+            elements.add(transformer.values().transform(ctx, (Value) element));
         }
         ctx.report(Diagnostics.info("Set",
             "emitted as an array; its intended consumer CRMLtoModelica.Blocks.setAnd has an "
             + "empty equation section, so anything reading this set computes nothing", set));
-        return Modelica.array(elements);
+        return array(elements);
     }
 
     /**
@@ -58,7 +61,7 @@ public final class SetTransformer {
      * Periods, and it is Period that the array elements are. So the element type
      * comes from the elements themselves.
      */
-    public static Reference<ClassDefinition> elementType(Set<?> set) {
+    public Reference<ClassDefinition> elementType(Set<?> set) {
         for (Object element : set.getElements()) {
             if (element instanceof Value) {
                 BuiltinType elementType = TypeResolver.inferBuiltin((Value) element);
@@ -66,8 +69,8 @@ public final class SetTransformer {
                     String name = TypeResolver.resolve(elementType);
                     return elementType == BuiltinType.REAL || elementType == BuiltinType.INTEGER
                         || elementType == BuiltinType.STRING
-                        ? Modelica.<ClassDefinition>builtinRef(name)
-                        : Modelica.<ClassDefinition>libraryRef(name);
+                        ? this.<ClassDefinition>builtinRef(name)
+                        : this.<ClassDefinition>libraryRef(name);
                 }
             }
         }
@@ -75,10 +78,10 @@ public final class SetTransformer {
     }
 
     /** A set declared on the model itself, rather than used as a value. */
-    public static void declare(TransformationContext ctx, Set<?> set) {
+    public void declare(TransformationContext ctx, Set<?> set) {
         Reference<ClassDefinition> elementType = elementType(set);
         if (elementType == null) {
-            elementType = TypeResolver.resolve(ctx, set.getDomain());
+            elementType = transformer.types().resolve(ctx, set.getDomain());
         }
 
         ArrayConstructor elements;
@@ -92,8 +95,8 @@ public final class SetTransformer {
             return;
         }
 
-        ComponentDeclaration component = Modelica.component(elementType, set.getName());
-        component.getArrayDimensions().add(Modelica.dimension(Modelica.integer(elements.getElements().size())));
+        ComponentDeclaration component = component(elementType, set.getName());
+        component.getArrayDimensions().add(dimension(integer(elements.getElements().size())));
         component.setBinding(elements);
         ctx.declare(component, set);
     }

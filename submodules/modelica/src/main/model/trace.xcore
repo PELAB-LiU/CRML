@@ -7,17 +7,6 @@ package crml.model.trace
 
 import org.eclipse.emf.ecore.EObject
 
-// ---------------------------------------------------------------------------
-// Traceability between the CRML object model and the generated Modelica object
-// model, at class / component-declaration / equation granularity.
-//
-// Both ends are plain EObject references so that this package needs no
-// dependency on crml.model.language; the link kind carries the semantics.
-// Links hold no source positions: CRML object-model elements have none (the DOM
-// builders discard their ANTLR contexts), so adding them is separable follow-on
-// work.
-// ---------------------------------------------------------------------------
-
 class TraceModel {
     contains TraceLink[] links
 }
@@ -36,10 +25,8 @@ enum TraceLinkKind {
 }
 
 class TraceLink {
-    // CRML object-model element.
-    refers EObject source
-    // Modelica object-model element.
-    refers EObject target
+    refers EObject crml
+    refers EObject modelica
     TraceLinkKind kind
     String note
 }

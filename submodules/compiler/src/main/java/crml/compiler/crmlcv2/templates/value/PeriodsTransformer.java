@@ -3,11 +3,12 @@ package crml.compiler.crmlcv2.templates.value;
 import crml.compiler.crmlcv2.Diagnostics;
 import crml.compiler.crmlcv2.TransformationContext;
 import crml.compiler.crmlcv2.UnsupportedConstruct;
-import crml.compiler.crmlcv2.templates.ValueTransformer;
+import crml.compiler.crmlcv2.templates.Transformer;
 import crml.compiler.crmlcv2.util.TypeResolver;
 import crml.model.language.BuiltinType;
 import crml.model.language.PeriodsValue;
 import crml.model.modelica.Expression;
+import crml.modelica.build.Modelica;
 
 /**
  * A CRML period literal to a {@code CRMLtoModelica.Types.CRMLPeriod} component
@@ -37,9 +38,12 @@ import crml.model.modelica.Expression;
  *     construction first.
  * </ul>
  */
-public final class PeriodsTransformer {
+public final class PeriodsTransformer implements Modelica {
 
-    private PeriodsTransformer() {
+    private final Transformer transformer;
+
+    public PeriodsTransformer(Transformer transformer) {
+        this.transformer = transformer;
     }
 
     /**
@@ -47,15 +51,15 @@ public final class PeriodsTransformer {
      * already is one goes in as it is; a Boolean condition is wrapped in an
      * Event construction first, which is the third of PeriodsGen's defects.
      */
-    private static Expression asEvent(TransformationContext ctx, Expression boundary,
+    private Expression asEvent(TransformationContext ctx, Expression boundary,
             BuiltinType boundaryType, PeriodsValue periods) {
         if (boundaryType == BuiltinType.BOOLEAN || boundaryType == BuiltinType.REQUIREMENT) {
-            return RecordBuild.event(ctx, boundary, periods);
+            return transformer.records().event(ctx, boundary, periods);
         }
         return boundary;
     }
 
-    public static Expression transform(TransformationContext ctx, PeriodsValue periods) {
+    public Expression transform(TransformationContext ctx, PeriodsValue periods) {
         if (periods.getStartValue() == null || periods.getEndValue() == null) {
             throw new UnsupportedConstruct(Diagnostics.error("PeriodsValue",
                 "a period literal is missing one of its boundary conditions", periods));
@@ -67,16 +71,16 @@ public final class PeriodsTransformer {
         BuiltinType startType = TypeResolver.inferBuiltin(periods.getStartValue());
         BuiltinType endType = TypeResolver.inferBuiltin(periods.getEndValue());
 
-        Expression start = ValueTransformer.transform(ctx, periods.getStartValue());
-        Expression end = ValueTransformer.transform(ctx, periods.getEndValue());
+        Expression start = transformer.values().transform(ctx, periods.getStartValue());
+        Expression end = transformer.values().transform(ctx, periods.getEndValue());
 
         // Either boundary being a clock settles it: type inference resolves a
         // plain variable reference but not a computed boundary such as
         // "ev + d", so requiring both would fall through to the wrong record.
         if (startType == BuiltinType.CLOCK || endType == BuiltinType.CLOCK) {
-            return RecordBuild.periods(ctx, leftIncluded, rightIncluded, start, end, periods);
+            return transformer.records().periods(ctx, leftIncluded, rightIncluded, start, end, periods);
         }
-        return RecordBuild.period(ctx, leftIncluded, rightIncluded,
+        return transformer.records().period(ctx, leftIncluded, rightIncluded,
             asEvent(ctx, start, startType, periods), asEvent(ctx, end, endType, periods), periods);
     }
 }

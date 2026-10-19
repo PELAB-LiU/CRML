@@ -22,18 +22,21 @@ import crml.modelica.build.Modelica;
  * the whole declaration is dropped - an expression hole cannot produce valid
  * Modelica - and the gap is recorded once, naming this variable.
  */
-public final class VariableTransformer {
+public final class VariableTransformer implements Modelica {
 
-    private VariableTransformer() {
+    private final Transformer transformer;
+
+    public VariableTransformer(Transformer transformer) {
+        this.transformer = transformer;
     }
 
-    public static void transform(TransformationContext ctx, Variable variable) {
-        Reference<ClassDefinition> declaredType = TypeResolver.resolve(ctx, variable.getDomain());
+    public void transform(TransformationContext ctx, Variable variable) {
+        Reference<ClassDefinition> declaredType = transformer.types().resolve(ctx, variable.getDomain());
 
         Expression binding = null;
         if (variable.getDefinition() != null && !ValueTransformer.isDeclarationOnly(variable.getDefinition())) {
             try {
-                binding = ValueTransformer.transform(ctx, variable.getDefinition());
+                binding = transformer.values().transform(ctx, variable.getDefinition());
             } catch (UnsupportedConstruct e) {
                 Diagnostic cause = e.diagnostic();
                 ctx.reportWithPlaceholder(new Diagnostic(cause.severity(), cause.constructKind(),
@@ -43,7 +46,7 @@ public final class VariableTransformer {
             }
         }
 
-        ComponentDeclaration declaration = Modelica.component(declaredType, variable.getName(), binding);
+        ComponentDeclaration declaration = component(declaredType, variable.getName(), binding);
         if (Boolean.TRUE.equals(variable.getConstant())) {
             declaration.setVariability(Variability.CONSTANT);
         }
@@ -52,11 +55,11 @@ public final class VariableTransformer {
             // its declared CRML domain: "Periods P3 is { P1, P2, Pn }" declares a
             // set of Periods, and its elements are Periods, not CRMLPeriods.
             Set<?> set = (Set<?>) variable.getDefinition();
-            Reference<ClassDefinition> elementType = SetTransformer.elementType(set);
+            Reference<ClassDefinition> elementType = transformer.sets().elementType(set);
             if (elementType != null) {
                 declaration.setDeclaredType(elementType);
             }
-            declaration.getArrayDimensions().add(Modelica.dimension(Modelica.integer(SetTransformer.sizeOf(set))));
+            declaration.getArrayDimensions().add(dimension(integer(SetTransformer.sizeOf(set))));
         }
         ctx.declare(declaration, variable);
     }

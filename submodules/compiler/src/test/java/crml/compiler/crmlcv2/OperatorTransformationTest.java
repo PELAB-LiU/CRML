@@ -209,7 +209,7 @@ public class OperatorTransformationTest {
 
         boolean traced = false;
         for (TraceLink link : result.trace().getLinks()) {
-            if (link.getSource() == operator && link.getKind() == TraceLinkKind.OPERATOR_TO_FUNCTION) {
+            if (link.getCrml() == operator && link.getKind() == TraceLinkKind.OPERATOR_TO_FUNCTION) {
                 traced = true;
             }
         }

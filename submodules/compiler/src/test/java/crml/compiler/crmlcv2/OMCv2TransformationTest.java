@@ -131,10 +131,10 @@ public class OMCv2TransformationTest {
         boolean sawModel = false;
         boolean sawVariable = false;
         for (TraceLink link : result.trace().getLinks()) {
-            if (link.getKind() == TraceLinkKind.MODEL_TO_CLASS && link.getSource() == source) {
+            if (link.getKind() == TraceLinkKind.MODEL_TO_CLASS && link.getCrml() == source) {
                 sawModel = true;
             }
-            if (link.getKind() == TraceLinkKind.VARIABLE_TO_COMPONENT && link.getSource() == b) {
+            if (link.getKind() == TraceLinkKind.VARIABLE_TO_COMPONENT && link.getCrml() == b) {
                 sawVariable = true;
             }
         }

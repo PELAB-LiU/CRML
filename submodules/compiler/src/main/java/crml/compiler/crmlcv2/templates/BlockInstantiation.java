@@ -26,10 +26,7 @@ import crml.modelica.build.Modelica;
  * BoolTick, unaryBoolAnd, ClockAdd and setAnd. Blocks this compiler generates
  * itself use their CRML parameter names instead.
  */
-public final class BlockInstantiation {
-
-    private BlockInstantiation() {
-    }
+public final class BlockInstantiation implements Modelica {
 
     /**
      * Declares {@code blockType <allocated>;}, emits one equation per input, and
@@ -38,18 +35,18 @@ public final class BlockInstantiation {
      * @param inputs port name to the expression driving it; iteration order
      *               decides equation order, so pass an ordered map
      */
-    public static ComponentReference instantiate(TransformationContext ctx,
+    public ComponentReference instantiate(TransformationContext ctx,
             Reference<ClassDefinition> blockType, String namePrefix, Map<String, Expression> inputs,
             String outputPort, EObject crmlSource) {
         String name = ctx.allocateName(namePrefix);
-        ctx.declare(Modelica.component(blockType, name), crmlSource);
+        ctx.declare(component(blockType, name), crmlSource);
 
         for (Map.Entry<String, Expression> input : inputs.entrySet()) {
-            ctx.equate(Modelica.eq(
-                Modelica.ref(name + "." + input.getKey()),
+            ctx.equate(eq(
+                ref(name + "." + input.getKey()),
                 input.getValue()), crmlSource);
         }
 
-        return Modelica.ref(name + "." + outputPort);
+        return ref(name + "." + outputPort);
     }
 }

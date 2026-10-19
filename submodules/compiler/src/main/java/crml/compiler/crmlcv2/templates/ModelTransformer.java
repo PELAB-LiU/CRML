@@ -19,13 +19,16 @@ import crml.modelica.build.Modelica;
  * with unbound components is not a legal standalone class. The string generator
  * never marked anything partial.
  */
-public final class ModelTransformer {
+public final class ModelTransformer implements Modelica {
 
-    private ModelTransformer() {
+    private final Transformer transformer;
+
+    public ModelTransformer(Transformer transformer) {
+        this.transformer = transformer;
     }
 
-    public static TransformationContext transform(Model model) {
-        ClassDefinition definition = Modelica.model(model.getName());
+    public TransformationContext transform(Model model) {
+        ClassDefinition definition = model(model.getName());
         definition.setPartial(Boolean.valueOf(hasUnboundVariable(model)));
 
         TransformationContext ctx = TransformationContext.of(definition);
@@ -46,12 +49,12 @@ public final class ModelTransformer {
         // which is what removes the need for a link phase entirely.
         for (crml.model.language.Class clazz : model.getClasses()) {
             ctx.reserveClassName(clazz.getName());
-            ClassDefinition shell = ClassTransformer.shell(clazz);
+            ClassDefinition shell = transformer.classes().shell(clazz);
             ctx.registerClass(clazz, shell);
             ctx.defineClass(shell, clazz);
         }
         for (crml.model.language.Class clazz : model.getClasses()) {
-            ClassTransformer.populate(ctx, clazz, ctx.generatedClass(clazz));
+            transformer.classes().populate(ctx, clazz, ctx.generatedClass(clazz));
         }
 
         // Operators next: a variable's definition may call one, and every
@@ -59,7 +62,7 @@ public final class ModelTransformer {
         for (Operator operator : model.getOperators()) {
             if (operator instanceof CustomOperator) {
                 try {
-                    OperatorTransformer.declare(ctx, (CustomOperator) operator);
+                    transformer.operators().declare(ctx, (CustomOperator) operator);
                 } catch (UnsupportedConstruct e) {
                     ctx.reportWithPlaceholder(e.diagnostic());
                 }
@@ -70,11 +73,11 @@ public final class ModelTransformer {
         }
 
         for (Variable variable : model.getVariables()) {
-            VariableTransformer.transform(ctx, variable);
+            transformer.variables().transform(ctx, variable);
         }
 
         for (crml.model.language.Set<?> set : model.getSets()) {
-            SetTransformer.declare(ctx, set);
+            transformer.sets().declare(ctx, set);
         }
         for (crml.model.language.Dependency dependency : model.getSuperlibs()) {
             ctx.reportWithPlaceholder(Diagnostics.libraryGap("Library.superlibs",

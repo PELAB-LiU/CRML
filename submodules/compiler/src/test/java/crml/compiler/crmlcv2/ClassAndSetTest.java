@@ -103,7 +103,7 @@ public class ClassAndSetTest {
 
         boolean traced = false;
         for (TraceLink link : result.trace().getLinks()) {
-            if (link.getSource() == clazz && link.getKind() == TraceLinkKind.CLASS_TO_MODEL) {
+            if (link.getCrml() == clazz && link.getKind() == TraceLinkKind.CLASS_TO_MODEL) {
                 traced = true;
             }
         }

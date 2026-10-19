@@ -1,27 +1,18 @@
 package crml.modelica.print;
 
-import static crml.modelica.build.Modelica.assign;
-import static crml.modelica.build.Modelica.call;
-import static crml.modelica.build.Modelica.component;
-import static crml.modelica.build.Modelica.function;
-import static crml.modelica.build.Modelica.ifExpr;
-import static crml.modelica.build.Modelica.input;
-import static crml.modelica.build.Modelica.output;
-import static crml.modelica.build.Modelica.record;
-import static crml.modelica.build.Modelica.ref;
-import static crml.modelica.build.Modelica.builtinRef;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
 
 import crml.model.modelica.ClassDefinition;
+import crml.modelica.build.Modelica;
 
 /**
  * The M1 gate: hand-build two classes that exist verbatim in
  * {@code CRMLtoModelica.mo} and check the printer reproduces them byte-exactly.
  * These are the shapes the transformation has to be able to emit.
  */
-public class LibraryRoundTripTest {
+public class LibraryRoundTripTest implements Modelica {
 
     private static final PrinterOptions OPTIONS = PrinterOptions.DEFAULT.withLineSeparator("\n");
 

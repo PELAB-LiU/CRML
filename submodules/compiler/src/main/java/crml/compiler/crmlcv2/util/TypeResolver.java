@@ -17,7 +17,7 @@ import crml.model.modelica.RawReason;
 import crml.model.modelica.Reference;
 import crml.modelica.build.Modelica;
 
-public class TypeResolver {
+public class TypeResolver implements Modelica {
 
     /**
      * The Modelica type a CRML type reference names.
@@ -32,15 +32,15 @@ public class TypeResolver {
      * UNRESOLVED reference, so the caller drops one declaration rather than the
      * whole model.
      */
-    public static Reference<ClassDefinition> resolve(TransformationContext ctx, TypeReference type){
+    public Reference<ClassDefinition> resolve(TransformationContext ctx, TypeReference type){
         if (type instanceof IndirectTypeReference) {
             return resolve(ctx, ((IndirectTypeReference) type).getReferredType());
         }
         if (type instanceof BuiltinTypeReference) {
             BuiltinType builtin = ((BuiltinTypeReference) type).getBuiltinType();
             String name = resolve(builtin);
-            return isModelicaPrimitive(builtin) ? Modelica.<ClassDefinition>builtinRef(name)
-                                                : Modelica.<ClassDefinition>libraryRef(name);
+            return isModelicaPrimitive(builtin) ? this.<ClassDefinition>builtinRef(name)
+                                                : this.<ClassDefinition>libraryRef(name);
         }
         if (type instanceof UserTypereference) {
             Domain domain = ((UserTypereference) type).getDomain();
@@ -48,7 +48,7 @@ public class TypeResolver {
                 crml.model.language.Class clazz = (crml.model.language.Class) domain;
                 ClassDefinition definition = ctx.generatedClass(clazz);
                 if (definition != null) {
-                    return Modelica.resolvedRef(definition);
+                    return resolvedRef(definition);
                 }
                 return unresolved(ctx, type, "no Modelica class was generated for CRML class '"
                     + clazz.getName() + "'");
@@ -67,10 +67,10 @@ public class TypeResolver {
         return type == BuiltinType.REAL || type == BuiltinType.INTEGER || type == BuiltinType.STRING;
     }
 
-    private static Reference<ClassDefinition> unresolved(TransformationContext ctx, TypeReference type,
+    private Reference<ClassDefinition> unresolved(TransformationContext ctx, TypeReference type,
             String message) {
         ctx.report(Diagnostics.error("TypeReference", message, type));
-        return Modelica.<ClassDefinition>rawRef("", RawReason.UNRESOLVED);
+        return this.<ClassDefinition>rawRef("", RawReason.UNRESOLVED);
     }
 
     /** The legacy name-only resolution, kept for the two callers that need a bare name. */

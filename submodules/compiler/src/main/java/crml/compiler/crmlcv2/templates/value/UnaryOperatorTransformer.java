@@ -4,11 +4,6 @@ import static crml.compiler.crmlcv2.templates.value.TypeCategories.isBooleanOrUn
 import static crml.compiler.crmlcv2.templates.value.TypeCategories.isClockOrUnknown;
 import static crml.compiler.crmlcv2.templates.value.TypeCategories.isNumericOrUnknown;
 import static crml.compiler.crmlcv2.templates.value.TypeCategories.isPeriodOrUnknown;
-import static crml.modelica.build.Modelica.call;
-import static crml.modelica.build.Modelica.mslRef;
-import static crml.modelica.build.Modelica.libraryRef;
-import static crml.modelica.build.Modelica.parens;
-import static crml.modelica.build.Modelica.unary;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -16,26 +11,29 @@ import java.util.Map;
 import crml.compiler.crmlcv2.Diagnostics;
 import crml.compiler.crmlcv2.TransformationContext;
 import crml.compiler.crmlcv2.UnsupportedConstruct;
-import crml.compiler.crmlcv2.templates.BlockInstantiation;
-import crml.compiler.crmlcv2.templates.ValueTransformer;
+import crml.compiler.crmlcv2.templates.Transformer;
 import crml.compiler.crmlcv2.util.TypeResolver;
 import crml.model.language.BuiltinType;
 import crml.model.language.BuiltinUnaryOperatorKind;
 import crml.model.language.UnaryOperator;
 import crml.model.modelica.Expression;
 import crml.model.modelica.UnaryOperatorKind;
+import crml.modelica.build.Modelica;
 
 /**
  * CRML unary operators to Modelica expressions. Type dispatch ported unchanged
  * from the string generator; see {@link BinaryOperatorTransformer}.
  */
-public final class UnaryOperatorTransformer {
+public final class UnaryOperatorTransformer implements Modelica {
 
-    private UnaryOperatorTransformer() {
+    private final Transformer transformer;
+
+    public UnaryOperatorTransformer(Transformer transformer) {
+        this.transformer = transformer;
     }
 
-    public static Expression transform(TransformationContext ctx, UnaryOperator op) {
-        Expression operand = ValueTransformer.transform(ctx, op.getValue());
+    public Expression transform(TransformationContext ctx, UnaryOperator op) {
+        Expression operand = transformer.values().transform(ctx, op.getValue());
         BuiltinType t = TypeResolver.resolveBuiltin(op.getValue().getReturnType());
         BuiltinUnaryOperatorKind opType = op.getOptype();
 
@@ -99,7 +97,7 @@ public final class UnaryOperatorTransformer {
      * expression, so it is instantiated as a component on the target class and
      * the expression becomes a reference to its output port.
      */
-    private static Expression transformClockBlock(TransformationContext ctx, UnaryOperator op,
+    private Expression transformClockBlock(TransformationContext ctx, UnaryOperator op,
             BuiltinUnaryOperatorKind opType, Expression operand, String blockType, String prefix) {
         // The looked-through type, not the inferred return type: both blocks
         // take a CRMLClock and nothing else, and typeinference.csv has no row
@@ -111,11 +109,11 @@ public final class UnaryOperatorTransformer {
         }
         Map<String, Expression> inputs = new LinkedHashMap<String, Expression>();
         inputs.put("r1", operand);
-        return BlockInstantiation.instantiate(ctx, libraryRef(blockType), prefix, inputs,
+        return transformer.blocks().instantiate(ctx, libraryRef(blockType), prefix, inputs,
             "out", op);
     }
 
-    private static Expression transformSign(UnaryOperator op, BuiltinUnaryOperatorKind opType,
+    private Expression transformSign(UnaryOperator op, BuiltinUnaryOperatorKind opType,
             Expression operand, BuiltinType t, UnaryOperatorKind sign) {
         if (isNumericOrUnknown(t)) {
             return unary(sign, operand);
@@ -123,7 +121,7 @@ public final class UnaryOperatorTransformer {
         throw new UnsupportedConstruct(Diagnostics.incompatibleTypes(opType, t, op));
     }
 
-    private static Expression transformNot(UnaryOperator op, BuiltinUnaryOperatorKind opType,
+    private Expression transformNot(UnaryOperator op, BuiltinUnaryOperatorKind opType,
             Expression operand, BuiltinType t) {
         if (isBooleanOrUnknown(t)) {
             return call(libraryRef("CRMLtoModelica.Functions.not4"), operand);
@@ -131,7 +129,7 @@ public final class UnaryOperatorTransformer {
         throw new UnsupportedConstruct(Diagnostics.incompatibleTypes(opType, t, op));
     }
 
-    private static Expression transformMath(TransformationContext ctx, UnaryOperator op,
+    private Expression transformMath(TransformationContext ctx, UnaryOperator op,
             BuiltinUnaryOperatorKind opType, Expression operand, BuiltinType t, String function) {
         if (isNumericOrUnknown(t)) {
             // Modelica.Math is the standard library, which CRMLtoModelica.mo does
@@ -146,7 +144,7 @@ public final class UnaryOperatorTransformer {
         throw new UnsupportedConstruct(Diagnostics.incompatibleTypes(opType, t, op));
     }
 
-    private static Expression transformPeriodEndpoint(UnaryOperator op, BuiltinUnaryOperatorKind opType,
+    private Expression transformPeriodEndpoint(UnaryOperator op, BuiltinUnaryOperatorKind opType,
             Expression operand, BuiltinType t, String function) {
         if (isPeriodOrUnknown(t)) {
             return call(libraryRef(function), operand);

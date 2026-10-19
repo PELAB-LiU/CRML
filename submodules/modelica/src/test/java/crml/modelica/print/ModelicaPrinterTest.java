@@ -1,33 +1,5 @@
 package crml.modelica.print;
 
-import static crml.modelica.build.Modelica.array;
-import static crml.modelica.build.Modelica.assign;
-import static crml.modelica.build.Modelica.binary;
-import static crml.modelica.build.Modelica.block;
-import static crml.modelica.build.Modelica.bool;
-import static crml.modelica.build.Modelica.call;
-import static crml.modelica.build.Modelica.component;
-import static crml.modelica.build.Modelica.dimension;
-import static crml.modelica.build.Modelica.eq;
-import static crml.modelica.build.Modelica.extendsClause;
-import static crml.modelica.build.Modelica.function;
-import static crml.modelica.build.Modelica.ifExpr;
-import static crml.modelica.build.Modelica.input;
-import static crml.modelica.build.Modelica.integer;
-import static crml.modelica.build.Modelica.mod;
-import static crml.modelica.build.Modelica.libraryRef;
-import static crml.modelica.build.Modelica.builtinRef;
-import static crml.modelica.build.Modelica.model;
-import static crml.modelica.build.Modelica.output;
-import static crml.modelica.build.Modelica.parens;
-import static crml.modelica.build.Modelica.part;
-import static crml.modelica.build.Modelica.placeholder;
-import static crml.modelica.build.Modelica.real;
-import static crml.modelica.build.Modelica.record;
-import static crml.modelica.build.Modelica.resolvedRef;
-import static crml.modelica.build.Modelica.ref;
-import static crml.modelica.build.Modelica.string;
-import static crml.modelica.build.Modelica.unary;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
@@ -41,12 +13,13 @@ import crml.model.modelica.ModelicaFactory;
 import crml.model.modelica.UnaryOperatorKind;
 import crml.model.modelica.Variability;
 import crml.model.modelica.Visibility;
+import crml.modelica.build.Modelica;
 
 /**
  * Covers each metamodel class at least once, with exact expected text. Uses a
  * fixed "\n" line separator so the expectations are platform-independent.
  */
-public class ModelicaPrinterTest {
+public class ModelicaPrinterTest implements Modelica {
 
     private static final PrinterOptions OPTIONS = PrinterOptions.DEFAULT.withLineSeparator("\n");
 

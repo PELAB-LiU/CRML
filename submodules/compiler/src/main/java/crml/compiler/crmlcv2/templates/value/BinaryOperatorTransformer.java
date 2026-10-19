@@ -5,10 +5,6 @@ import static crml.compiler.crmlcv2.templates.value.TypeCategories.isBooleanOrUn
 import static crml.compiler.crmlcv2.templates.value.TypeCategories.isClockOrUnknown;
 import static crml.compiler.crmlcv2.templates.value.TypeCategories.isNumericOrUnknown;
 import static crml.compiler.crmlcv2.templates.value.TypeCategories.isStringCompatible;
-import static crml.modelica.build.Modelica.binary;
-import static crml.modelica.build.Modelica.call;
-import static crml.modelica.build.Modelica.builtinRef;
-import static crml.modelica.build.Modelica.libraryRef;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -16,14 +12,14 @@ import java.util.Map;
 import crml.compiler.crmlcv2.Diagnostics;
 import crml.compiler.crmlcv2.TransformationContext;
 import crml.compiler.crmlcv2.UnsupportedConstruct;
-import crml.compiler.crmlcv2.templates.BlockInstantiation;
-import crml.compiler.crmlcv2.templates.ValueTransformer;
+import crml.compiler.crmlcv2.templates.Transformer;
 import crml.compiler.crmlcv2.util.TypeResolver;
 import crml.model.language.BinaryOperator;
 import crml.model.language.BuiltinBinaryOperatorKind;
 import crml.model.language.BuiltinType;
 import crml.model.modelica.BinaryOperatorKind;
 import crml.model.modelica.Expression;
+import crml.modelica.build.Modelica;
 
 /**
  * CRML binary operators to Modelica expressions.
@@ -37,14 +33,17 @@ import crml.model.modelica.Expression;
  * Only the construction calls changed: text concatenation became object-model
  * nodes, and the cases with no target became diagnostics instead of exceptions.
  */
-public final class BinaryOperatorTransformer {
+public final class BinaryOperatorTransformer implements Modelica {
 
-    private BinaryOperatorTransformer() {
+    private final Transformer transformer;
+
+    public BinaryOperatorTransformer(Transformer transformer) {
+        this.transformer = transformer;
     }
 
-    public static Expression transform(TransformationContext ctx, BinaryOperator op) {
-        Expression lhs = ValueTransformer.transform(ctx, op.getLhs());
-        Expression rhs = ValueTransformer.transform(ctx, op.getRhs());
+    public Expression transform(TransformationContext ctx, BinaryOperator op) {
+        Expression lhs = transformer.values().transform(ctx, op.getLhs());
+        Expression rhs = transformer.values().transform(ctx, op.getRhs());
         BuiltinType lt = TypeResolver.resolveBuiltin(op.getLhs().getReturnType());
         BuiltinType rt = TypeResolver.resolveBuiltin(op.getRhs().getReturnType());
         BuiltinBinaryOperatorKind opType = op.getOptype();
@@ -109,7 +108,7 @@ public final class BinaryOperatorTransformer {
      * instantiated on the target class and the expression becomes a reference to
      * its output port.
      */
-    private static Expression transformFilter(TransformationContext ctx, BinaryOperator op,
+    private Expression transformFilter(TransformationContext ctx, BinaryOperator op,
             BuiltinBinaryOperatorKind opType, Expression lhs, Expression rhs, BuiltinType lt, BuiltinType rt) {
         // The looked-through left type: EventFilter takes a CRMLClock, and
         // typeinference.csv's only FILTER row is CLOCK|BOOLEAN.
@@ -120,13 +119,13 @@ public final class BinaryOperatorTransformer {
         Map<String, Expression> inputs = new LinkedHashMap<String, Expression>();
         inputs.put("r1", lhs);
         inputs.put("r2", rhs);
-        return BlockInstantiation.instantiate(ctx, libraryRef("CRMLtoModelica.Blocks.EventFilter"), "filter",
+        return transformer.blocks().instantiate(ctx, libraryRef("CRMLtoModelica.Blocks.EventFilter"), "filter",
             inputs, "out", op);
     }
 
     // --- arithmetic ---------------------------------------------------------
 
-    private static Expression transformAdd(BinaryOperator op, BuiltinBinaryOperatorKind opType,
+    private Expression transformAdd(BinaryOperator op, BuiltinBinaryOperatorKind opType,
             Expression lhs, Expression rhs, BuiltinType lt, BuiltinType rt) {
         if (isNumericOrUnknown(lt) && isNumericOrUnknown(rt)) {
             return binary(BinaryOperatorKind.ADD, lhs, rhs);
@@ -145,7 +144,7 @@ public final class BinaryOperatorTransformer {
         }
     }
 
-    private static Expression transformSub(BinaryOperator op, BuiltinBinaryOperatorKind opType,
+    private Expression transformSub(BinaryOperator op, BuiltinBinaryOperatorKind opType,
             Expression lhs, Expression rhs, BuiltinType lt, BuiltinType rt) {
         if (isNumericOrUnknown(lt) && isNumericOrUnknown(rt)) {
             return binary(BinaryOperatorKind.SUB, lhs, rhs);
@@ -158,7 +157,7 @@ public final class BinaryOperatorTransformer {
         }
     }
 
-    private static Expression transformMul(BinaryOperator op, BuiltinBinaryOperatorKind opType,
+    private Expression transformMul(BinaryOperator op, BuiltinBinaryOperatorKind opType,
             Expression lhs, Expression rhs, BuiltinType lt, BuiltinType rt) {
         if (isNumericOrUnknown(lt) && isNumericOrUnknown(rt)) {
             return binary(BinaryOperatorKind.MUL, lhs, rhs);
@@ -169,7 +168,7 @@ public final class BinaryOperatorTransformer {
         }
     }
 
-    private static Expression transformDiv(BinaryOperator op, BuiltinBinaryOperatorKind opType,
+    private Expression transformDiv(BinaryOperator op, BuiltinBinaryOperatorKind opType,
             Expression lhs, Expression rhs, BuiltinType lt, BuiltinType rt) {
         if (isNumericOrUnknown(lt) && isNumericOrUnknown(rt)) {
             return binary(BinaryOperatorKind.DIV, lhs, rhs);
@@ -178,7 +177,7 @@ public final class BinaryOperatorTransformer {
         }
     }
 
-    private static Expression transformPow(BinaryOperator op, BuiltinBinaryOperatorKind opType,
+    private Expression transformPow(BinaryOperator op, BuiltinBinaryOperatorKind opType,
             Expression lhs, Expression rhs, BuiltinType lt, BuiltinType rt) {
         if (isNumericOrUnknown(lt) && isNumericOrUnknown(rt)) {
             return binary(BinaryOperatorKind.POW, lhs, rhs);
@@ -187,7 +186,7 @@ public final class BinaryOperatorTransformer {
         }
     }
 
-    private static Expression transformMod(BinaryOperator op, BuiltinBinaryOperatorKind opType,
+    private Expression transformMod(BinaryOperator op, BuiltinBinaryOperatorKind opType,
             Expression lhs, Expression rhs, BuiltinType lt, BuiltinType rt) {
         if (isNumericOrUnknown(lt) && isNumericOrUnknown(rt)) {
             return call(builtinRef("mod"), lhs, rhs);
@@ -198,7 +197,7 @@ public final class BinaryOperatorTransformer {
 
     // --- logic --------------------------------------------------------------
 
-    private static Expression transformAnd(BinaryOperator op, BuiltinBinaryOperatorKind opType,
+    private Expression transformAnd(BinaryOperator op, BuiltinBinaryOperatorKind opType,
             Expression lhs, Expression rhs, BuiltinType lt, BuiltinType rt) {
         if (isBooleanOrUnknown(lt) && isBooleanOrUnknown(rt)) {
             return call(libraryRef("CRMLtoModelica.Functions.and4"), lhs, rhs);
@@ -207,7 +206,7 @@ public final class BinaryOperatorTransformer {
         }
     }
 
-    private static Expression transformOr(BinaryOperator op, BuiltinBinaryOperatorKind opType,
+    private Expression transformOr(BinaryOperator op, BuiltinBinaryOperatorKind opType,
             Expression lhs, Expression rhs, BuiltinType lt, BuiltinType rt) {
         if (isBooleanOrUnknown(lt) && isBooleanOrUnknown(rt)) {
             return call(libraryRef("CRMLtoModelica.Functions.or4"), lhs, rhs);
@@ -218,7 +217,7 @@ public final class BinaryOperatorTransformer {
 
     // --- comparisons --------------------------------------------------------
 
-    private static Expression transformComparison(BinaryOperator op, BuiltinBinaryOperatorKind opType,
+    private Expression transformComparison(BinaryOperator op, BuiltinBinaryOperatorKind opType,
             Expression lhs, Expression rhs, BuiltinType lt, BuiltinType rt,
             BinaryOperatorKind modelicaOp, String symbol,
             boolean eventSupported, String eventFunction, boolean periodSupported) {

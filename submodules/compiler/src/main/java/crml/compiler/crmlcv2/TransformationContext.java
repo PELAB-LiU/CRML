@@ -27,30 +27,16 @@ import crml.model.trace.TraceLinkKind;
 import crml.model.trace.TraceModel;
 import crml.modelica.build.Modelica;
 
-/**
- * The mutable state of one class being generated, and the only way to add to
- * it.
- *
- * <p>This replaces the {@code Scope} tree. {@code BlockScope} used to declare a
- * component and its wiring equations as a side effect of its constructor,
- * mutating a host {@code ModelScope}; that is the right idea - hoist a
- * component plus equations out of an expression - but it was invisible and
- * untraceable. Here the hoist is explicit, and because {@link #declare},
- * {@link #equate} and {@link #defineClass} are the only mutators, each of them
- * can record a trace link and the trace cannot be forgotten.
- */
-public final class TransformationContext {
+public final class TransformationContext implements Modelica {
 
     /** State shared by every context of one translation. */
     private static final class Session {
         final TraceModel trace = TraceFactory.eINSTANCE.createTraceModel();
         final List<Diagnostic> diagnostics = new ArrayList<Diagnostic>();
-        /** The top-level class; generated operator classes are nested in it. */
         ClassDefinition root;
-        /** One generated class per CustomOperator, reused by every call site. */
+        
         final Map<CustomOperator, GeneratedOperator> operators =
             new LinkedHashMap<CustomOperator, GeneratedOperator>();
-        /** Operators currently being transformed, to catch cyclic definitions. */
         final Set<CustomOperator> visiting = new HashSet<CustomOperator>();
         /** Operators whose class could not be generated, so each is diagnosed once. */
         final Map<CustomOperator, UnsupportedConstruct> operatorFailures =
@@ -120,7 +106,7 @@ public final class TransformationContext {
         reserveName(declaration.getName());
         target.getComponents().add(declaration);
         link(crmlSource, declaration, componentKind(crmlSource));
-        return Modelica.ref(declaration.getName());
+        return ref(declaration.getName());
     }
 
     /** Adds an equation to the target class. */
@@ -188,7 +174,7 @@ public final class TransformationContext {
      */
     public void reportWithPlaceholder(Diagnostic diagnostic) {
         report(diagnostic);
-        Placeholder placeholder = Modelica.placeholder(
+        Placeholder placeholder = placeholder(
             diagnostic.constructKind() + ": " + diagnostic.message());
         target.getPlaceholders().add(placeholder);
         link(diagnostic.crmlSource(), placeholder, TraceLinkKind.UNSUPPORTED);
@@ -264,8 +250,8 @@ public final class TransformationContext {
             return;
         }
         TraceLink traceLink = TraceFactory.eINSTANCE.createTraceLink();
-        traceLink.setSource(crmlSource);
-        traceLink.setTarget(modelicaTarget);
+        traceLink.setCrml(crmlSource);
+        traceLink.setModelica(modelicaTarget);
         traceLink.setKind(kind);
         session.trace.getLinks().add(traceLink);
     }
