@@ -33,6 +33,14 @@ In addition to the libraries above:
 | Eclipse LSP4J | `org.eclipse.lsp4j:org.eclipse.lsp4j` | 1.0.0 | <https://github.com/eclipse-lsp4j/lsp4j> |
 | Eclipse LSP4J JSON-RPC | `org.eclipse.lsp4j:org.eclipse.lsp4j.jsonrpc` | 1.0.0 | <https://github.com/eclipse-lsp4j/lsp4j> |
 
+## Java runtime in the platform-specific VS Code packages
+
+The platform-specific packages of the VS Code extension include a Java runtime
+built with jlink from Eclipse Temurin (OpenJDK), licensed under the GNU General
+Public License version 2 with the Classpath Exception. Its license texts and
+notices are in the package's `jre/legal/` folder. The universal package
+includes no Java runtime.
+
 ### Build-time only (not redistributed)
 
 EMF Codegen, Xcore and Xtext generate the metamodel code during the build. They
