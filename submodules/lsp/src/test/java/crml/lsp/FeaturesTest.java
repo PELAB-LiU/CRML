@@ -102,14 +102,10 @@ class FeaturesTest {
     }
 
     @Test
-    void findsNoErrorsInTheSriExample() {
-        // Only errors: 'during' and 'ensure' come from FORM_L, which is not
-        // resolved, and MixfixParser on this branch then fails with a
-        // NullPointerException, reported as a warning. The fix is c43734e on
-        // modelica-metamodel-plan; with it, there should be no diagnostics.
-        List<Diagnostic> errors = Diagnostics.of(ParsedDocument.parse(SRI)).stream()
-            .filter(d -> d.getSeverity() == DiagnosticSeverity.Error).collect(Collectors.toList());
-        assertEquals(List.of(), errors);
+    void acceptsTheSriExample() {
+        // 'during' and 'ensure' come from FORM_L, which is not resolved; the
+        // calls stay unresolved, which is not reported.
+        assertEquals(List.of(), Diagnostics.of(ParsedDocument.parse(SRI)));
     }
 
     // ── Completion ───────────────────────────────────────────
