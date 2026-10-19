@@ -1,0 +1,13 @@
+// Gradle init script: adds a task to :language that compiles it and prints
+// its runtime classpath, for running the Java lexer from the parity test
+// without changing the project's own build files.
+allprojects {
+    if (path == ":language") {
+        tasks.register("printLanguageClasspath") {
+            dependsOn("classes")
+            doLast {
+                println("CLASSPATH=" + project.sourceSets.main.runtimeClasspath.asPath)
+            }
+        }
+    }
+}
