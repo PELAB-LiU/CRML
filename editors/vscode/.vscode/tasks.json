@@ -4,7 +4,7 @@
     {
       "label": "Build CRML extension",
       "type": "shell",
-      "command": "npm run build",
+      "command": "npm run build && npm run build:server",
       "options": {
         "cwd": "${workspaceFolder}",
         "shell": {
