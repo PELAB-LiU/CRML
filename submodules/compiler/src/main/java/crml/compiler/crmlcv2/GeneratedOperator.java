@@ -5,6 +5,7 @@ import java.util.List;
 
 import crml.model.language.Variable;
 import crml.model.modelica.ClassDefinition;
+import crml.model.modelica.ClassKind;
 
 /**
  * The Modelica class generated for one CRML template or user operator, plus
@@ -23,12 +24,10 @@ public final class GeneratedOperator {
     public static final String OUTPUT_PORT = "out";
 
     private final ClassDefinition definition;
-    private final boolean block;
     private final List<Variable> parameters;
 
-    public GeneratedOperator(ClassDefinition definition, boolean block, List<Variable> parameters) {
+    public GeneratedOperator(ClassDefinition definition, List<Variable> parameters) {
         this.definition = definition;
-        this.block = block;
         this.parameters = Collections.unmodifiableList(parameters);
     }
 
@@ -42,7 +41,7 @@ public final class GeneratedOperator {
 
     /** True when calls must instantiate this class rather than call it. */
     public boolean isBlock() {
-        return block;
+        return definition.getKind() != ClassKind.FUNCTION;
     }
 
     /** The operator's header variables, in declaration order. */

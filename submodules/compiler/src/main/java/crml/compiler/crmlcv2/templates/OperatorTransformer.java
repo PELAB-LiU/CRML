@@ -5,6 +5,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.eclipse.emf.ecore.EObject;
+
 import crml.compiler.crmlcv2.Diagnostic;
 import crml.compiler.crmlcv2.Diagnostics;
 import crml.compiler.crmlcv2.GeneratedOperator;
@@ -67,8 +69,8 @@ public final class OperatorTransformer implements Modelica {
     // --- declaration --------------------------------------------------------
 
     /**
-     * Generates the class for {@code operator} and nests it in the model, or
-     * returns the one already generated.
+     * Generates the class for {@code operator} and nests it in the class of its
+     * owner (see {@link #ownerContext}), or returns the one already generated.
      */
     public GeneratedOperator declare(TransformationContext ctx, CustomOperator operator) {
         GeneratedOperator existing = ctx.generatedOperator(operator);
@@ -97,8 +99,8 @@ public final class OperatorTransformer implements Modelica {
 
     private GeneratedOperator generate(TransformationContext ctx, CustomOperator operator) {
         List<Variable> parameters = new ArrayList<Variable>(operator.getVariables());
-        TransformationContext root = ctx.root();
-        String name = root.allocateClassName(modelicaName(operator));
+        TransformationContext owner = ownerContext(ctx, operator);
+        String name = owner.allocateClassName(modelicaName(operator));
 
         if (operator.getDefinition() == null) {
             throw new UnsupportedConstruct(Diagnostics.error("CustomOperator",
@@ -109,7 +111,7 @@ public final class OperatorTransformer implements Modelica {
         // the scratch stays empty and only the expression is kept; if it hoisted
         // anything, the scratch already is the block's body.
         ClassDefinition body = block(name);
-        TransformationContext bodyCtx = root.nested(body);
+        TransformationContext bodyCtx = owner.nested(body);
         bodyCtx.reserveName(GeneratedOperator.OUTPUT_PORT);
         for (Variable parameter : parameters) {
             bodyCtx.reserveName(parameter.getName());
@@ -120,10 +122,10 @@ public final class OperatorTransformer implements Modelica {
         // Parameters first, then the output, then whatever the body hoisted.
         int index = 0;
         for (Variable parameter : parameters) {
-            body.getComponents().add(index++, input(root, parameter, operator));
+            body.getComponents().add(index++, input(owner, parameter, operator));
         }
         body.getComponents().add(index, output(
-            resolve(root, operator.getDomain(), operator, "result"), GeneratedOperator.OUTPUT_PORT));
+            resolve(owner, operator.getDomain(), operator, "result"), GeneratedOperator.OUTPUT_PORT));
 
         if (hoisted) {
             body.getEquations().add(eq(ref(GeneratedOperator.OUTPUT_PORT), result));
@@ -132,10 +134,34 @@ public final class OperatorTransformer implements Modelica {
             body.getStatements().add(assign(ref(GeneratedOperator.OUTPUT_PORT), result));
         }
 
-        GeneratedOperator generated = new GeneratedOperator(body, hoisted, parameters);
+        GeneratedOperator generated = new GeneratedOperator(body, parameters);
         ctx.registerOperator(operator, generated);
-        root.defineClass(body, operator);
+        owner.defineClass(body, operator);
         return generated;
+    }
+
+    /**
+     * A context targeting the Modelica class the operator's class is nested in:
+     * the class generated for the CRML class declaring it, or the model for an
+     * operator the model itself declares.
+     *
+     * <p>Placement follows the declaring scope, not the call site, so the first
+     * call to reach an operator cannot decide where it lives. crml.xcore does not
+     * let a class own operators yet, so today every operator lands in the model.
+     */
+    private TransformationContext ownerContext(TransformationContext ctx, CustomOperator operator) {
+        EObject container = operator.eContainer();
+        if (container instanceof crml.model.language.Class) {
+            crml.model.language.Class clazz = (crml.model.language.Class) container;
+            ClassDefinition definition = ctx.generatedClass(clazz);
+            if (definition == null) {
+                throw new UnsupportedConstruct(Diagnostics.error("CustomOperator",
+                    "operator '" + describe(operator) + "' is a member of class '" + clazz.getName()
+                    + "', which has no generated counterpart", operator));
+            }
+            return ctx.nested(definition);
+        }
+        return ctx.root();
     }
 
     private ComponentDeclaration input(TransformationContext ctx, Variable parameter,
@@ -173,7 +199,7 @@ public final class OperatorTransformer implements Modelica {
             throw new UnsupportedConstruct(Diagnostics.error("ComputedValue",
                 "the call does not refer to any operator", call));
         }
-        GeneratedOperator generated = declare(ctx.root(), operator);
+        GeneratedOperator generated = declare(ctx, operator);
 
         if (generated.isBlock()) {
             Map<String, Expression> inputs = new LinkedHashMap<String, Expression>();
