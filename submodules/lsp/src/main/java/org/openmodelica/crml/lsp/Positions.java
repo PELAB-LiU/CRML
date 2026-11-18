@@ -90,6 +90,12 @@ public final class Positions {
         return new Range(position(start), position(Math.max(start, end)));
     }
 
+    /** The ANTLR (code point) index of a UTF-16 offset, clamped to the text. */
+    public int codePointIndex(int utf16Offset) {
+        int offset = Math.min(Math.max(utf16Offset, 0), text.length());
+        return utf16Offsets == null ? offset : text.codePointCount(0, offset);
+    }
+
     /** The UTF-16 offset of an LSP position, clamped to its line. */
     public int offset(Position position) {
         int line = Math.min(Math.max(position.getLine(), 0), lineCount() - 1);

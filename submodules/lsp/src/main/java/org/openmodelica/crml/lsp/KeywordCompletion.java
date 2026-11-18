@@ -50,7 +50,7 @@ public final class KeywordCompletion {
     }
 
     /** The tokens the parser expects after the given text, or none if it fails before reaching the end. */
-    private static IntervalSet expectedAtEnd(String prefix) {
+    static IntervalSet expectedAtEnd(String prefix) {
         crmlLexer lexer = new crmlLexer(CharStreams.fromString(prefix));
         lexer.removeErrorListeners();
         crmlParser parser = new crmlParser(new CommonTokenStream(lexer));
@@ -69,7 +69,8 @@ public final class KeywordCompletion {
         return expected;
     }
 
-    private static boolean insideCommentOrString(ParsedDocument document, int cursor) {
+    /** True if the UTF-16 offset is inside a comment, a string or a quoted keyword. */
+    static boolean insideCommentOrString(ParsedDocument document, int cursor) {
         for (Token token : document.tokens) {
             int type = token.getType();
             if (type != crmlLexer.LINE_COMMENT && type != crmlLexer.ML_COMMENT
@@ -86,7 +87,7 @@ public final class KeywordCompletion {
         return false;
     }
 
-    private static boolean isWordChar(char c) {
+    static boolean isWordChar(char c) {
         return Character.isLetterOrDigit(c) || c == '_';
     }
 }

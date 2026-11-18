@@ -2,7 +2,9 @@ package org.openmodelica.crml.lsp;
 
 import java.util.concurrent.CompletableFuture;
 
+import org.eclipse.lsp4j.CompletionItemCapabilities;
 import org.eclipse.lsp4j.CompletionOptions;
+import org.eclipse.lsp4j.MarkupKind;
 import org.eclipse.lsp4j.InitializeParams;
 import org.eclipse.lsp4j.InitializeResult;
 import org.eclipse.lsp4j.SemanticTokensWithRegistrationOptions;
@@ -43,7 +45,9 @@ public class CrmlLanguageServer implements LanguageServer, LanguageClientAware {
         // Each change sends the whole document; analysis re-reads it anyway.
         capabilities.setTextDocumentSync(TextDocumentSyncKind.Full);
         capabilities.setDocumentSymbolProvider(true);
-        capabilities.setCompletionProvider(new CompletionOptions());
+        // Asked for explicitly (Ctrl+Space): no trigger characters.
+        capabilities.setCompletionProvider(new CompletionOptions(true, null));
+        documents.support(clientSupport(params));
         if (!option(params, CLIENT_HIGHLIGHTING)) {
             SemanticTokensWithRegistrationOptions tokens = new SemanticTokensWithRegistrationOptions(SemanticTokensProvider.LEGEND);
             tokens.setFull(true);
@@ -53,6 +57,20 @@ public class CrmlLanguageServer implements LanguageServer, LanguageClientAware {
         String version = CrmlLanguageServer.class.getPackage().getImplementationVersion();
         return CompletableFuture.completedFuture(
             new InitializeResult(capabilities, new ServerInfo(NAME, version)));
+    }
+
+    /** What the client's completion can show, from its capabilities. */
+    private static CompletionEngine.ClientSupport clientSupport(InitializeParams params) {
+        CompletionItemCapabilities item = null;
+        if (params.getCapabilities() != null && params.getCapabilities().getTextDocument() != null
+            && params.getCapabilities().getTextDocument().getCompletion() != null) {
+            item = params.getCapabilities().getTextDocument().getCompletion().getCompletionItem();
+        }
+        if (item == null) return new CompletionEngine.ClientSupport(false, false, false);
+        return new CompletionEngine.ClientSupport(
+            Boolean.TRUE.equals(item.getSnippetSupport()),
+            Boolean.TRUE.equals(item.getLabelDetailsSupport()),
+            item.getDocumentationFormat() != null && item.getDocumentationFormat().contains(MarkupKind.MARKDOWN));
     }
 
     private static boolean option(InitializeParams params, String name) {

@@ -17,14 +17,26 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.eclipse.lsp4j.ClientCapabilities;
+import org.eclipse.lsp4j.CompletionCapabilities;
+import org.eclipse.lsp4j.CompletionItem;
+import org.eclipse.lsp4j.CompletionItemCapabilities;
+import org.eclipse.lsp4j.CompletionList;
+import org.eclipse.lsp4j.CompletionOptions;
+import org.eclipse.lsp4j.CompletionParams;
 import org.eclipse.lsp4j.DidChangeTextDocumentParams;
 import org.eclipse.lsp4j.DidOpenTextDocumentParams;
 import org.eclipse.lsp4j.InitializeParams;
 import org.eclipse.lsp4j.InitializeResult;
 import org.eclipse.lsp4j.InitializedParams;
+import org.eclipse.lsp4j.InsertTextFormat;
+import org.eclipse.lsp4j.MarkupKind;
+import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
 import org.eclipse.lsp4j.ServerCapabilities;
+import org.eclipse.lsp4j.TextDocumentClientCapabilities;
 import org.eclipse.lsp4j.TextDocumentContentChangeEvent;
+import org.eclipse.lsp4j.TextDocumentIdentifier;
 import org.eclipse.lsp4j.TextDocumentItem;
 import org.eclipse.lsp4j.TextDocumentSyncKind;
 import org.eclipse.lsp4j.VersionedTextDocumentIdentifier;
@@ -94,6 +106,36 @@ class LifecycleTest {
             new VersionedTextDocumentIdentifier(uri, 2),
             List.of(new TextDocumentContentChangeEvent("model M is {\n  Boolean b is true;\n};"))));
         assertEquals(List.of(), client.awaitDiagnostics(uri, 2).getDiagnostics());
+    }
+
+    @Test
+    void completesWithSnippetsAndResolvesDocumentation() throws Exception {
+        LanguageServer remote = connect(new TestClient());
+        InitializeParams params = new InitializeParams();
+        CompletionItemCapabilities item = new CompletionItemCapabilities(true);
+        item.setLabelDetailsSupport(true);
+        item.setDocumentationFormat(List.of(MarkupKind.MARKDOWN));
+        TextDocumentClientCapabilities text = new TextDocumentClientCapabilities();
+        text.setCompletion(new CompletionCapabilities(item));
+        params.setCapabilities(new ClientCapabilities(null, text, null));
+        CompletionOptions options = remote.initialize(params).get(10, TimeUnit.SECONDS).getCapabilities().getCompletionProvider();
+        assertTrue(options.getResolveProvider());
+        assertNull(options.getTriggerCharacters(), "completion is asked for explicitly");
+
+        String uri = "file:///test/C.crml";
+        remote.getTextDocumentService().didOpen(new DidOpenTextDocumentParams(
+            new TextDocumentItem(uri, "crml", 1, "model M is ETL union {\n  Boolean b is external;\n  Clock c is \n};")));
+        CompletionList list = remote.getTextDocumentService()
+            .completion(new CompletionParams(new TextDocumentIdentifier(uri), new Position(2, 13)))
+            .get(30, TimeUnit.SECONDS).getRight();
+        CompletionItem becomesTrue = list.getItems().stream().filter(i -> i.getLabel().equals("b 'becomes true'"))
+            .findFirst().orElseThrow(AssertionError::new);
+        assertEquals(InsertTextFormat.Snippet, becomesTrue.getInsertTextFormat());
+        assertEquals("${1:b} 'becomes true'", becomesTrue.getTextEdit().getLeft().getNewText());
+
+        CompletionItem resolved = remote.getTextDocumentService().resolveCompletionItem(becomesTrue).get(10, TimeUnit.SECONDS);
+        assertEquals(MarkupKind.MARKDOWN, resolved.getDocumentation().getRight().getKind());
+        assertTrue(resolved.getDocumentation().getRight().getValue().contains("Events generated when a Boolean becomes true"));
     }
 
     /** Runs the shadow jar the editor launches, and checks that stdout carries nothing but the protocol. */

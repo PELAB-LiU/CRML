@@ -6,15 +6,20 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
+import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.Diagnostic;
+import org.eclipse.lsp4j.Position;
 import org.openmodelica.crml.language.workspace.CrmlDiagnostic;
 import org.openmodelica.crml.language.workspace.CrmlResource;
 import org.openmodelica.crml.language.workspace.CrmlWorkspace;
+import org.openmodelica.crml.language.workspace.SourceMap;
 
 /**
  * Analyses CRML documents the way the compiler front end does, in one
@@ -39,6 +44,8 @@ public final class Analyzer {
 
     private final CrmlWorkspace workspace = new CrmlWorkspace();
     private final List<CrmlResource> libraries = new ArrayList<>();
+    /** By document: what was visible in its root the last time it had a DOM. */
+    private final Map<String, ScopeSnapshot> lastScopes = new HashMap<>();
 
     public Analyzer() {
         for (String name : LIBRARIES) {
@@ -72,7 +79,40 @@ public final class Analyzer {
             return Diagnostics.syntax(document);
         }
         workspace.resolve();
+        if (resource.getRoot() != null) lastScopes.put(uri, ScopeSnapshot.at(resource.getRoot()));
         return Diagnostics.of(workspace.validate(resource), document);
+    }
+
+    /**
+     * The completion items at {@code position}. The document is analysed as
+     * it is now: what is in scope comes from its DOM, partial if the text is
+     * incomplete. If the text builds no DOM at all, what was in scope in its
+     * root the last time it had one is used.
+     *
+     * @param documentation receives the documentation of the items, by the id in their data
+     */
+    public List<CompletionItem> complete(String uri, ParsedDocument document, Position position,
+                                         CompletionEngine.ClientSupport support, Map<String, String> documentation) {
+        CrmlResource resource = workspace.load(URI.createURI(uri), document.text);
+        workspace.resolve();
+        return CompletionEngine.complete(document, position, scopeAt(uri, resource, document, position),
+            support, documentation);
+    }
+
+    private ScopeSnapshot scopeAt(String uri, CrmlResource resource, ParsedDocument document, Position position) {
+        EObject root = resource.getRoot();
+        if (root == null) return lastScopes.getOrDefault(uri, ScopeSnapshot.EMPTY);
+        lastScopes.put(uri, ScopeSnapshot.at(root));
+        // The innermost object at the last character before the cursor that
+        // is not blank: what is being written, even if the parser gave up in
+        // it before the cursor (Boolean b is |). Else at the cursor; else the root.
+        SourceMap map = resource.getSourceMap();
+        int offset = document.positions.offset(position);
+        int before = offset;
+        while (before > 0 && Character.isWhitespace(document.text.charAt(before - 1))) before--;
+        EObject at = before > 0 ? map.objectAt(document.positions.codePointIndex(before - 1)) : null;
+        if (at == null) at = map.objectAt(document.positions.codePointIndex(offset));
+        return ScopeSnapshot.at(at == null ? root : at);
     }
 
     /** The object model of an analysed document, or null; for tests. */
@@ -83,6 +123,7 @@ public final class Analyzer {
 
     /** Forgets a closed document: other documents can no longer depend on it. */
     public void close(String uri) {
+        lastScopes.remove(uri);
         CrmlResource resource = resource(uri);
         if (resource == null) return;
         workspace.getIndex().remove(resource);

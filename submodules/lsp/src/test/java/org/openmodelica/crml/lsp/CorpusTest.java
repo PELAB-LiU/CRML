@@ -8,12 +8,14 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.antlr.v4.runtime.Token;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.Position;
 import org.junit.jupiter.api.Test;
@@ -34,10 +36,21 @@ class CorpusTest {
         assertTrue(models.size() > 100, "expected the test corpus, found " + models.size());
         Map<String, Integer> outcomes = new TreeMap<>();
         Analyzer analyzer = new Analyzer();
+        int completions = 0;
         for (Path model : models) {
             ParsedDocument document = ParsedDocument.parse(new String(Files.readAllBytes(model), StandardCharsets.UTF_8));
             String uri = model.toUri().toString();
             List<Diagnostic> diagnostics = analyzer.diagnose(uri, document);
+            // Completion where values start, and at the end of the text.
+            for (Token token : document.tokens) {
+                if (token.getText().equals("is") || token.getText().equals("=")) {
+                    analyzer.complete(uri, document, document.positions.position(token.getStopIndex() + 1),
+                        CompletionEngine.ClientSupport.FULL, new HashMap<>());
+                    completions++;
+                }
+            }
+            analyzer.complete(uri, document, document.positions.position(document.text.codePointCount(0, document.text.length())),
+                CompletionEngine.ClientSupport.FULL, new HashMap<>());
             analyzer.close(uri);
             DocumentSymbols.of(document);
             SemanticTokensProvider.of(document);
@@ -49,6 +62,7 @@ class CorpusTest {
             outcomes.merge(outcome, 1, Integer::sum);
         }
         outcomes.forEach((outcome, count) -> System.out.printf("%4d  %s%n", count, outcome));
+        System.out.printf("%4d  completions%n", completions);
         assertFalse(outcomes.isEmpty());
     }
 

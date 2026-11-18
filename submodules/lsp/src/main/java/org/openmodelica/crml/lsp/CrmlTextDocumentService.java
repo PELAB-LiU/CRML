@@ -1,6 +1,7 @@
 package org.openmodelica.crml.lsp;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -29,6 +30,8 @@ import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.lsp4j.services.TextDocumentService;
 
+import com.google.gson.JsonPrimitive;
+
 /**
  * Keeps the text of the open documents and answers questions about them.
  * Diagnostics are recomputed shortly after the last change, so that typing
@@ -45,11 +48,18 @@ public class CrmlTextDocumentService implements TextDocumentService {
         return thread;
     });
     private volatile LanguageClient client;
+    private volatile CompletionEngine.ClientSupport support = CompletionEngine.ClientSupport.FULL;
+    /** The documentation of the items of the last completion, by the id in their data. */
+    private volatile Map<String, String> lastDocumentation = new HashMap<>();
     /** Made on the analysis thread, which alone uses it; loading the libraries takes a moment. */
     private Analyzer analyzer;
 
     void connect(LanguageClient client) {
         this.client = client;
+    }
+
+    void support(CompletionEngine.ClientSupport support) {
+        this.support = support;
     }
 
     @Override
@@ -93,11 +103,39 @@ public class CrmlTextDocumentService implements TextDocumentService {
         return CompletableFuture.completedFuture(result);
     }
 
+    /**
+     * Completes on the analysis thread, which alone uses the workspace: the
+     * document is analysed as it is now, so what is in scope is up to date.
+     */
     @Override
     public CompletableFuture<Either<List<CompletionItem>, CompletionList>> completion(CompletionParams params) {
-        ParsedDocument document = parsed(params.getTextDocument().getUri());
-        List<CompletionItem> items = document == null ? new ArrayList<>() : KeywordCompletion.at(document, params.getPosition());
-        return CompletableFuture.completedFuture(Either.forLeft(items));
+        String uri = params.getTextDocument().getUri();
+        return CompletableFuture.supplyAsync(() -> {
+            ParsedDocument document = parsed(uri);
+            if (document == null) return Either.forRight(new CompletionList(false, new ArrayList<>()));
+            Map<String, String> documentation = new HashMap<>();
+            List<CompletionItem> items;
+            try {
+                items = analyzer().complete(uri, document, params.getPosition(), support, documentation);
+            } catch (RuntimeException e) {
+                System.err.println("Completion in " + uri + " failed; proposing keywords only:");
+                e.printStackTrace();
+                items = KeywordCompletion.at(document, params.getPosition());
+            }
+            lastDocumentation = documentation;
+            return Either.forRight(new CompletionList(false, items));
+        }, analysis);
+    }
+
+    /** Adds the documentation of an item of the last completion. */
+    @Override
+    public CompletableFuture<CompletionItem> resolveCompletionItem(CompletionItem item) {
+        Object data = item.getData();
+        String id = data instanceof JsonPrimitive ? ((JsonPrimitive) data).getAsString()
+            : data instanceof String ? (String) data : null;
+        String markdown = id == null ? null : lastDocumentation.get(id);
+        if (markdown != null) item.setDocumentation(CompletionEngine.documentation(markdown, support));
+        return CompletableFuture.completedFuture(item);
     }
 
     @Override
