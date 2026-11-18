@@ -72,7 +72,14 @@
     ],
     "configurationDefaults": {
       "[crml]": {
-        "editor.semanticHighlighting.enabled": true
+        "editor.semanticHighlighting.enabled": true,
+        "editor.quickSuggestions": {
+          "other": "off",
+          "comments": "off",
+          "strings": "off"
+        },
+        "editor.suggestOnTriggerCharacters": false,
+        "editor.wordBasedSuggestions": "off"
       },
       "editor.semanticTokenColorCustomizations": {
         "[*Light*]": {

@@ -47,6 +47,24 @@ final class CompletionEngine {
         }
     }
 
+    /** A model or library a document can depend on. */
+    static final class Root {
+        final String name;
+        /** {@code model} or {@code library}. */
+        final String kind;
+        /** The comment at the top of its file; null if there is none. */
+        final String documentation;
+
+        Root(String name, String kind, String documentation) {
+            this.name = name;
+            this.kind = kind;
+            this.documentation = documentation;
+        }
+    }
+
+    /** The values of the Boolean type, proposed with the values in scope. */
+    private static final List<String> BOOLEAN_VALUES = Arrays.asList("true", "false", "undecided", "undefined");
+
     /** A built-in expression made of several keywords, inserted whole. */
     private static final class Form {
         final String keyword;
@@ -100,13 +118,22 @@ final class CompletionEngine {
      */
     static List<CompletionItem> complete(ParsedDocument document, Position position, ScopeSnapshot scope,
                                          ClientSupport support, Map<String, String> documentation) {
+        return complete(document, position, scope, java.util.Collections.<Root>emptyList(), support, documentation);
+    }
+
+    /**
+     * As {@link #complete(ParsedDocument, Position, ScopeSnapshot, ClientSupport, Map)},
+     * with the models and libraries the document can depend on.
+     */
+    static List<CompletionItem> complete(ParsedDocument document, Position position, ScopeSnapshot scope,
+                                         List<Root> roots, ClientSupport support, Map<String, String> documentation) {
         CompletionContext context = CompletionContext.at(document, position);
         CompletionEngine engine = new CompletionEngine(document, context, support, documentation);
-        engine.collect(scope);
+        engine.collect(scope, roots);
         return engine.items;
     }
 
-    private void collect(ScopeSnapshot scope) {
+    private void collect(ScopeSnapshot scope, List<Root> roots) {
         Set<String> covered = new HashSet<>();
         switch (context.place) {
             case VALUE:
@@ -115,6 +142,12 @@ final class CompletionEngine {
                 }
                 for (ScopeSnapshot.Declaration value : scope.values) {
                     declaration(value, CompletionItemKind.Variable);
+                }
+                for (String value : BOOLEAN_VALUES) {
+                    if (expected(value)) {
+                        constant(value, "Boolean");
+                        covered.add(value);
+                    }
                 }
                 for (Form form : FORMS) {
                     if (expected(form.keyword)) {
@@ -133,6 +166,12 @@ final class CompletionEngine {
                     declaration(type, CompletionItemKind.Class);
                     covered.add(type.name);
                 }
+                break;
+            case DEPENDENCY:
+                for (Root root : roots) dependency(root, true);
+                break;
+            case FLATTENED:
+                for (Root root : roots) dependency(root, false);
                 break;
             case OTHER:
                 break;
@@ -200,6 +239,45 @@ final class CompletionEngine {
         rank(item, DECLARATION, declaration.type, declaration.source.own);
         String signature = declaration.type == null ? "class " + declaration.name : declaration.type + " " + declaration.name;
         document(item, "```crml\n" + signature + "\n```", declaration.source);
+        items.add(item);
+    }
+
+    private void constant(String value, String type) {
+        CompletionItem item = new CompletionItem(value);
+        item.setKind(CompletionItemKind.Constant);
+        item.setTextEdit(Either.forLeft(new TextEdit(range, value)));
+        if (support.labelDetails) {
+            CompletionItemLabelDetails details = new CompletionItemLabelDetails();
+            details.setDetail(": " + type);
+            item.setLabelDetails(details);
+        } else {
+            item.setDetail(type);
+        }
+        rank(item, DECLARATION, type, true);
+        items.add(item);
+    }
+
+    /**
+     * A model or library to depend on.
+     *
+     * @param union with the {@code union} that must follow it: not in {@code flatten { … }}
+     */
+    private void dependency(Root root, boolean union) {
+        CompletionItem item = new CompletionItem(root.name);
+        item.setKind(CompletionItemKind.Module);
+        item.setTextEdit(Either.forLeft(new TextEdit(range, union ? root.name + " union " : root.name)));
+        if (support.labelDetails) {
+            CompletionItemLabelDetails details = new CompletionItemLabelDetails();
+            details.setDescription(root.kind);
+            item.setLabelDetails(details);
+        } else {
+            item.setDetail(root.kind);
+        }
+        rank(item, DECLARATION, null, true);
+        String id = String.valueOf(documentation.size());
+        documentation.put(id, "```crml\n" + root.kind + " " + root.name + "\n```"
+            + (root.documentation == null ? "" : "\n\n" + root.documentation));
+        item.setData(id);
         items.add(item);
     }
 

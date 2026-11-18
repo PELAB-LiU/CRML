@@ -83,6 +83,16 @@ class CompletionTest {
         assertTrue(labels.indexOf("'mine' x") < labels.indexOf("'during' b"), labels::toString);
     }
 
+    @Test
+    void proposesTheBooleanValuesWithTheValuesInScope() {
+        List<CompletionItem> items = complete(HEAD + "  Boolean r is |\n};");
+        List<String> labels = labels(items);
+        assertEquals(CompletionItemKind.Constant, item(items, "true").getKind());
+        assertEquals(1, labels.stream().filter("true"::equals).count(), "not again as a keyword");
+        assertTrue(labels.indexOf("true") < labels.indexOf("P"), "a Boolean before a Periods where a Boolean is defined: " + labels);
+        assertTrue(labels.indexOf("undefined") < labels.indexOf("not"), labels::toString);
+    }
+
     // ── After a value ────────────────────────────────────────
 
     @Test
@@ -103,6 +113,21 @@ class CompletionTest {
         assertEquals("'ensure'", ensure.getFilterText());
         assertEquals(new Range(new Position(3, 17), new Position(3, 21)), edit(ensure).getRange());
         assertTrue(items.stream().noneMatch(i -> i.getKind() == CompletionItemKind.Keyword), "no keywords inside quotes");
+    }
+
+    @Test
+    void replacesAQuotedKeywordTheEditorClosedByItself() {
+        CompletionItem ensure = item(complete(HEAD + "  Boolean r is P 'ens|'\n};"), "P 'ensure' b");
+        assertEquals("'ensure'", ensure.getFilterText());
+        assertEquals("'ensure' ${1:b}", edit(ensure).getNewText());
+        assertEquals(new Range(new Position(3, 17), new Position(3, 22)), edit(ensure).getRange(),
+            "the closing quote is replaced too");
+    }
+
+    @Test
+    void completesRightAfterAnOpeningQuote() {
+        CompletionItem ensure = item(complete(HEAD + "  Boolean r is P '|'\n};"), "P 'ensure' b");
+        assertEquals(new Range(new Position(3, 17), new Position(3, 19)), edit(ensure).getRange());
     }
 
     @Test
@@ -155,6 +180,43 @@ class CompletionTest {
     @Test
     void proposesNothingInComments() {
         assertEquals(List.of(), complete(HEAD + "  // Boolean r is |\n};"));
+    }
+
+    // ── Dependencies ─────────────────────────────────────────
+
+    @Test
+    void proposesTheLibrariesToDependOn() {
+        List<CompletionItem> items = complete("model M is |");
+        CompletionItem etl = item(items, "ETL");
+        assertEquals("ETL union ", edit(etl).getNewText());
+        assertEquals(CompletionItemKind.Module, etl.getKind());
+        assertEquals("library", etl.getLabelDetails().getDescription());
+        assertTrue(labels(items).contains("FORML"), () -> labels(items).toString());
+    }
+
+    @Test
+    void leavesOutTheDependenciesAlreadyListed() {
+        List<String> labels = labels(complete("model M is ETL union |\n{\n};"));
+        assertTrue(labels.contains("FORML"), labels::toString);
+        assertFalse(labels.contains("ETL"), labels::toString);
+    }
+
+    @Test
+    void proposesNamesInAFlattenedSet() {
+        CompletionItem forml = item(complete("model M is flatten { ETL, |"), "FORML");
+        assertEquals("FORML", edit(forml).getNewText(), "the union comes after the set");
+    }
+
+    @Test
+    void proposesOpenModelsToModelsOnly() {
+        String other = "file:///test/Other.crml";
+        try {
+            ANALYZER.diagnose(other, ParsedDocument.parse("model Other is {\n  Boolean o is true;\n};"));
+            assertTrue(labels(complete("model M is |")).contains("Other"));
+            assertFalse(labels(complete("library L is |")).contains("Other"), "a library cannot depend on a model");
+        } finally {
+            ANALYZER.close(other);
+        }
     }
 
     // ── Client support and documentation ────────────────────

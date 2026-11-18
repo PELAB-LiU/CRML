@@ -7,6 +7,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.List;
 import java.util.Map;
 
@@ -19,6 +21,7 @@ import org.eclipse.lsp4j.Position;
 import org.openmodelica.crml.language.workspace.CrmlDiagnostic;
 import org.openmodelica.crml.language.workspace.CrmlResource;
 import org.openmodelica.crml.language.workspace.CrmlWorkspace;
+import org.openmodelica.crml.language.workspace.RootHeader;
 import org.openmodelica.crml.language.workspace.SourceMap;
 
 /**
@@ -96,7 +99,36 @@ public final class Analyzer {
         CrmlResource resource = workspace.load(URI.createURI(uri), document.text);
         workspace.resolve();
         return CompletionEngine.complete(document, position, scopeAt(uri, resource, document, position),
-            support, documentation);
+            dependable(resource), support, documentation);
+    }
+
+    /**
+     * The models and libraries the document of {@code resource} can depend
+     * on: those of the workspace (the bundled libraries and the open
+     * documents), but itself and those it already depends on; for a library,
+     * only libraries.
+     */
+    private List<CompletionEngine.Root> dependable(CrmlResource resource) {
+        RootHeader own = resource.getHeader();
+        Set<String> excluded = new HashSet<>();
+        if (own != null) {
+            excluded.add(own.name());
+            for (RootHeader.DependencyName dependency : own.dependencies()) excluded.add(dependency.name());
+        }
+        boolean library = own != null && !own.isModel();
+        List<CompletionEngine.Root> roots = new ArrayList<>();
+        for (String name : workspace.getIndex().names()) {
+            if (name == null || excluded.contains(name)) continue;
+            List<CrmlResource> declaring = workspace.getIndex().lookup(name).resources();
+            if (declaring.isEmpty() || declaring.contains(resource)) continue;
+            RootHeader header = declaring.get(0).getHeader();
+            if (library && header.isModel()) continue;
+            EObject root = declaring.get(0).getRoot();
+            SourceMap map = declaring.get(0).getSourceMap();
+            String documentation = root == null || map == null ? null : map.documentation(root);
+            roots.add(new CompletionEngine.Root(name, header.kind(), documentation));
+        }
+        return roots;
     }
 
     private ScopeSnapshot scopeAt(String uri, CrmlResource resource, ParsedDocument document, Position position) {

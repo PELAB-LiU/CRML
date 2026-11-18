@@ -71,10 +71,15 @@ public final class KeywordCompletion {
 
     /** True if the UTF-16 offset is inside a comment, a string or a quoted keyword. */
     static boolean insideCommentOrString(ParsedDocument document, int cursor) {
+        return insideCommentOrString(document, cursor, true);
+    }
+
+    /** As {@link #insideCommentOrString(ParsedDocument, int)}; quoted keywords count only if {@code keywords}. */
+    static boolean insideCommentOrString(ParsedDocument document, int cursor, boolean keywords) {
         for (Token token : document.tokens) {
             int type = token.getType();
             if (type != crmlLexer.LINE_COMMENT && type != crmlLexer.ML_COMMENT
-                && type != crmlLexer.STRING && type != crmlLexer.USER_KEYWORD) continue;
+                && type != crmlLexer.STRING && (type != crmlLexer.USER_KEYWORD || !keywords)) continue;
             int start = document.positions.utf16Offset(token.getStartIndex());
             int end = document.positions.utf16Offset(token.getStopIndex() + 1);
             if (start < cursor && cursor < end) return true;

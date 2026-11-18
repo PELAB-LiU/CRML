@@ -31,6 +31,10 @@ final class CompletionContext {
         AFTER_VALUE,
         /** A type can be written here, but not a value. */
         TYPE,
+        /** A dependency can be written here: {@code model M is |} or after {@code X union}. */
+        DEPENDENCY,
+        /** A name in {@code flatten { … }}. */
+        FLATTENED,
         /** Something else: only keywords are proposed. */
         OTHER,
         /** Nothing: inside a comment or a string. */
@@ -40,13 +44,20 @@ final class CompletionContext {
     private static final int NOT = tokenType("'not'");
     private static final int LESS = tokenType("'<'");
     private static final int BOOLEAN = tokenType("'Boolean'");
+    private static final int FLATTEN = tokenType("'flatten'");
 
     final Place place;
     /** The tokens the grammar allows where the replaced text starts. */
     final IntervalSet expected;
-    /** The replaced text: from {@link #start} to the cursor, both UTF-16 offsets. */
+    /**
+     * The text the chosen item replaces, as UTF-16 offsets: from
+     * {@link #start} to {@link #rangeEnd}. It ends at the cursor
+     * ({@link #end}), or after it, at the closing quote of a quoted keyword
+     * the cursor is in, e.g. one the editor closed by itself: {@code 'ens|'}.
+     */
     final int start;
     final int end;
+    final int rangeEnd;
     /** The text typed so far that the chosen item replaces. */
     final String prefix;
     /** The type declared for the value being written, e.g. Boolean in {@code Boolean b is |}; null if unknown. */
@@ -54,12 +65,13 @@ final class CompletionContext {
     /** The code point index of the cursor, as ANTLR and the source map count. */
     final int cursor;
 
-    private CompletionContext(Place place, IntervalSet expected, int start, int end, String prefix,
+    private CompletionContext(Place place, IntervalSet expected, int start, int end, int rangeEnd, String prefix,
                               String expectedType, int cursor) {
         this.place = place;
         this.expected = expected;
         this.start = start;
         this.end = end;
+        this.rangeEnd = rangeEnd;
         this.prefix = prefix;
         this.expectedType = expectedType;
         this.cursor = cursor;
@@ -68,16 +80,19 @@ final class CompletionContext {
     static CompletionContext at(ParsedDocument document, Position position) {
         int end = document.positions.offset(position);
         int cursor = document.positions.codePointIndex(end);
-        if (KeywordCompletion.insideCommentOrString(document, end)) {
-            return new CompletionContext(Place.NONE, new IntervalSet(), end, end, "", null, cursor);
+        if (KeywordCompletion.insideCommentOrString(document, end, false)) {
+            return new CompletionContext(Place.NONE, new IntervalSet(), end, end, end, "", null, cursor);
         }
         int start = replacedFrom(document.text, end);
+        int rangeEnd = document.text.startsWith("'", start) ? closingQuote(document.text, end) : end;
         IntervalSet expected = KeywordCompletion.expectedAtEnd(document.text.substring(0, start));
         Place place = expected.contains(NOT) ? Place.VALUE
             : expected.contains(LESS) ? Place.AFTER_VALUE
             : expected.contains(BOOLEAN) ? Place.TYPE
+            : expected.contains(FLATTEN) ? Place.DEPENDENCY
+            : inFlatten(document.text.substring(0, start)) ? Place.FLATTENED
             : Place.OTHER;
-        return new CompletionContext(place, expected, start, end, document.text.substring(start, end),
+        return new CompletionContext(place, expected, start, end, rangeEnd, document.text.substring(start, end),
             declaredType(document, cursor), cursor);
     }
 
@@ -87,7 +102,22 @@ final class CompletionContext {
     }
 
     Range range(ParsedDocument document) {
-        return new Range(document.positions.positionOfOffset(start), document.positions.positionOfOffset(end));
+        return new Range(document.positions.positionOfOffset(start), document.positions.positionOfOffset(rangeEnd));
+    }
+
+    /** True if the text ends inside {@code flatten { A, B,}, where a name is written next. */
+    private static boolean inFlatten(String before) {
+        return before.matches("(?s).*\\bflatten\\s*\\{(\\s*[A-Za-z_][A-Za-z0-9_]*\\s*,)*\\s*");
+    }
+
+    /**
+     * After the closing quote of the quoted keyword the cursor is in, if the
+     * rest of the keyword up to it is words and spaces; else the cursor.
+     */
+    private static int closingQuote(String text, int cursor) {
+        int i = cursor;
+        while (i < text.length() && (KeywordCompletion.isWordChar(text.charAt(i)) || text.charAt(i) == ' ')) i++;
+        return i < text.length() && text.charAt(i) == '\'' ? i + 1 : cursor;
     }
 
     /**

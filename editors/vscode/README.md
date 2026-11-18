@@ -11,11 +11,35 @@ Language support for CRML, the Common Requirement Modeling Language.
   found while building the model, such as names that cannot be resolved.
 - **Outline** of models, classes, types, variables, operators and templates,
   also in the breadcrumbs and through *Go to Symbol in Editor* (`Ctrl+Shift+O`).
-- **Keyword completion** with the keywords the grammar allows at the cursor.
+- **Completion** with `Ctrl+Space`: what can be written at the cursor, also
+  while the model is incomplete.
+  - Operators in scope, from the model and the libraries it uses, inserted
+    with a tab stop for each operand: `'during' b` inserts `'during' ${1:b}`.
+    Where a value starts, operators that take an operand on their left come
+    first; after a value, they continue it.
+  - Variables, the Boolean values (`true`, `false`, `undecided`,
+    `undefined`), classes, built-in forms such as `if … then … else …`, and
+    the keywords the grammar allows.
+  - After `model M is` or `X union`: the libraries and models to depend on,
+    inserted with their `union`.
+  - Operators and values of the type being defined are listed first, then
+    the model's own before those of libraries.
+  - Details show the type and the library; the documentation shows the
+    declaration and the comment above it.
+
+  Suggestions do not pop up while typing; ask for them with `Ctrl+Space`.
 - Comment toggling, bracket matching and auto-closing pairs.
 
-Library dependencies (`FORM_L union`, `ETL union`) are not resolved yet, so
-operators from libraries are not checked.
+## Libraries
+
+The language server comes with the ETL and FORM-L libraries, so a model can use
+them with `ETL union` or `FORML union`. These are simplified copies that the
+current grammar accepts; the differences are listed at the top of each file
+(`submodules/lsp/src/main/resources/org/openmodelica/crml/lsp/libraries`).
+Note that FORM-L declares itself `FORML`, not `FORM_L`.
+
+Other open files are seen as well: a model can use a library that is open in
+the editor.
 
 ## Requirements
 
