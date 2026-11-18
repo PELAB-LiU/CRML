@@ -1,4 +1,4 @@
-package crml.lsp;
+package org.openmodelica.crml.lsp;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,10 +16,13 @@ import crml.language.grammar.crmlParser.ClassElementContext;
 import crml.language.grammar.crmlParser.DefinitionContext;
 import crml.language.grammar.crmlParser.Element_defContext;
 import crml.language.grammar.crmlParser.IdContext;
+import crml.language.grammar.crmlParser.NaturalOperatorDefContext;
+import crml.language.grammar.crmlParser.Operator_defContext;
 import crml.language.grammar.crmlParser.OperatorContext;
 import crml.language.grammar.crmlParser.OperatorElementContext;
 import crml.language.grammar.crmlParser.OperatorKeywordContext;
 import crml.language.grammar.crmlParser.OperatorParameterContext;
+import crml.language.grammar.crmlParser.ProgramOperatorDefContext;
 import crml.language.grammar.crmlParser.TemplateContext;
 import crml.language.grammar.crmlParser.TemplateElementContext;
 import crml.language.grammar.crmlParser.TemplateKeywordContext;
@@ -110,14 +113,27 @@ public final class DocumentSymbols {
         }
     }
 
-    /** An operator, named by its call shape: 'during' x, x 'ensure' y. */
+    /**
+     * An operator, named by its call shape: 'during' x, x 'ensure' y; a
+     * program-style operator by its name and parameters: f(a, b).
+     */
     private DocumentSymbol operator(OperatorContext operator) {
-        if (operator.operator_def() == null) return null;
-        String shape = operator.operator_def().args.stream()
-            .map(arg -> arg instanceof OperatorKeywordContext
-                ? ((OperatorKeywordContext) arg).kw.getText()
-                : nameOf(((OperatorParameterContext) arg).name))
-            .collect(Collectors.joining(" "));
+        Operator_defContext def = operator.operator_def();
+        String shape;
+        if (def instanceof NaturalOperatorDefContext) {
+            shape = ((NaturalOperatorDefContext) def).args.stream()
+                .map(arg -> arg instanceof OperatorKeywordContext
+                    ? ((OperatorKeywordContext) arg).kw.getText()
+                    : nameOf(((OperatorParameterContext) arg).name))
+                .collect(Collectors.joining(" "));
+        } else if (def instanceof ProgramOperatorDefContext) {
+            shape = (operator.name == null ? "operator" : nameOf(operator.name)) + "("
+                + ((ProgramOperatorDefContext) def).args.stream()
+                    .map(parameter -> nameOf(parameter.name))
+                    .collect(Collectors.joining(", ")) + ")";
+        } else {
+            return null;
+        }
         return symbol(operator, null, shape, SymbolKind.Operator,
             operator.domain == null ? "Operator" : "Operator [" + operator.domain.getText() + "]");
     }

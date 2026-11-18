@@ -31,7 +31,7 @@ tasks.withType<JavaCompile>().configureEach {
 }
 
 application {
-    mainClass.set("crml.lsp.Main")
+    mainClass.set("org.openmodelica.crml.lsp.Main")
 }
 
 tasks.shadowJar {

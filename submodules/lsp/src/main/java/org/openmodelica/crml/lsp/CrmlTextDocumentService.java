@@ -1,4 +1,4 @@
-package crml.lsp;
+package org.openmodelica.crml.lsp;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -45,6 +45,8 @@ public class CrmlTextDocumentService implements TextDocumentService {
         return thread;
     });
     private volatile LanguageClient client;
+    /** Made on the analysis thread, which alone uses it; loading the libraries takes a moment. */
+    private Analyzer analyzer;
 
     void connect(LanguageClient client) {
         this.client = client;
@@ -73,6 +75,7 @@ public class CrmlTextDocumentService implements TextDocumentService {
         open.remove(uri);
         ScheduledFuture<?> pending = pendingDiagnostics.remove(uri);
         if (pending != null) pending.cancel(false);
+        analysis.execute(() -> analyzer().close(uri));
         publish(uri, new ArrayList<>());
     }
 
@@ -119,11 +122,16 @@ public class CrmlTextDocumentService implements TextDocumentService {
         String text = open.get(uri);
         if (text == null) return;
         try {
-            publish(uri, Diagnostics.of(ParsedDocument.parse(text)));
+            publish(uri, analyzer().diagnose(uri, ParsedDocument.parse(text)));
         } catch (RuntimeException e) {
             System.err.println("Analysis of " + uri + " failed:");
             e.printStackTrace();
         }
+    }
+
+    private Analyzer analyzer() {
+        if (analyzer == null) analyzer = new Analyzer();
+        return analyzer;
     }
 
     private void publish(String uri, List<Diagnostic> diagnostics) {

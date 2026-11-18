@@ -1,4 +1,4 @@
-package crml.lsp;
+package org.openmodelica.crml.lsp;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -33,9 +33,12 @@ class CorpusTest {
         List<Path> models = models();
         assertTrue(models.size() > 100, "expected the test corpus, found " + models.size());
         Map<String, Integer> outcomes = new TreeMap<>();
+        Analyzer analyzer = new Analyzer();
         for (Path model : models) {
             ParsedDocument document = ParsedDocument.parse(new String(Files.readAllBytes(model), StandardCharsets.UTF_8));
-            List<Diagnostic> diagnostics = Diagnostics.of(document);
+            String uri = model.toUri().toString();
+            List<Diagnostic> diagnostics = analyzer.diagnose(uri, document);
+            analyzer.close(uri);
             DocumentSymbols.of(document);
             SemanticTokensProvider.of(document);
             KeywordCompletion.at(document, new Position(document.positions.lineCount() - 1, 0));

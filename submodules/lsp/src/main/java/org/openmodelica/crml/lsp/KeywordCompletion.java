@@ -1,4 +1,4 @@
-package crml.lsp;
+package org.openmodelica.crml.lsp;
 
 import java.util.ArrayList;
 import java.util.Collections;

@@ -1,4 +1,4 @@
-package crml.lsp;
+package org.openmodelica.crml.lsp;
 
 import org.eclipse.lsp4j.DidChangeConfigurationParams;
 import org.eclipse.lsp4j.DidChangeWatchedFilesParams;

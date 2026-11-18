@@ -1,4 +1,4 @@
-package crml.lsp;
+package org.openmodelica.crml.lsp;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -15,6 +15,8 @@ import org.eclipse.lsp4j.DocumentSymbol;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
 import org.junit.jupiter.api.Test;
+import org.openmodelica.crml.language.pretty.Misc;
+import org.openmodelica.crml.model.metamodel.Sequence;
 
 class FeaturesTest {
     static final String SRI = String.join("\n",
@@ -80,7 +82,7 @@ class FeaturesTest {
 
     @Test
     void reportsSyntaxErrorsAtTheOffendingToken() {
-        List<Diagnostic> diagnostics = Diagnostics.of(ParsedDocument.parse("model M is {\n  Boolean b is ;\n};"));
+        List<Diagnostic> diagnostics = diagnose("model M is {\n  Boolean b is ;\n};");
         assertEquals(1, diagnostics.size(), diagnostics.toString());
         assertEquals(DiagnosticSeverity.Error, diagnostics.get(0).getSeverity());
         assertEquals(new Range(new Position(1, 15), new Position(1, 16)), diagnostics.get(0).getRange());
@@ -88,24 +90,90 @@ class FeaturesTest {
 
     @Test
     void reportsCharactersTheLexerCannotMatch() {
-        List<Diagnostic> diagnostics = Diagnostics.of(ParsedDocument.parse("model M is {\n  Boolean b is true; ¤\n};"));
+        List<Diagnostic> diagnostics = diagnose("model M is {\n  Boolean b is true; ¤\n};");
         assertTrue(diagnostics.stream().anyMatch(d -> d.getRange().equals(new Range(new Position(1, 21), new Position(1, 22)))),
             diagnostics.toString());
     }
 
     @Test
-    void reportsNamesTheModelBuilderCannotResolve() {
-        List<Diagnostic> diagnostics = Diagnostics.of(ParsedDocument.parse("model M is {\n  Boolean b is c;\n};"));
+    void reportsNamesThatCannotBeResolvedWhereTheyAreUsed() {
+        List<Diagnostic> diagnostics = diagnose("model M is {\n  Boolean b is c;\n};");
         assertEquals(1, diagnostics.size(), diagnostics.toString());
-        assertEquals("The model could not be built: cannot resolve c", diagnostics.get(0).getMessage().getLeft());
-        assertEquals(new Range(new Position(0, 6), new Position(0, 7)), diagnostics.get(0).getRange());
+        assertEquals("Unresolved reference 'c' (VariableReference.variable)", diagnostics.get(0).getMessage().getLeft());
+        assertEquals("UNRESOLVED_REFERENCE", diagnostics.get(0).getCode().getLeft());
+        assertEquals(new Range(new Position(1, 15), new Position(1, 16)), diagnostics.get(0).getRange());
     }
 
     @Test
-    void acceptsTheSriExample() {
-        // 'during' and 'ensure' come from FORM_L, which is not resolved; the
-        // calls stay unresolved, which is not reported.
-        assertEquals(List.of(), Diagnostics.of(ParsedDocument.parse(SRI)));
+    void acceptsTheSriExampleWithTheBundledFormL() {
+        // 'during' and 'ensure' come from the bundled FORM-L library, which
+        // declares itself FORML.
+        assertEquals(List.of(), diagnose(SRI.replace("FORM_L union", "FORML union")));
+        assertEquals(List.of(), unresolvedCalls(SRI.replace("FORM_L union", "FORML union")));
+    }
+
+    @Test
+    void reportsLibrariesThatAreNotThere() {
+        List<Diagnostic> diagnostics = diagnose(SRI);
+        assertEquals(1, diagnostics.size(), diagnostics.toString());
+        assertEquals("No file declares the dependency FORM_L", diagnostics.get(0).getMessage().getLeft());
+        assertEquals(new Range(new Position(0, 13), new Position(0, 19)), diagnostics.get(0).getRange());
+    }
+
+    @Test
+    void usesTheOperatorsOfTheBundledEtl() {
+        String text = "model M is ETL union {\n  Boolean a is external;\n  Boolean b is external;\n"
+            + "  Boolean c is a 'implies' b;\n  Clock k is a 'becomes true';\n};";
+        assertEquals(List.of(), diagnose(text));
+        assertEquals(List.of(), unresolvedCalls(text));
+    }
+
+    @Test
+    void leavesCallsOfUnknownOperatorsUnresolved() {
+        // Not reported (yet): the front end leaves them as sequences.
+        assertEquals(1, unresolvedCalls("model M is ETL union {\n  Boolean b is 'nonsense' true;\n};").size());
+    }
+
+    @Test
+    void seesOtherOpenDocuments() {
+        String library = "file:///test/Mine.crml";
+        try {
+            ANALYZER.diagnose(library, ParsedDocument.parse("library Mine is {\n  Operator [Boolean] 'twice' Boolean b = b and b;\n};"));
+            assertEquals(List.of(), diagnose("model M is Mine union {\n  Boolean b is 'twice' true;\n};"));
+        } finally {
+            ANALYZER.close(library);
+        }
+        assertEquals("No file declares the dependency Mine",
+            diagnose("model M is Mine union {\n  Boolean b is true;\n};").get(0).getMessage().getLeft());
+    }
+
+    private static final Analyzer ANALYZER = new Analyzer();
+
+    /** Analyses a text as the server does, then forgets it again. */
+    static List<Diagnostic> diagnose(String text) {
+        String uri = "file:///test/Document.crml";
+        try {
+            return ANALYZER.diagnose(uri, ParsedDocument.parse(text));
+        } finally {
+            ANALYZER.close(uri);
+        }
+    }
+
+    /** The operator calls of a text that name no operator in scope. */
+    static List<String> unresolvedCalls(String text) {
+        String uri = "file:///test/Document.crml";
+        try {
+            ANALYZER.diagnose(uri, ParsedDocument.parse(text));
+            List<String> calls = new ArrayList<>();
+            ANALYZER.root(uri).eAllContents().forEachRemaining(object -> {
+                if (object instanceof Sequence && !(object.eContainer() instanceof Sequence)) {
+                    calls.add(Misc.pretty((Sequence) object));
+                }
+            });
+            return calls;
+        } finally {
+            ANALYZER.close(uri);
+        }
     }
 
     // ── Completion ───────────────────────────────────────────
