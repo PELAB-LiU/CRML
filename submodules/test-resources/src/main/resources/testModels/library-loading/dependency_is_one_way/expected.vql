@@ -1,0 +1,27 @@
+package expectations;
+
+import "http://www.eclipse.org/emf/2002/Ecore";
+import "org.openmodelica.crml.model.metamodel" as metamodel;
+
+// 'negation of' is declared in Extended, which depends on Logic: Logic does not see it.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_nor_definition_isA_Sequence(n : java Integer) {
+    n == count find CustomOperator_nor_definition_isA_Sequence_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_nor_definition_isA_Sequence_matches(customOperator : CustomOperator) {
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'nor'");
+    CustomOperator.definition(customOperator, definition);
+    Sequence(definition);
+}
+
+// Extended itself is fine.
+@Constraint(key = {sequence}, severity = "error", message = "must not exist")
+pattern count_Extended_Sequence_is_0(sequence) {
+    Library.name(extended, "Extended");
+    Sequence(sequence);
+    find containerOf+(sequence, extended);
+}

@@ -1,0 +1,17 @@
+package expectations;
+
+import "http://www.eclipse.org/emf/2002/Ecore";
+import "org.openmodelica.crml.model.metamodel" as metamodel;
+
+// Logic is loaded but not unioned: the call must stay an unresolved Sequence.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_x_or_y_definition_isA_Sequence(n : java Integer) {
+    n == count find Variable_x_or_y_definition_isA_Sequence_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_x_or_y_definition_isA_Sequence_matches(x_or_y : Variable) {
+    Variable.name(x_or_y, "x_or_y");
+    Variable.definition(x_or_y, definition);
+    Sequence(definition);
+}

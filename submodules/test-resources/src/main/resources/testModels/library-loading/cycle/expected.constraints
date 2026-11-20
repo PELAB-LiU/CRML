@@ -1,3 +1,0 @@
-# Both libraries of the cycle are loaded, each once.
-count [Library::name == "A"] == 1
-count [Library::name == "B"] == 1

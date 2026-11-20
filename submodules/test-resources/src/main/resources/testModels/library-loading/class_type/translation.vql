@@ -1,0 +1,400 @@
+package expectations;
+
+import "http://www.eclipse.org/emf/2002/Ecore";
+import "org.openmodelica.crml.model.metamodel" as model;
+import "org.openmodelica.crml.modelica.metamodel" as modelica;
+import "org.openmodelica.crml.modelica.trace.metamodel" as trace;
+
+// A library class as a variable type.
+// <Model>.mo is the Modelica class generated for a model, <Model>.trace its trace
+// (see LibraryLoading in :compiler and "Checking a translation" in
+// EXPECTATIONS.md). Every expected value follows from the CRML sources.
+
+// What is quantified over, so that no 'all' below passes vacuously.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern count_Variable_UseClass_is_1(n : java Integer) {
+    n == count find count_Variable_UseClass_is_1_matches(_);
+    check(n != 1);
+}
+
+pattern count_Variable_UseClass_is_1_matches(variable) {
+    Variable(variable);
+    find containerOf(variable, container);
+    NamedEntity.name(container, "UseClass");
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern count_Class_Equipment_is_1(n : java Integer) {
+    n == count find count_Class_Equipment_is_1_matches(_);
+    check(n != 1);
+}
+
+pattern count_Class_Equipment_is_1_matches(class) {
+    Class(class);
+    find containerOf(class, container);
+    Library.name(container, "Equipment");
+}
+
+// ---- UseClass
+
+// Its class, and whether it is partial (it is when a variable it has, own or inherited, is unbound).
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Model_UseClass_referrers_TraceLink_modelica_file_is_UseClass_mo(n : java Integer) {
+    n == count find Model_UseClass_referrers_TraceLink_modelica_file_is_UseClass_mo_matches(_);
+    check(n != 1);
+}
+
+pattern Model_UseClass_referrers_TraceLink_modelica_file_is_UseClass_mo_matches(useClass : Model) {
+    Model.name(useClass, "UseClass");
+    find traceLinkOf(useClass, traceLink);
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    find fileOf(modelica, "UseClass.mo");
+    1 == count find Model_UseClass_referrers_TraceLink_modelica_file_is_UseClass_mo_path(useClass, _);
+}
+
+pattern Model_UseClass_referrers_TraceLink_modelica_file_is_UseClass_mo_path(o : Model, v) {
+    find traceLinkOf(o, traceLink);
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    find fileOf(modelica, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern TraceLink_MODEL_TO_CLASS_modelica_name_is_UseClass(n : java Integer) {
+    n == count find TraceLink_MODEL_TO_CLASS_modelica_name_is_UseClass_matches(_);
+    check(n != 1);
+}
+
+pattern TraceLink_MODEL_TO_CLASS_modelica_name_is_UseClass_matches(traceLink : TraceLink) {
+    TraceLink(traceLink);
+    find fileOf(traceLink, "UseClass.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, "UseClass");
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern TraceLink_MODEL_TO_CLASS_modelica_partial_is_false(n : java Integer) {
+    n == count find TraceLink_MODEL_TO_CLASS_modelica_partial_is_false_matches(_);
+    check(n != 1);
+}
+
+pattern TraceLink_MODEL_TO_CLASS_modelica_partial_is_false_matches(traceLink : TraceLink) {
+    TraceLink(traceLink);
+    find fileOf(traceLink, "UseClass.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    find partialOf(modelica, false);
+}
+
+// Nothing dropped, at any depth; no unresolved name, no reference into another model's class.
+@Constraint(key = {traceLink}, severity = "error", message = "must not exist")
+pattern count_TraceLink_UNSUPPORTED_is_0(traceLink) {
+    TraceLink(traceLink);
+    find fileOf(traceLink, "UseClass.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::UNSUPPORTED);
+}
+
+@Constraint(key = {placeholder}, severity = "error", message = "must not exist")
+pattern count_Placeholder_is_0(placeholder) {
+    Placeholder(placeholder);
+    find fileOf(placeholder, "UseClass.mo");
+}
+
+@Constraint(key = {reference}, severity = "error", message = "must not exist")
+pattern count_Reference_UNRESOLVED_not_empty_is_0(reference) {
+    Reference(reference);
+    find fileOf(reference, "UseClass.mo");
+    Reference.reason(reference, RawReason::UNRESOLVED);
+    Reference.rawText(reference, rawText);
+    rawText != "";
+}
+
+@Constraint(key = {reference}, severity = "error", message = "must not exist")
+pattern count_Reference_not_UseClass_mo_is_0(reference) {
+    Reference(reference);
+    find fileOf(reference, "UseClass.mo");
+    Reference.target(reference, target);
+    find fileOf(target, file);
+    file != "UseClass.mo";
+}
+
+// Exactly one generated class per model, operator and class it reaches: nothing twice, nothing extra.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected 2")
+pattern count_ClassDefinition_is_2(n : java Integer) {
+    n == count find count_ClassDefinition_is_2_matches(_);
+    check(n != 2);
+}
+
+pattern count_ClassDefinition_is_2_matches(classDefinition) {
+    ClassDefinition(classDefinition);
+    find fileOf(classDefinition, "UseClass.mo");
+}
+
+// UseClass (own): each element once, of the right kind, directly in UseClass's class.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern count_Variable_UseClass_referrers_TraceLink_is_1(n : java Integer) {
+    n == count find count_Variable_UseClass_referrers_TraceLink_is_1_matches(_);
+    check(n != 1);
+}
+
+pattern count_Variable_UseClass_referrers_TraceLink_is_1_matches(traceLink) {
+    Variable(variable);
+    find containerOf(variable, container);
+    NamedEntity.name(container, "UseClass");
+    find traceLinkOf(variable, traceLink);
+    find fileOf(traceLink, "UseClass.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+}
+
+@Constraint(key = {variable}, severity = "error", message = "counterexample")
+pattern all_Variable_UseClass_referrers_TraceLink_modelica_container_is_TraceLink_MODEL(variable : Variable) {
+    Variable(variable);
+    find containerOf(variable, container);
+    NamedEntity.name(container, "UseClass");
+    TraceLink(traceLink);
+    find fileOf(traceLink, "UseClass.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    find traceLinkOf(variable, traceLink2);
+    find fileOf(traceLink2, "UseClass.trace");
+    TraceLink.kind(traceLink2, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink2, modelica2);
+    find containerOf(modelica2, container2);
+    container2 != modelica;
+} or {
+    Variable(variable);
+    find containerOf(variable, container);
+    NamedEntity.name(container, "UseClass");
+    TraceLink(traceLink);
+    find fileOf(traceLink, "UseClass.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    neg find all_Variable_UseClass_referrers_TraceLink_modelica_container_is_TraceLink_MODEL_path(variable, modelica);
+}
+
+pattern all_Variable_UseClass_referrers_TraceLink_modelica_container_is_TraceLink_MODEL_path(o : Variable, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "UseClass.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find containerOf(modelica, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_UseClass_pump1_referrers_TraceLink_modelica_name_is_pump1(n : java Integer) {
+    n == count find Variable_UseClass_pump1_referrers_TraceLink_modelica_name_is_pump1_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_UseClass_pump1_referrers_TraceLink_modelica_name_is_pump1_matches(pump1 : Variable) {
+    Variable(pump1);
+    find containerOf(pump1, container);
+    NamedEntity.name(container, "UseClass");
+    Variable.name(pump1, "pump1");
+    find traceLinkOf(pump1, traceLink);
+    find fileOf(traceLink, "UseClass.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, "pump1");
+    1 == count find Variable_UseClass_pump1_referrers_TraceLink_modelica_name_is_pump1_path(pump1, _);
+}
+
+pattern Variable_UseClass_pump1_referrers_TraceLink_modelica_name_is_pump1_path(o : Variable, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "UseClass.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, v);
+}
+
+// Equipment: each element once, of the right kind, directly in UseClass's class.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern count_Class_Equipment_referrers_TraceLink_is_1(n : java Integer) {
+    n == count find count_Class_Equipment_referrers_TraceLink_is_1_matches(_);
+    check(n != 1);
+}
+
+pattern count_Class_Equipment_referrers_TraceLink_is_1_matches(traceLink) {
+    Class(class);
+    find containerOf(class, container);
+    Library.name(container, "Equipment");
+    find traceLinkOf(class, traceLink);
+    find fileOf(traceLink, "UseClass.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::CLASS_TO_MODEL);
+}
+
+@Constraint(key = {class}, severity = "error", message = "counterexample")
+pattern all_Class_Equipment_referrers_TraceLink_kind_is_CLASS_TO_MODEL(class : Class) {
+    Class(class);
+    find containerOf(class, container);
+    Library.name(container, "Equipment");
+    find traceLinkOf(class, traceLink);
+    find fileOf(traceLink, "UseClass.trace");
+    TraceLink.kind(traceLink, kind);
+    kind != TraceLinkKind::CLASS_TO_MODEL;
+} or {
+    Class(class);
+    find containerOf(class, container);
+    Library.name(container, "Equipment");
+    neg find all_Class_Equipment_referrers_TraceLink_kind_is_CLASS_TO_MODEL_path(class, TraceLinkKind::CLASS_TO_MODEL);
+}
+
+pattern all_Class_Equipment_referrers_TraceLink_kind_is_CLASS_TO_MODEL_path(o : Class, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "UseClass.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {class}, severity = "error", message = "counterexample")
+pattern all_Class_Equipment_referrers_TraceLink_modelica_container_is_TraceLink_MODEL_TO(class : Class) {
+    Class(class);
+    find containerOf(class, container);
+    Library.name(container, "Equipment");
+    TraceLink(traceLink);
+    find fileOf(traceLink, "UseClass.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    find traceLinkOf(class, traceLink2);
+    find fileOf(traceLink2, "UseClass.trace");
+    TraceLink.modelica(traceLink2, modelica2);
+    find containerOf(modelica2, container2);
+    container2 != modelica;
+} or {
+    Class(class);
+    find containerOf(class, container);
+    Library.name(container, "Equipment");
+    TraceLink(traceLink);
+    find fileOf(traceLink, "UseClass.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    neg find all_Class_Equipment_referrers_TraceLink_modelica_container_is_TraceLink_MODEL_TO_path(class, modelica);
+}
+
+pattern all_Class_Equipment_referrers_TraceLink_modelica_container_is_TraceLink_MODEL_TO_path(o : Class, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "UseClass.trace");
+    TraceLink.modelica(traceLink, modelica);
+    find containerOf(modelica, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Class_Equipment_Pump_referrers_TraceLink_modelica_name_is_Pump(n : java Integer) {
+    n == count find Class_Equipment_Pump_referrers_TraceLink_modelica_name_is_Pump_matches(_);
+    check(n != 1);
+}
+
+pattern Class_Equipment_Pump_referrers_TraceLink_modelica_name_is_Pump_matches(pump : Class) {
+    Class(pump);
+    find containerOf(pump, container);
+    Library.name(container, "Equipment");
+    Class.name(pump, "Pump");
+    find traceLinkOf(pump, traceLink);
+    find fileOf(traceLink, "UseClass.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::CLASS_TO_MODEL);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, "Pump");
+    1 == count find Class_Equipment_Pump_referrers_TraceLink_modelica_name_is_Pump_path(pump, _);
+}
+
+pattern Class_Equipment_Pump_referrers_TraceLink_modelica_name_is_Pump_path(o : Class, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "UseClass.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::CLASS_TO_MODEL);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, v);
+}
+
+// ---- Call sites and structure
+// pump1 is a Pump, and the constructor binding id = "P1" is kept.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_UseClass_pump1_referrers_TraceLink_modelica_declaredType_target_is_Clas(n : java Integer) {
+    n == count find Variable_UseClass_pump1_referrers_TraceLink_modelica_declaredType_target_is_Clas_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_UseClass_pump1_referrers_TraceLink_modelica_declaredType_target_is_Clas_matches(pump1 : Variable) {
+    Variable(pump1);
+    find containerOf(pump1, container);
+    NamedEntity.name(container, "UseClass");
+    Variable.name(pump1, "pump1");
+    Class(pump);
+    find containerOf(pump, container2);
+    Library.name(container2, "Equipment");
+    Class.name(pump, "Pump");
+    find traceLinkOf(pump, traceLink);
+    find fileOf(traceLink, "UseClass.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::CLASS_TO_MODEL);
+    TraceLink.modelica(traceLink, modelica);
+    find traceLinkOf(pump1, traceLink2);
+    find fileOf(traceLink2, "UseClass.trace");
+    TraceLink.kind(traceLink2, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink2, modelica2);
+    ComponentDeclaration.declaredType(modelica2, declaredType);
+    Reference.target(declaredType, modelica);
+    1 == count find Variable_UseClass_pump1_referrers_TraceLink_modelica_declaredType_target_is_Clas_path(pump1, _);
+}
+
+pattern Variable_UseClass_pump1_referrers_TraceLink_modelica_declaredType_target_is_Clas_path(o : Variable, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "UseClass.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    ComponentDeclaration.declaredType(modelica, declaredType);
+    Reference.target(declaredType, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern count_ModificationElement_id_is_1(n : java Integer) {
+    n == count find count_ModificationElement_id_is_1_matches(_);
+    check(n != 1);
+}
+
+pattern count_ModificationElement_id_is_1_matches(id) {
+    ModificationElement(id);
+    find fileOf(id, "UseClass.mo");
+    ModificationElement.name(id, "id");
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern ModificationElement_id_value_value_is_P1(n : java Integer) {
+    n == count find ModificationElement_id_value_value_is_P1_matches(_);
+    check(n != 1);
+}
+
+pattern ModificationElement_id_value_value_is_P1_matches(id : ModificationElement) {
+    ModificationElement(id);
+    find fileOf(id, "UseClass.mo");
+    ModificationElement.name(id, "id");
+    ModificationElement.value(id, value);
+    StringLiteral.value(value, "P1");
+}
+
+// Steps that features of several classes answer.
+
+pattern traceLinkOf(o : EObject, value : EObject) {
+    TraceLink.crml(value, o);
+} or {
+    TraceLink.modelica(value, o);
+}
+
+pattern nameOf(o : EObject, value) {
+    NamedEntity.name(o, value);
+} or {
+    LibraryDependency.name(o, value);
+} or {
+    ClassDefinition.name(o, value);
+} or {
+    ComponentDeclaration.name(o, value);
+} or {
+    ModificationElement.name(o, value);
+} or {
+    ReferencePart.name(o, value);
+}
+
+pattern partialOf(o : EObject, value) {
+    Domain.partial(o, value);
+} or {
+    ClassDefinition.partial(o, value);
+}

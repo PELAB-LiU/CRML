@@ -43,10 +43,9 @@ import org.openmodelica.crml.modelica.trace.metamodel.TracePackage;
 import org.openmodelica.crml.testresources.TestResourcesRoot;
 import org.openmodelica.crml.testutil.ModelExpectation;
 import org.openmodelica.crml.testutil.ReportedTest;
-import org.openmodelica.crml.testutil.constraints.ConstraintEngine;
-import org.openmodelica.crml.testutil.constraints.ConstraintFile;
-import org.openmodelica.crml.testutil.constraints.ConstraintResult;
-import org.openmodelica.crml.testutil.constraints.ConstraintTable;
+import org.openmodelica.crml.testutil.vql.ExpectationResult;
+import org.openmodelica.crml.testutil.vql.ExpectationTable;
+import org.openmodelica.crml.testutil.vql.VqlEngine;
 import org.openmodelica.crml.util.NaturalCompare;
 
 /**
@@ -68,24 +67,25 @@ import org.openmodelica.crml.util.NaturalCompare;
  *     into the model, so its errors must then be reported as ERRORs.</li>
  * </ul>
  *
- * <p>If the case has a {@value #TRANSLATION_CONSTRAINTS} file, each
+ * <p>If the case has a {@value #TRANSLATION_EXPECTATIONS} file, each
  * translation is added to the resource set as {@code <Model>.mo} (the generated
- * class) and {@code <Model>.trace} (the trace), and the file's lines must hold,
- * evaluated over the CRML, Modelica and trace metamodels. That is where a case
- * states which of its elements reach the generated Modelica (see "Checking a
- * translation" in {@code CONSTRAINT_LANGUAGE.md} of {@code :util-test}).
+ * class) and {@code <Model>.trace} (the trace), and no {@code @Constraint}
+ * pattern of severity error in the file may have a violation (a match), over the
+ * CRML, Modelica and trace metamodels. That is where a case states which of its elements reach the
+ * generated Modelica (see "Checking a translation" in {@code EXPECTATIONS.md} of
+ * {@code :util-test}).
  *
- * <p>The report has one entry per case: the constraint table, then each file's
+ * <p>The report has one entry per case: the expectation table, then each file's
  * CRML source and DOM, then each model's Modelica, trace and diagnostics.
  */
 public class LibraryLoading extends ReportedTest {
     static final Path CASES = TestResourcesRoot.RESOURCES.resolve("testModels").resolve("library-loading");
 
-    /** The optional constraint file of a case on the translation. */
-    static final String TRANSLATION_CONSTRAINTS = "translation.constraints";
+    /** The optional expectation file of a case on the translation: VQL patterns. */
+    static final String TRANSLATION_EXPECTATIONS = "translation.vql";
 
-    private static final ConstraintEngine ENGINE =
-        new ConstraintEngine(CRMLPackage.eINSTANCE, ModelicaPackage.eINSTANCE, TracePackage.eINSTANCE);
+    private static final VqlEngine ENGINE =
+        new VqlEngine(CRMLPackage.eINSTANCE, ModelicaPackage.eINSTANCE, TracePackage.eINSTANCE);
 
     /** {@code (case name, folder)} for every case with at least one valid model. */
     static List<Arguments> cases() throws IOException {
@@ -147,18 +147,18 @@ public class LibraryLoading extends ReportedTest {
             }
         }
 
-        List<ConstraintResult> constraints = null;
-        Path constraintFile = caseDir.resolve(TRANSLATION_CONSTRAINTS);
-        if (Files.isRegularFile(constraintFile)) {
-            constraints = ENGINE.evaluate(ConstraintFile.parse(constraintFile), resourceSet);
-            for (ConstraintResult result : constraints) {
+        List<ExpectationResult> expectations = null;
+        Path expectationFile = caseDir.resolve(TRANSLATION_EXPECTATIONS);
+        if (Files.isRegularFile(expectationFile)) {
+            expectations = ENGINE.evaluate(expectationFile, resourceSet);
+            for (ExpectationResult result : expectations) {
                 if (result.failed()) {
-                    failures.add(TRANSLATION_CONSTRAINTS + " " + result);
+                    failures.add(TRANSLATION_EXPECTATIONS + " " + result);
                 }
             }
         }
 
-        report(caseDir, workspace, runs, constraints);
+        report(caseDir, workspace, runs, expectations);
         assertTrue(failures.isEmpty(), String.join("\n", failures));
     }
 
@@ -216,7 +216,7 @@ public class LibraryLoading extends ReportedTest {
         return false;
     }
 
-    /** Puts {@code root} into a new resource named {@code name}, so constraints can reach it. */
+    /** Puts {@code root} into a new resource named {@code name}, so expectations can reach it. */
     private static void add(ResourceSet resourceSet, String name, EObject root) {
         Resource resource = new ResourceImpl(URI.createURI(name));
         resourceSet.getResources().add(resource);
@@ -225,14 +225,14 @@ public class LibraryLoading extends ReportedTest {
 
     /**
      * The report of a case, in a fixed order: the case folder and the
-     * constraint table, then each file of the case (source, DOM, errors),
+     * expectation table, then each file of the case (source, DOM, errors),
      * then each model's translation. Sections with nothing to show are left out.
      */
     private void report(Path caseDir, CrmlWorkspace workspace, Map<String, CrmlFrontEnd> runs,
-            List<ConstraintResult> constraints) {
+            List<ExpectationResult> expectations) {
         emit(caseDir, "Case folder");
-        if (constraints != null) {
-            emit(ConstraintTable.of(constraints), "Translation constraints");
+        if (expectations != null) {
+            emit(ExpectationTable.of(expectations), "Translation expectations");
         }
         for (CrmlResource resource : workspace.resources()) {
             String file = resource.getURI().lastSegment();

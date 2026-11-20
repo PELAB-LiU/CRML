@@ -1,0 +1,247 @@
+package expectations;
+
+import "http://www.eclipse.org/emf/2002/Ecore";
+import "org.openmodelica.crml.model.metamodel" as model;
+import "org.openmodelica.crml.modelica.metamodel" as modelica;
+import "org.openmodelica.crml.modelica.trace.metamodel" as trace;
+
+// An empty library adds nothing.
+// <Model>.mo is the Modelica class generated for a model, <Model>.trace its trace
+// (see LibraryLoading in :compiler and "Checking a translation" in
+// EXPECTATIONS.md). Every expected value follows from the CRML sources.
+
+// What is quantified over, so that no 'all' below passes vacuously.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern count_Variable_UseEmpty_is_1(n : java Integer) {
+    n == count find count_Variable_UseEmpty_is_1_matches(_);
+    check(n != 1);
+}
+
+pattern count_Variable_UseEmpty_is_1_matches(variable) {
+    Variable(variable);
+    find containerOf(variable, container);
+    NamedEntity.name(container, "UseEmpty");
+}
+
+@Constraint(key = {customOperator}, severity = "error", message = "must not exist")
+pattern count_CustomOperator_Empty_is_0(customOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "Empty");
+}
+
+@Constraint(key = {class}, severity = "error", message = "must not exist")
+pattern count_Class_Empty_is_0(class) {
+    Class(class);
+    find containerOf(class, container);
+    Library.name(container, "Empty");
+}
+
+@Constraint(key = {variable}, severity = "error", message = "must not exist")
+pattern count_Variable_Empty_is_0(variable) {
+    Variable(variable);
+    find containerOf(variable, container);
+    NamedEntity.name(container, "Empty");
+}
+
+// ---- UseEmpty
+
+// Its class, and whether it is partial (it is when a variable it has, own or inherited, is unbound).
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Model_UseEmpty_referrers_TraceLink_modelica_file_is_UseEmpty_mo(n : java Integer) {
+    n == count find Model_UseEmpty_referrers_TraceLink_modelica_file_is_UseEmpty_mo_matches(_);
+    check(n != 1);
+}
+
+pattern Model_UseEmpty_referrers_TraceLink_modelica_file_is_UseEmpty_mo_matches(useEmpty : Model) {
+    Model.name(useEmpty, "UseEmpty");
+    find traceLinkOf(useEmpty, traceLink);
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    find fileOf(modelica, "UseEmpty.mo");
+    1 == count find Model_UseEmpty_referrers_TraceLink_modelica_file_is_UseEmpty_mo_path(useEmpty, _);
+}
+
+pattern Model_UseEmpty_referrers_TraceLink_modelica_file_is_UseEmpty_mo_path(o : Model, v) {
+    find traceLinkOf(o, traceLink);
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    find fileOf(modelica, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern TraceLink_MODEL_TO_CLASS_modelica_name_is_UseEmpty(n : java Integer) {
+    n == count find TraceLink_MODEL_TO_CLASS_modelica_name_is_UseEmpty_matches(_);
+    check(n != 1);
+}
+
+pattern TraceLink_MODEL_TO_CLASS_modelica_name_is_UseEmpty_matches(traceLink : TraceLink) {
+    TraceLink(traceLink);
+    find fileOf(traceLink, "UseEmpty.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, "UseEmpty");
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern TraceLink_MODEL_TO_CLASS_modelica_partial_is_true(n : java Integer) {
+    n == count find TraceLink_MODEL_TO_CLASS_modelica_partial_is_true_matches(_);
+    check(n != 1);
+}
+
+pattern TraceLink_MODEL_TO_CLASS_modelica_partial_is_true_matches(traceLink : TraceLink) {
+    TraceLink(traceLink);
+    find fileOf(traceLink, "UseEmpty.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    find partialOf(modelica, true);
+}
+
+// Nothing dropped, at any depth; no unresolved name, no reference into another model's class.
+@Constraint(key = {traceLink}, severity = "error", message = "must not exist")
+pattern count_TraceLink_UNSUPPORTED_is_0(traceLink) {
+    TraceLink(traceLink);
+    find fileOf(traceLink, "UseEmpty.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::UNSUPPORTED);
+}
+
+@Constraint(key = {placeholder}, severity = "error", message = "must not exist")
+pattern count_Placeholder_is_0(placeholder) {
+    Placeholder(placeholder);
+    find fileOf(placeholder, "UseEmpty.mo");
+}
+
+@Constraint(key = {reference}, severity = "error", message = "must not exist")
+pattern count_Reference_UNRESOLVED_not_empty_is_0(reference) {
+    Reference(reference);
+    find fileOf(reference, "UseEmpty.mo");
+    Reference.reason(reference, RawReason::UNRESOLVED);
+    Reference.rawText(reference, rawText);
+    rawText != "";
+}
+
+@Constraint(key = {reference}, severity = "error", message = "must not exist")
+pattern count_Reference_not_UseEmpty_mo_is_0(reference) {
+    Reference(reference);
+    find fileOf(reference, "UseEmpty.mo");
+    Reference.target(reference, target);
+    find fileOf(target, file);
+    file != "UseEmpty.mo";
+}
+
+// Exactly one generated class per model, operator and class it reaches: nothing twice, nothing extra.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern count_ClassDefinition_is_1(n : java Integer) {
+    n == count find count_ClassDefinition_is_1_matches(_);
+    check(n != 1);
+}
+
+pattern count_ClassDefinition_is_1_matches(classDefinition) {
+    ClassDefinition(classDefinition);
+    find fileOf(classDefinition, "UseEmpty.mo");
+}
+
+// UseEmpty (own): each element once, of the right kind, directly in UseEmpty's class.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern count_Variable_UseEmpty_referrers_TraceLink_is_1(n : java Integer) {
+    n == count find count_Variable_UseEmpty_referrers_TraceLink_is_1_matches(_);
+    check(n != 1);
+}
+
+pattern count_Variable_UseEmpty_referrers_TraceLink_is_1_matches(traceLink) {
+    Variable(variable);
+    find containerOf(variable, container);
+    NamedEntity.name(container, "UseEmpty");
+    find traceLinkOf(variable, traceLink);
+    find fileOf(traceLink, "UseEmpty.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+}
+
+@Constraint(key = {variable}, severity = "error", message = "counterexample")
+pattern all_Variable_UseEmpty_referrers_TraceLink_modelica_container_is_TraceLink_MODEL(variable : Variable) {
+    Variable(variable);
+    find containerOf(variable, container);
+    NamedEntity.name(container, "UseEmpty");
+    TraceLink(traceLink);
+    find fileOf(traceLink, "UseEmpty.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    find traceLinkOf(variable, traceLink2);
+    find fileOf(traceLink2, "UseEmpty.trace");
+    TraceLink.kind(traceLink2, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink2, modelica2);
+    find containerOf(modelica2, container2);
+    container2 != modelica;
+} or {
+    Variable(variable);
+    find containerOf(variable, container);
+    NamedEntity.name(container, "UseEmpty");
+    TraceLink(traceLink);
+    find fileOf(traceLink, "UseEmpty.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    neg find all_Variable_UseEmpty_referrers_TraceLink_modelica_container_is_TraceLink_MODEL_path(variable, modelica);
+}
+
+pattern all_Variable_UseEmpty_referrers_TraceLink_modelica_container_is_TraceLink_MODEL_path(o : Variable, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "UseEmpty.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find containerOf(modelica, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_UseEmpty_x_referrers_TraceLink_modelica_name_is_x(n : java Integer) {
+    n == count find Variable_UseEmpty_x_referrers_TraceLink_modelica_name_is_x_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_UseEmpty_x_referrers_TraceLink_modelica_name_is_x_matches(x : Variable) {
+    Variable(x);
+    find containerOf(x, container);
+    NamedEntity.name(container, "UseEmpty");
+    Variable.name(x, "x");
+    find traceLinkOf(x, traceLink);
+    find fileOf(traceLink, "UseEmpty.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, "x");
+    1 == count find Variable_UseEmpty_x_referrers_TraceLink_modelica_name_is_x_path(x, _);
+}
+
+pattern Variable_UseEmpty_x_referrers_TraceLink_modelica_name_is_x_path(o : Variable, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "UseEmpty.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, v);
+}
+
+// Steps that features of several classes answer.
+
+pattern traceLinkOf(o : EObject, value : EObject) {
+    TraceLink.crml(value, o);
+} or {
+    TraceLink.modelica(value, o);
+}
+
+pattern nameOf(o : EObject, value) {
+    NamedEntity.name(o, value);
+} or {
+    LibraryDependency.name(o, value);
+} or {
+    ClassDefinition.name(o, value);
+} or {
+    ComponentDeclaration.name(o, value);
+} or {
+    ModificationElement.name(o, value);
+} or {
+    ReferencePart.name(o, value);
+}
+
+pattern partialOf(o : EObject, value) {
+    Domain.partial(o, value);
+} or {
+    ClassDefinition.partial(o, value);
+}

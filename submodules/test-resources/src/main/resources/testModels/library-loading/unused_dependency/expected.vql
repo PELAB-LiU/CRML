@@ -1,0 +1,28 @@
+package expectations;
+
+import "http://www.eclipse.org/emf/2002/Ecore";
+import "org.openmodelica.crml.model.metamodel" as metamodel;
+
+// Logic is loaded although nothing uses it; the model links as usual.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern count_Library_Logic_is_1(n : java Integer) {
+    n == count find count_Library_Logic_is_1_matches(_);
+    check(n != 1);
+}
+
+pattern count_Library_Logic_is_1_matches(logic) {
+    Library.name(logic, "Logic");
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_y_definition_variable_is_Variable_x(n : java Integer) {
+    n == count find Variable_y_definition_variable_is_Variable_x_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_y_definition_variable_is_Variable_x_matches(y : Variable) {
+    Variable.name(y, "y");
+    Variable.name(x, "x");
+    Variable.definition(y, definition);
+    VariableReference.variable(definition, x);
+}

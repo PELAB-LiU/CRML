@@ -1,0 +1,15 @@
+package expectations;
+
+import "http://www.eclipse.org/emf/2002/Ecore";
+import "org.openmodelica.crml.model.metamodel" as metamodel;
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_x_definition_notEmpty(n : java Integer) {
+    n == count find Variable_x_definition_notEmpty_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_x_definition_notEmpty_matches(x : Variable) {
+    Variable.name(x, "x");
+    Variable.definition(x, _);
+}

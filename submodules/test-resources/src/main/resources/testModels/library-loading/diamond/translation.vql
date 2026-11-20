@@ -1,0 +1,750 @@
+package expectations;
+
+import "http://www.eclipse.org/emf/2002/Ecore";
+import "org.openmodelica.crml.model.metamodel" as model;
+import "org.openmodelica.crml.modelica.metamodel" as modelica;
+import "org.openmodelica.crml.modelica.trace.metamodel" as trace;
+
+// Logic, reached through Left and Right, is emitted once.
+// <Model>.mo is the Modelica class generated for a model, <Model>.trace its trace
+// (see LibraryLoading in :compiler and "Checking a translation" in
+// EXPECTATIONS.md). Every expected value follows from the CRML sources.
+
+// What is quantified over, so that no 'all' below passes vacuously.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected 5")
+pattern count_Variable_UseDiamond_is_5(n : java Integer) {
+    n == count find count_Variable_UseDiamond_is_5_matches(_);
+    check(n != 5);
+}
+
+pattern count_Variable_UseDiamond_is_5_matches(variable) {
+    Variable(variable);
+    find containerOf(variable, container);
+    NamedEntity.name(container, "UseDiamond");
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern count_CustomOperator_Left_is_1(n : java Integer) {
+    n == count find count_CustomOperator_Left_is_1_matches(_);
+    check(n != 1);
+}
+
+pattern count_CustomOperator_Left_is_1_matches(customOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "Left");
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern count_CustomOperator_Right_is_1(n : java Integer) {
+    n == count find count_CustomOperator_Right_is_1_matches(_);
+    check(n != 1);
+}
+
+pattern count_CustomOperator_Right_is_1_matches(customOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "Right");
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern count_CustomOperator_Logic_is_1(n : java Integer) {
+    n == count find count_CustomOperator_Logic_is_1_matches(_);
+    check(n != 1);
+}
+
+pattern count_CustomOperator_Logic_is_1_matches(customOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "Logic");
+}
+
+// ---- UseDiamond
+
+// Its class, and whether it is partial (it is when a variable it has, own or inherited, is unbound).
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Model_UseDiamond_referrers_TraceLink_modelica_file_is_UseDiamond_mo(n : java Integer) {
+    n == count find Model_UseDiamond_referrers_TraceLink_modelica_file_is_UseDiamond_mo_matches(_);
+    check(n != 1);
+}
+
+pattern Model_UseDiamond_referrers_TraceLink_modelica_file_is_UseDiamond_mo_matches(useDiamond : Model) {
+    Model.name(useDiamond, "UseDiamond");
+    find traceLinkOf(useDiamond, traceLink);
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    find fileOf(modelica, "UseDiamond.mo");
+    1 == count find Model_UseDiamond_referrers_TraceLink_modelica_file_is_UseDiamond_mo_path(useDiamond, _);
+}
+
+pattern Model_UseDiamond_referrers_TraceLink_modelica_file_is_UseDiamond_mo_path(o : Model, v) {
+    find traceLinkOf(o, traceLink);
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    find fileOf(modelica, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern TraceLink_MODEL_TO_CLASS_modelica_name_is_UseDiamond(n : java Integer) {
+    n == count find TraceLink_MODEL_TO_CLASS_modelica_name_is_UseDiamond_matches(_);
+    check(n != 1);
+}
+
+pattern TraceLink_MODEL_TO_CLASS_modelica_name_is_UseDiamond_matches(traceLink : TraceLink) {
+    TraceLink(traceLink);
+    find fileOf(traceLink, "UseDiamond.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, "UseDiamond");
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern TraceLink_MODEL_TO_CLASS_modelica_partial_is_true(n : java Integer) {
+    n == count find TraceLink_MODEL_TO_CLASS_modelica_partial_is_true_matches(_);
+    check(n != 1);
+}
+
+pattern TraceLink_MODEL_TO_CLASS_modelica_partial_is_true_matches(traceLink : TraceLink) {
+    TraceLink(traceLink);
+    find fileOf(traceLink, "UseDiamond.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    find partialOf(modelica, true);
+}
+
+// Nothing dropped, at any depth; no unresolved name, no reference into another model's class.
+@Constraint(key = {traceLink}, severity = "error", message = "must not exist")
+pattern count_TraceLink_UNSUPPORTED_is_0(traceLink) {
+    TraceLink(traceLink);
+    find fileOf(traceLink, "UseDiamond.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::UNSUPPORTED);
+}
+
+@Constraint(key = {placeholder}, severity = "error", message = "must not exist")
+pattern count_Placeholder_is_0(placeholder) {
+    Placeholder(placeholder);
+    find fileOf(placeholder, "UseDiamond.mo");
+}
+
+@Constraint(key = {reference}, severity = "error", message = "must not exist")
+pattern count_Reference_UNRESOLVED_not_empty_is_0(reference) {
+    Reference(reference);
+    find fileOf(reference, "UseDiamond.mo");
+    Reference.reason(reference, RawReason::UNRESOLVED);
+    Reference.rawText(reference, rawText);
+    rawText != "";
+}
+
+@Constraint(key = {reference}, severity = "error", message = "must not exist")
+pattern count_Reference_not_UseDiamond_mo_is_0(reference) {
+    Reference(reference);
+    find fileOf(reference, "UseDiamond.mo");
+    Reference.target(reference, target);
+    find fileOf(target, file);
+    file != "UseDiamond.mo";
+}
+
+// Exactly one generated class per model, operator and class it reaches: nothing twice, nothing extra.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected 4")
+pattern count_ClassDefinition_is_4(n : java Integer) {
+    n == count find count_ClassDefinition_is_4_matches(_);
+    check(n != 4);
+}
+
+pattern count_ClassDefinition_is_4_matches(classDefinition) {
+    ClassDefinition(classDefinition);
+    find fileOf(classDefinition, "UseDiamond.mo");
+}
+
+// UseDiamond (own): each element once, of the right kind, directly in UseDiamond's class.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected 5")
+pattern count_Variable_UseDiamond_referrers_TraceLink_is_5(n : java Integer) {
+    n == count find count_Variable_UseDiamond_referrers_TraceLink_is_5_matches(_);
+    check(n != 5);
+}
+
+pattern count_Variable_UseDiamond_referrers_TraceLink_is_5_matches(traceLink) {
+    Variable(variable);
+    find containerOf(variable, container);
+    NamedEntity.name(container, "UseDiamond");
+    find traceLinkOf(variable, traceLink);
+    find fileOf(traceLink, "UseDiamond.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+}
+
+@Constraint(key = {variable}, severity = "error", message = "counterexample")
+pattern all_Variable_UseDiamond_referrers_TraceLink_modelica_container_is_TraceLink_MODE(variable : Variable) {
+    Variable(variable);
+    find containerOf(variable, container);
+    NamedEntity.name(container, "UseDiamond");
+    TraceLink(traceLink);
+    find fileOf(traceLink, "UseDiamond.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    find traceLinkOf(variable, traceLink2);
+    find fileOf(traceLink2, "UseDiamond.trace");
+    TraceLink.kind(traceLink2, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink2, modelica2);
+    find containerOf(modelica2, container2);
+    container2 != modelica;
+} or {
+    Variable(variable);
+    find containerOf(variable, container);
+    NamedEntity.name(container, "UseDiamond");
+    TraceLink(traceLink);
+    find fileOf(traceLink, "UseDiamond.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    neg find all_Variable_UseDiamond_referrers_TraceLink_modelica_container_is_TraceLink_MODE_path(variable, modelica);
+}
+
+pattern all_Variable_UseDiamond_referrers_TraceLink_modelica_container_is_TraceLink_MODE_path(o : Variable, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "UseDiamond.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find containerOf(modelica, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_UseDiamond_x_referrers_TraceLink_modelica_name_is_x(n : java Integer) {
+    n == count find Variable_UseDiamond_x_referrers_TraceLink_modelica_name_is_x_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_UseDiamond_x_referrers_TraceLink_modelica_name_is_x_matches(x : Variable) {
+    Variable(x);
+    find containerOf(x, container);
+    NamedEntity.name(container, "UseDiamond");
+    Variable.name(x, "x");
+    find traceLinkOf(x, traceLink);
+    find fileOf(traceLink, "UseDiamond.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, "x");
+    1 == count find Variable_UseDiamond_x_referrers_TraceLink_modelica_name_is_x_path(x, _);
+}
+
+pattern Variable_UseDiamond_x_referrers_TraceLink_modelica_name_is_x_path(o : Variable, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "UseDiamond.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_UseDiamond_y_referrers_TraceLink_modelica_name_is_y(n : java Integer) {
+    n == count find Variable_UseDiamond_y_referrers_TraceLink_modelica_name_is_y_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_UseDiamond_y_referrers_TraceLink_modelica_name_is_y_matches(y : Variable) {
+    Variable(y);
+    find containerOf(y, container);
+    NamedEntity.name(container, "UseDiamond");
+    Variable.name(y, "y");
+    find traceLinkOf(y, traceLink);
+    find fileOf(traceLink, "UseDiamond.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, "y");
+    1 == count find Variable_UseDiamond_y_referrers_TraceLink_modelica_name_is_y_path(y, _);
+}
+
+pattern Variable_UseDiamond_y_referrers_TraceLink_modelica_name_is_y_path(o : Variable, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "UseDiamond.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_UseDiamond_x_or_y_referrers_TraceLink_modelica_name_is_x_or_y(n : java Integer) {
+    n == count find Variable_UseDiamond_x_or_y_referrers_TraceLink_modelica_name_is_x_or_y_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_UseDiamond_x_or_y_referrers_TraceLink_modelica_name_is_x_or_y_matches(x_or_y : Variable) {
+    Variable(x_or_y);
+    find containerOf(x_or_y, container);
+    NamedEntity.name(container, "UseDiamond");
+    Variable.name(x_or_y, "x_or_y");
+    find traceLinkOf(x_or_y, traceLink);
+    find fileOf(traceLink, "UseDiamond.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, "x_or_y");
+    1 == count find Variable_UseDiamond_x_or_y_referrers_TraceLink_modelica_name_is_x_or_y_path(x_or_y, _);
+}
+
+pattern Variable_UseDiamond_x_or_y_referrers_TraceLink_modelica_name_is_x_or_y_path(o : Variable, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "UseDiamond.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_UseDiamond_x_xor_y_referrers_TraceLink_modelica_name_is_x_xor_y(n : java Integer) {
+    n == count find Variable_UseDiamond_x_xor_y_referrers_TraceLink_modelica_name_is_x_xor_y_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_UseDiamond_x_xor_y_referrers_TraceLink_modelica_name_is_x_xor_y_matches(x_xor_y : Variable) {
+    Variable(x_xor_y);
+    find containerOf(x_xor_y, container);
+    NamedEntity.name(container, "UseDiamond");
+    Variable.name(x_xor_y, "x_xor_y");
+    find traceLinkOf(x_xor_y, traceLink);
+    find fileOf(traceLink, "UseDiamond.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, "x_xor_y");
+    1 == count find Variable_UseDiamond_x_xor_y_referrers_TraceLink_modelica_name_is_x_xor_y_path(x_xor_y, _);
+}
+
+pattern Variable_UseDiamond_x_xor_y_referrers_TraceLink_modelica_name_is_x_xor_y_path(o : Variable, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "UseDiamond.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_UseDiamond_not_x_referrers_TraceLink_modelica_name_is_not_x(n : java Integer) {
+    n == count find Variable_UseDiamond_not_x_referrers_TraceLink_modelica_name_is_not_x_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_UseDiamond_not_x_referrers_TraceLink_modelica_name_is_not_x_matches(not_x : Variable) {
+    Variable(not_x);
+    find containerOf(not_x, container);
+    NamedEntity.name(container, "UseDiamond");
+    Variable.name(not_x, "not_x");
+    find traceLinkOf(not_x, traceLink);
+    find fileOf(traceLink, "UseDiamond.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, "not_x");
+    1 == count find Variable_UseDiamond_not_x_referrers_TraceLink_modelica_name_is_not_x_path(not_x, _);
+}
+
+pattern Variable_UseDiamond_not_x_referrers_TraceLink_modelica_name_is_not_x_path(o : Variable, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "UseDiamond.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, v);
+}
+
+// Left: each element once, of the right kind, directly in UseDiamond's class.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern count_CustomOperator_Left_referrers_TraceLink_is_1(n : java Integer) {
+    n == count find count_CustomOperator_Left_referrers_TraceLink_is_1_matches(_);
+    check(n != 1);
+}
+
+pattern count_CustomOperator_Left_referrers_TraceLink_is_1_matches(traceLink) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "Left");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "UseDiamond.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_FUNCTION);
+}
+
+@Constraint(key = {customOperator}, severity = "error", message = "counterexample")
+pattern all_CustomOperator_Left_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "Left");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "UseDiamond.trace");
+    TraceLink.kind(traceLink, kind);
+    kind != TraceLinkKind::OPERATOR_TO_FUNCTION;
+} or {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "Left");
+    neg find all_CustomOperator_Left_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_path(customOperator, TraceLinkKind::OPERATOR_TO_FUNCTION);
+}
+
+pattern all_CustomOperator_Left_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "UseDiamond.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {customOperator}, severity = "error", message = "counterexample")
+pattern all_CustomOperator_Left_referrers_TraceLink_modelica_container_is_TraceLink_MODE(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "Left");
+    TraceLink(traceLink);
+    find fileOf(traceLink, "UseDiamond.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    find traceLinkOf(customOperator, traceLink2);
+    find fileOf(traceLink2, "UseDiamond.trace");
+    TraceLink.modelica(traceLink2, modelica2);
+    find containerOf(modelica2, container2);
+    container2 != modelica;
+} or {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "Left");
+    TraceLink(traceLink);
+    find fileOf(traceLink, "UseDiamond.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    neg find all_CustomOperator_Left_referrers_TraceLink_modelica_container_is_TraceLink_MODE_path(customOperator, modelica);
+}
+
+pattern all_CustomOperator_Left_referrers_TraceLink_modelica_container_is_TraceLink_MODE_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "UseDiamond.trace");
+    TraceLink.modelica(traceLink, modelica);
+    find containerOf(modelica, v);
+}
+
+// Right: each element once, of the right kind, directly in UseDiamond's class.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern count_CustomOperator_Right_referrers_TraceLink_is_1(n : java Integer) {
+    n == count find count_CustomOperator_Right_referrers_TraceLink_is_1_matches(_);
+    check(n != 1);
+}
+
+pattern count_CustomOperator_Right_referrers_TraceLink_is_1_matches(traceLink) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "Right");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "UseDiamond.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_FUNCTION);
+}
+
+@Constraint(key = {customOperator}, severity = "error", message = "counterexample")
+pattern all_CustomOperator_Right_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "Right");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "UseDiamond.trace");
+    TraceLink.kind(traceLink, kind);
+    kind != TraceLinkKind::OPERATOR_TO_FUNCTION;
+} or {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "Right");
+    neg find all_CustomOperator_Right_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_path(customOperator, TraceLinkKind::OPERATOR_TO_FUNCTION);
+}
+
+pattern all_CustomOperator_Right_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "UseDiamond.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {customOperator}, severity = "error", message = "counterexample")
+pattern all_CustomOperator_Right_referrers_TraceLink_modelica_container_is_TraceLink_MOD(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "Right");
+    TraceLink(traceLink);
+    find fileOf(traceLink, "UseDiamond.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    find traceLinkOf(customOperator, traceLink2);
+    find fileOf(traceLink2, "UseDiamond.trace");
+    TraceLink.modelica(traceLink2, modelica2);
+    find containerOf(modelica2, container2);
+    container2 != modelica;
+} or {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "Right");
+    TraceLink(traceLink);
+    find fileOf(traceLink, "UseDiamond.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    neg find all_CustomOperator_Right_referrers_TraceLink_modelica_container_is_TraceLink_MOD_path(customOperator, modelica);
+}
+
+pattern all_CustomOperator_Right_referrers_TraceLink_modelica_container_is_TraceLink_MOD_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "UseDiamond.trace");
+    TraceLink.modelica(traceLink, modelica);
+    find containerOf(modelica, v);
+}
+
+// Logic: each element once, of the right kind, directly in UseDiamond's class.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern count_CustomOperator_Logic_referrers_TraceLink_is_1(n : java Integer) {
+    n == count find count_CustomOperator_Logic_referrers_TraceLink_is_1_matches(_);
+    check(n != 1);
+}
+
+pattern count_CustomOperator_Logic_referrers_TraceLink_is_1_matches(traceLink) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "Logic");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "UseDiamond.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_FUNCTION);
+}
+
+@Constraint(key = {customOperator}, severity = "error", message = "counterexample")
+pattern all_CustomOperator_Logic_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "Logic");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "UseDiamond.trace");
+    TraceLink.kind(traceLink, kind);
+    kind != TraceLinkKind::OPERATOR_TO_FUNCTION;
+} or {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "Logic");
+    neg find all_CustomOperator_Logic_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_path(customOperator, TraceLinkKind::OPERATOR_TO_FUNCTION);
+}
+
+pattern all_CustomOperator_Logic_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "UseDiamond.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {customOperator}, severity = "error", message = "counterexample")
+pattern all_CustomOperator_Logic_referrers_TraceLink_modelica_container_is_TraceLink_MOD(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "Logic");
+    TraceLink(traceLink);
+    find fileOf(traceLink, "UseDiamond.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    find traceLinkOf(customOperator, traceLink2);
+    find fileOf(traceLink2, "UseDiamond.trace");
+    TraceLink.modelica(traceLink2, modelica2);
+    find containerOf(modelica2, container2);
+    container2 != modelica;
+} or {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "Logic");
+    TraceLink(traceLink);
+    find fileOf(traceLink, "UseDiamond.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    neg find all_CustomOperator_Logic_referrers_TraceLink_modelica_container_is_TraceLink_MOD_path(customOperator, modelica);
+}
+
+pattern all_CustomOperator_Logic_referrers_TraceLink_modelica_container_is_TraceLink_MOD_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "UseDiamond.trace");
+    TraceLink.modelica(traceLink, modelica);
+    find containerOf(modelica, v);
+}
+
+// ---- Call sites and structure
+// Each call reaches the function of the right library; xor calls Logic's or.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_UseDiamond_x_or_y_referrers_TraceLink_modelica_binding_function_target(n : java Integer) {
+    n == count find Variable_UseDiamond_x_or_y_referrers_TraceLink_modelica_binding_function_target_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_UseDiamond_x_or_y_referrers_TraceLink_modelica_binding_function_target_matches(x_or_y : Variable) {
+    Variable(x_or_y);
+    find containerOf(x_or_y, container);
+    NamedEntity.name(container, "UseDiamond");
+    Variable.name(x_or_y, "x_or_y");
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container2);
+    Library.name(container2, "Logic");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'or'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "UseDiamond.trace");
+    TraceLink.modelica(traceLink, modelica);
+    find traceLinkOf(x_or_y, traceLink2);
+    find fileOf(traceLink2, "UseDiamond.trace");
+    TraceLink.kind(traceLink2, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink2, modelica2);
+    ComponentDeclaration.binding(modelica2, binding);
+    FunctionCall.function(binding, function);
+    Reference.target(function, modelica);
+    1 == count find Variable_UseDiamond_x_or_y_referrers_TraceLink_modelica_binding_function_target_path(x_or_y, _);
+}
+
+pattern Variable_UseDiamond_x_or_y_referrers_TraceLink_modelica_binding_function_target_path(o : Variable, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "UseDiamond.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    ComponentDeclaration.binding(modelica, binding);
+    FunctionCall.function(binding, function);
+    Reference.target(function, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_UseDiamond_x_xor_y_referrers_TraceLink_modelica_binding_function_target(n : java Integer) {
+    n == count find Variable_UseDiamond_x_xor_y_referrers_TraceLink_modelica_binding_function_target_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_UseDiamond_x_xor_y_referrers_TraceLink_modelica_binding_function_target_matches(x_xor_y : Variable) {
+    Variable(x_xor_y);
+    find containerOf(x_xor_y, container);
+    NamedEntity.name(container, "UseDiamond");
+    Variable.name(x_xor_y, "x_xor_y");
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container2);
+    Library.name(container2, "Right");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'xor'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "UseDiamond.trace");
+    TraceLink.modelica(traceLink, modelica);
+    find traceLinkOf(x_xor_y, traceLink2);
+    find fileOf(traceLink2, "UseDiamond.trace");
+    TraceLink.kind(traceLink2, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink2, modelica2);
+    ComponentDeclaration.binding(modelica2, binding);
+    FunctionCall.function(binding, function);
+    Reference.target(function, modelica);
+    1 == count find Variable_UseDiamond_x_xor_y_referrers_TraceLink_modelica_binding_function_target_path(x_xor_y, _);
+}
+
+pattern Variable_UseDiamond_x_xor_y_referrers_TraceLink_modelica_binding_function_target_path(o : Variable, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "UseDiamond.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    ComponentDeclaration.binding(modelica, binding);
+    FunctionCall.function(binding, function);
+    Reference.target(function, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_UseDiamond_not_x_referrers_TraceLink_modelica_binding_function_target_i(n : java Integer) {
+    n == count find Variable_UseDiamond_not_x_referrers_TraceLink_modelica_binding_function_target_i_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_UseDiamond_not_x_referrers_TraceLink_modelica_binding_function_target_i_matches(not_x : Variable) {
+    Variable(not_x);
+    find containerOf(not_x, container);
+    NamedEntity.name(container, "UseDiamond");
+    Variable.name(not_x, "not_x");
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container2);
+    Library.name(container2, "Left");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'negation of'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "UseDiamond.trace");
+    TraceLink.modelica(traceLink, modelica);
+    find traceLinkOf(not_x, traceLink2);
+    find fileOf(traceLink2, "UseDiamond.trace");
+    TraceLink.kind(traceLink2, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink2, modelica2);
+    ComponentDeclaration.binding(modelica2, binding);
+    FunctionCall.function(binding, function);
+    Reference.target(function, modelica);
+    1 == count find Variable_UseDiamond_not_x_referrers_TraceLink_modelica_binding_function_target_i_path(not_x, _);
+}
+
+pattern Variable_UseDiamond_not_x_referrers_TraceLink_modelica_binding_function_target_i_path(o : Variable, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "UseDiamond.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    ComponentDeclaration.binding(modelica, binding);
+    FunctionCall.function(binding, function);
+    Reference.target(function, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_Right_xor_referrers_TraceLink_modelica_statements_value_arguments(n : java Integer) {
+    n == count find CustomOperator_Right_xor_referrers_TraceLink_modelica_statements_value_arguments_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_Right_xor_referrers_TraceLink_modelica_statements_value_arguments_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "Right");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'xor'");
+    CustomOperator(customOperator2);
+    find containerOf(customOperator2, container2);
+    Library.name(container2, "Logic");
+    CustomOperator.header(customOperator2, header2);
+    Keyword(header2);
+    Keyword.keyword(header2, "'or'");
+    find traceLinkOf(customOperator2, traceLink);
+    find fileOf(traceLink, "UseDiamond.trace");
+    TraceLink.modelica(traceLink, modelica);
+    find traceLinkOf(customOperator, traceLink2);
+    find fileOf(traceLink2, "UseDiamond.trace");
+    TraceLink.modelica(traceLink2, modelica2);
+    ClassDefinition.statements(modelica2, statements);
+    Statement.value(statements, value);
+    FunctionCall.arguments(value, arguments);
+    ParenthesizedExpression(arguments);
+    ParenthesizedExpression.inner(arguments, inner);
+    FunctionCall.function(inner, function);
+    Reference.target(function, modelica);
+    1 == count find CustomOperator_Right_xor_referrers_TraceLink_modelica_statements_value_arguments_path(customOperator, _);
+}
+
+pattern CustomOperator_Right_xor_referrers_TraceLink_modelica_statements_value_arguments_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "UseDiamond.trace");
+    TraceLink.modelica(traceLink, modelica);
+    ClassDefinition.statements(modelica, statements);
+    Statement.value(statements, value);
+    FunctionCall.arguments(value, arguments);
+    ParenthesizedExpression(arguments);
+    ParenthesizedExpression.inner(arguments, inner);
+    FunctionCall.function(inner, function);
+    Reference.target(function, v);
+}
+
+// Steps that features of several classes answer.
+
+pattern traceLinkOf(o : EObject, value : EObject) {
+    TraceLink.crml(value, o);
+} or {
+    TraceLink.modelica(value, o);
+}
+
+pattern nameOf(o : EObject, value) {
+    NamedEntity.name(o, value);
+} or {
+    LibraryDependency.name(o, value);
+} or {
+    ClassDefinition.name(o, value);
+} or {
+    ComponentDeclaration.name(o, value);
+} or {
+    ModificationElement.name(o, value);
+} or {
+    ReferencePart.name(o, value);
+}
+
+pattern partialOf(o : EObject, value) {
+    Domain.partial(o, value);
+} or {
+    ClassDefinition.partial(o, value);
+}

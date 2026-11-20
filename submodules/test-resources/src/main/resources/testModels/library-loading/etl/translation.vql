@@ -1,0 +1,3460 @@
+package expectations;
+
+import "http://www.eclipse.org/emf/2002/Ecore";
+import "org.openmodelica.crml.model.metamodel" as model;
+import "org.openmodelica.crml.modelica.metamodel" as modelica;
+import "org.openmodelica.crml.modelica.trace.metamodel" as trace;
+
+// Every operator and template of ETL is emitted into each of the four models.
+// <Model>.mo is the Modelica class generated for a model, <Model>.trace its trace
+// (see LibraryLoading in :compiler and "Checking a translation" in
+// EXPECTATIONS.md). Every expected value follows from the CRML sources.
+
+// What is quantified over, so that no 'all' below passes vacuously.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected 3")
+pattern count_Variable_BecomesTrueInside_is_3(n : java Integer) {
+    n == count find count_Variable_BecomesTrueInside_is_3_matches(_);
+    check(n != 3);
+}
+
+pattern count_Variable_BecomesTrueInside_is_3_matches(variable) {
+    Variable(variable);
+    find containerOf(variable, container);
+    NamedEntity.name(container, "BecomesTrueInside");
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected 3")
+pattern count_Variable_CheckOver_is_3(n : java Integer) {
+    n == count find count_Variable_CheckOver_is_3_matches(_);
+    check(n != 3);
+}
+
+pattern count_Variable_CheckOver_is_3_matches(variable) {
+    Variable(variable);
+    find containerOf(variable, container);
+    NamedEntity.name(container, "CheckOver");
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected 5")
+pattern count_Variable_CountInside_is_5(n : java Integer) {
+    n == count find count_Variable_CountInside_is_5_matches(_);
+    check(n != 5);
+}
+
+pattern count_Variable_CountInside_is_5_matches(variable) {
+    Variable(variable);
+    find containerOf(variable, container);
+    NamedEntity.name(container, "CountInside");
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected 3")
+pattern count_Variable_Implies_is_3(n : java Integer) {
+    n == count find count_Variable_Implies_is_3_matches(_);
+    check(n != 3);
+}
+
+pattern count_Variable_Implies_is_3_matches(variable) {
+    Variable(variable);
+    find containerOf(variable, container);
+    NamedEntity.name(container, "Implies");
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected 15")
+pattern count_CustomOperator_ETL_is_15(n : java Integer) {
+    n == count find count_CustomOperator_ETL_is_15_matches(_);
+    check(n != 15);
+}
+
+pattern count_CustomOperator_ETL_is_15_matches(customOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+}
+
+// ---- BecomesTrueInside
+
+// Its class, and whether it is partial (it is when a variable it has, own or inherited, is unbound).
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Model_BecomesTrueInside_referrers_TraceLink_modelica_file_is_BecomesTrueInside_m(n : java Integer) {
+    n == count find Model_BecomesTrueInside_referrers_TraceLink_modelica_file_is_BecomesTrueInside_m_matches(_);
+    check(n != 1);
+}
+
+pattern Model_BecomesTrueInside_referrers_TraceLink_modelica_file_is_BecomesTrueInside_m_matches(becomesTrueInside : Model) {
+    Model.name(becomesTrueInside, "BecomesTrueInside");
+    find traceLinkOf(becomesTrueInside, traceLink);
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    find fileOf(modelica, "BecomesTrueInside.mo");
+    1 == count find Model_BecomesTrueInside_referrers_TraceLink_modelica_file_is_BecomesTrueInside_m_path(becomesTrueInside, _);
+}
+
+pattern Model_BecomesTrueInside_referrers_TraceLink_modelica_file_is_BecomesTrueInside_m_path(o : Model, v) {
+    find traceLinkOf(o, traceLink);
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    find fileOf(modelica, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern TraceLink_MODEL_TO_CLASS_modelica_name_is_BecomesTrueInside(n : java Integer) {
+    n == count find TraceLink_MODEL_TO_CLASS_modelica_name_is_BecomesTrueInside_matches(_);
+    check(n != 1);
+}
+
+pattern TraceLink_MODEL_TO_CLASS_modelica_name_is_BecomesTrueInside_matches(traceLink : TraceLink) {
+    TraceLink(traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, "BecomesTrueInside");
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern TraceLink_MODEL_TO_CLASS_modelica_partial_is_true(n : java Integer) {
+    n == count find TraceLink_MODEL_TO_CLASS_modelica_partial_is_true_matches(_);
+    check(n != 1);
+}
+
+pattern TraceLink_MODEL_TO_CLASS_modelica_partial_is_true_matches(traceLink : TraceLink) {
+    TraceLink(traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    find partialOf(modelica, true);
+}
+
+// Nothing dropped, at any depth; no unresolved name, no reference into another model's class.
+@Constraint(key = {traceLink}, severity = "error", message = "must not exist")
+pattern count_TraceLink_UNSUPPORTED_is_0(traceLink) {
+    TraceLink(traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::UNSUPPORTED);
+}
+
+@Constraint(key = {placeholder}, severity = "error", message = "must not exist")
+pattern count_Placeholder_is_0(placeholder) {
+    Placeholder(placeholder);
+    find fileOf(placeholder, "BecomesTrueInside.mo");
+}
+
+@Constraint(key = {reference}, severity = "error", message = "must not exist")
+pattern count_Reference_UNRESOLVED_not_empty_is_0(reference) {
+    Reference(reference);
+    find fileOf(reference, "BecomesTrueInside.mo");
+    Reference.reason(reference, RawReason::UNRESOLVED);
+    Reference.rawText(reference, rawText);
+    rawText != "";
+}
+
+@Constraint(key = {reference}, severity = "error", message = "must not exist")
+pattern count_Reference_not_BecomesTrueInside_mo_is_0(reference) {
+    Reference(reference);
+    find fileOf(reference, "BecomesTrueInside.mo");
+    Reference.target(reference, target);
+    find fileOf(target, file);
+    file != "BecomesTrueInside.mo";
+}
+
+// Exactly one generated class per model, operator and class it reaches: nothing twice, nothing extra.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected 16")
+pattern count_ClassDefinition_is_16(n : java Integer) {
+    n == count find count_ClassDefinition_is_16_matches(_);
+    check(n != 16);
+}
+
+pattern count_ClassDefinition_is_16_matches(classDefinition) {
+    ClassDefinition(classDefinition);
+    find fileOf(classDefinition, "BecomesTrueInside.mo");
+}
+
+// BecomesTrueInside (own): each element once, of the right kind, directly in BecomesTrueInside's class.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected 3")
+pattern count_Variable_BecomesTrueInside_referrers_TraceLink_is_3(n : java Integer) {
+    n == count find count_Variable_BecomesTrueInside_referrers_TraceLink_is_3_matches(_);
+    check(n != 3);
+}
+
+pattern count_Variable_BecomesTrueInside_referrers_TraceLink_is_3_matches(traceLink) {
+    Variable(variable);
+    find containerOf(variable, container);
+    NamedEntity.name(container, "BecomesTrueInside");
+    find traceLinkOf(variable, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+}
+
+@Constraint(key = {variable}, severity = "error", message = "counterexample")
+pattern all_Variable_BecomesTrueInside_referrers_TraceLink_modelica_container_is_TraceLi(variable : Variable) {
+    Variable(variable);
+    find containerOf(variable, container);
+    NamedEntity.name(container, "BecomesTrueInside");
+    TraceLink(traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    find traceLinkOf(variable, traceLink2);
+    find fileOf(traceLink2, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink2, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink2, modelica2);
+    find containerOf(modelica2, container2);
+    container2 != modelica;
+} or {
+    Variable(variable);
+    find containerOf(variable, container);
+    NamedEntity.name(container, "BecomesTrueInside");
+    TraceLink(traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    neg find all_Variable_BecomesTrueInside_referrers_TraceLink_modelica_container_is_TraceLi_path(variable, modelica);
+}
+
+pattern all_Variable_BecomesTrueInside_referrers_TraceLink_modelica_container_is_TraceLi_path(o : Variable, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find containerOf(modelica, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_BecomesTrueInside_b1_referrers_TraceLink_modelica_name_is_b1(n : java Integer) {
+    n == count find Variable_BecomesTrueInside_b1_referrers_TraceLink_modelica_name_is_b1_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_BecomesTrueInside_b1_referrers_TraceLink_modelica_name_is_b1_matches(b1 : Variable) {
+    Variable(b1);
+    find containerOf(b1, container);
+    NamedEntity.name(container, "BecomesTrueInside");
+    Variable.name(b1, "b1");
+    find traceLinkOf(b1, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, "b1");
+    1 == count find Variable_BecomesTrueInside_b1_referrers_TraceLink_modelica_name_is_b1_path(b1, _);
+}
+
+pattern Variable_BecomesTrueInside_b1_referrers_TraceLink_modelica_name_is_b1_path(o : Variable, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_BecomesTrueInside_P1_referrers_TraceLink_modelica_name_is_P1(n : java Integer) {
+    n == count find Variable_BecomesTrueInside_P1_referrers_TraceLink_modelica_name_is_P1_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_BecomesTrueInside_P1_referrers_TraceLink_modelica_name_is_P1_matches(p1 : Variable) {
+    Variable(p1);
+    find containerOf(p1, container);
+    NamedEntity.name(container, "BecomesTrueInside");
+    Variable.name(p1, "P1");
+    find traceLinkOf(p1, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, "P1");
+    1 == count find Variable_BecomesTrueInside_P1_referrers_TraceLink_modelica_name_is_P1_path(p1, _);
+}
+
+pattern Variable_BecomesTrueInside_P1_referrers_TraceLink_modelica_name_is_P1_path(o : Variable, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_BecomesTrueInside_c_b1_becomes_true_inside_p1_referrers_TraceLink_model(n : java Integer) {
+    n == count find Variable_BecomesTrueInside_c_b1_becomes_true_inside_p1_referrers_TraceLink_model_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_BecomesTrueInside_c_b1_becomes_true_inside_p1_referrers_TraceLink_model_matches(c_b1_becomes_true_inside_p1 : Variable) {
+    Variable(c_b1_becomes_true_inside_p1);
+    find containerOf(c_b1_becomes_true_inside_p1, container);
+    NamedEntity.name(container, "BecomesTrueInside");
+    Variable.name(c_b1_becomes_true_inside_p1, "c_b1_becomes_true_inside_p1");
+    find traceLinkOf(c_b1_becomes_true_inside_p1, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, "c_b1_becomes_true_inside_p1");
+    1 == count find Variable_BecomesTrueInside_c_b1_becomes_true_inside_p1_referrers_TraceLink_model_path(c_b1_becomes_true_inside_p1, _);
+}
+
+pattern Variable_BecomesTrueInside_c_b1_becomes_true_inside_p1_referrers_TraceLink_model_path(o : Variable, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, v);
+}
+
+// ETL: each element once, of the right kind, directly in BecomesTrueInside's class.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected 7")
+pattern count_CustomOperator_ETL_referrers_TraceLink_is_7(n : java Integer) {
+    n == count find count_CustomOperator_ETL_referrers_TraceLink_is_7_matches(_);
+    check(n != 7);
+}
+
+pattern count_CustomOperator_ETL_referrers_TraceLink_is_7_matches(traceLink) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_FUNCTION);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected 8")
+pattern count_CustomOperator_ETL_referrers_TraceLink_is_8(n : java Integer) {
+    n == count find count_CustomOperator_ETL_referrers_TraceLink_is_8_matches(_);
+    check(n != 8);
+}
+
+pattern count_CustomOperator_ETL_referrers_TraceLink_is_8_matches(traceLink) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_BLOCK);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_or_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION(n : java Integer) {
+    n == count find CustomOperator_ETL_or_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_or_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'or'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_FUNCTION);
+    1 == count find CustomOperator_ETL_or_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_or_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_xor_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION(n : java Integer) {
+    n == count find CustomOperator_ETL_xor_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_xor_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'xor'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_FUNCTION);
+    1 == count find CustomOperator_ETL_xor_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_xor_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_implies_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION(n : java Integer) {
+    n == count find CustomOperator_ETL_implies_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_implies_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'implies'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_FUNCTION);
+    1 == count find CustomOperator_ETL_implies_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_implies_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_inside_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK(n : java Integer) {
+    n == count find CustomOperator_ETL_inside_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_inside_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'inside'");
+    1 == count find CustomOperator_ETL_inside_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_path(customOperator, _);
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_BLOCK);
+    1 == count find CustomOperator_ETL_inside_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_path2(customOperator, _);
+}
+
+pattern CustomOperator_ETL_inside_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_path(o : CustomOperator, v) {
+    CustomOperator.header(o, header);
+    Keyword(header);
+    Keyword.keyword(header, v);
+}
+
+pattern CustomOperator_ETL_inside_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_path2(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_count_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK(n : java Integer) {
+    n == count find CustomOperator_ETL_count_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_count_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'count'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_BLOCK);
+    1 == count find CustomOperator_ETL_count_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_count_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_becomes_true_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK(n : java Integer) {
+    n == count find CustomOperator_ETL_becomes_true_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_becomes_true_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'becomes true'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_BLOCK);
+    1 == count find CustomOperator_ETL_becomes_true_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_becomes_true_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_becomes_false_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK(n : java Integer) {
+    n == count find CustomOperator_ETL_becomes_false_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_becomes_false_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'becomes false'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_BLOCK);
+    1 == count find CustomOperator_ETL_becomes_false_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_becomes_false_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_becomes_true_inside_referrers_TraceLink_kind_is_OPERATOR_TO_B(n : java Integer) {
+    n == count find CustomOperator_ETL_becomes_true_inside_referrers_TraceLink_kind_is_OPERATOR_TO_B_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_becomes_true_inside_referrers_TraceLink_kind_is_OPERATOR_TO_B_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'becomes true inside'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_BLOCK);
+    1 == count find CustomOperator_ETL_becomes_true_inside_referrers_TraceLink_kind_is_OPERATOR_TO_B_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_becomes_true_inside_referrers_TraceLink_kind_is_OPERATOR_TO_B_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_becomes_false_inside_referrers_TraceLink_kind_is_OPERATOR_TO(n : java Integer) {
+    n == count find CustomOperator_ETL_becomes_false_inside_referrers_TraceLink_kind_is_OPERATOR_TO_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_becomes_false_inside_referrers_TraceLink_kind_is_OPERATOR_TO_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'becomes false inside'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_BLOCK);
+    1 == count find CustomOperator_ETL_becomes_false_inside_referrers_TraceLink_kind_is_OPERATOR_TO_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_becomes_false_inside_referrers_TraceLink_kind_is_OPERATOR_TO_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_check_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK(n : java Integer) {
+    n == count find CustomOperator_ETL_check_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_check_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'check'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_BLOCK);
+    1 == count find CustomOperator_ETL_check_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_check_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_evaluate_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK(n : java Integer) {
+    n == count find CustomOperator_ETL_evaluate_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_evaluate_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'evaluate'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_BLOCK);
+    1 == count find CustomOperator_ETL_evaluate_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_evaluate_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_decide_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION(n : java Integer) {
+    n == count find CustomOperator_ETL_decide_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_decide_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'decide'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_FUNCTION);
+    1 == count find CustomOperator_ETL_decide_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_decide_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_id_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION(n : java Integer) {
+    n == count find CustomOperator_ETL_id_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_id_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'id'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_FUNCTION);
+    1 == count find CustomOperator_ETL_id_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_id_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_cte_false_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION(n : java Integer) {
+    n == count find CustomOperator_ETL_cte_false_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_cte_false_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'cte_false'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_FUNCTION);
+    1 == count find CustomOperator_ETL_cte_false_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_cte_false_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_cte_true_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION(n : java Integer) {
+    n == count find CustomOperator_ETL_cte_true_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_cte_true_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'cte_true'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_FUNCTION);
+    1 == count find CustomOperator_ETL_cte_true_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_cte_true_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {customOperator}, severity = "error", message = "counterexample")
+pattern all_CustomOperator_ETL_referrers_TraceLink_modelica_container_is_TraceLink_MODEL(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    TraceLink(traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    find traceLinkOf(customOperator, traceLink2);
+    find fileOf(traceLink2, "BecomesTrueInside.trace");
+    TraceLink.modelica(traceLink2, modelica2);
+    find containerOf(modelica2, container2);
+    container2 != modelica;
+} or {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    TraceLink(traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    neg find all_CustomOperator_ETL_referrers_TraceLink_modelica_container_is_TraceLink_MODEL_path(customOperator, modelica);
+}
+
+pattern all_CustomOperator_ETL_referrers_TraceLink_modelica_container_is_TraceLink_MODEL_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.modelica(traceLink, modelica);
+    find containerOf(modelica, v);
+}
+
+// What BecomesTrueInside does not reach is not in it: scope flows one way only.
+@Constraint(key = {customOperator}, severity = "error", message = "counterexample")
+pattern all_CustomOperator_CheckOver_referrers_file_lacks_BecomesTrueInside_trace(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "CheckOver");
+    find referrerOf(customOperator, referrer);
+    find fileOf(referrer, "BecomesTrueInside.trace");
+}
+
+@Constraint(key = {class}, severity = "error", message = "counterexample")
+pattern all_Class_CheckOver_referrers_file_lacks_BecomesTrueInside_trace(class : Class) {
+    Class(class);
+    find containerOf(class, container);
+    Library.name(container, "CheckOver");
+    find referrerOf(class, referrer);
+    find fileOf(referrer, "BecomesTrueInside.trace");
+}
+
+@Constraint(key = {variable}, severity = "error", message = "counterexample")
+pattern all_Variable_CheckOver_referrers_file_lacks_BecomesTrueInside_trace(variable : Variable) {
+    Variable(variable);
+    find containerOf(variable, container);
+    NamedEntity.name(container, "CheckOver");
+    find referrerOf(variable, referrer);
+    find fileOf(referrer, "BecomesTrueInside.trace");
+}
+
+@Constraint(key = {customOperator}, severity = "error", message = "counterexample")
+pattern all_CustomOperator_CountInside_referrers_file_lacks_BecomesTrueInside_trace(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "CountInside");
+    find referrerOf(customOperator, referrer);
+    find fileOf(referrer, "BecomesTrueInside.trace");
+}
+
+@Constraint(key = {class}, severity = "error", message = "counterexample")
+pattern all_Class_CountInside_referrers_file_lacks_BecomesTrueInside_trace(class : Class) {
+    Class(class);
+    find containerOf(class, container);
+    Library.name(container, "CountInside");
+    find referrerOf(class, referrer);
+    find fileOf(referrer, "BecomesTrueInside.trace");
+}
+
+@Constraint(key = {variable}, severity = "error", message = "counterexample")
+pattern all_Variable_CountInside_referrers_file_lacks_BecomesTrueInside_trace(variable : Variable) {
+    Variable(variable);
+    find containerOf(variable, container);
+    NamedEntity.name(container, "CountInside");
+    find referrerOf(variable, referrer);
+    find fileOf(referrer, "BecomesTrueInside.trace");
+}
+
+@Constraint(key = {customOperator}, severity = "error", message = "counterexample")
+pattern all_CustomOperator_Implies_referrers_file_lacks_BecomesTrueInside_trace(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "Implies");
+    find referrerOf(customOperator, referrer);
+    find fileOf(referrer, "BecomesTrueInside.trace");
+}
+
+@Constraint(key = {class}, severity = "error", message = "counterexample")
+pattern all_Class_Implies_referrers_file_lacks_BecomesTrueInside_trace(class : Class) {
+    Class(class);
+    find containerOf(class, container);
+    Library.name(container, "Implies");
+    find referrerOf(class, referrer);
+    find fileOf(referrer, "BecomesTrueInside.trace");
+}
+
+@Constraint(key = {variable}, severity = "error", message = "counterexample")
+pattern all_Variable_Implies_referrers_file_lacks_BecomesTrueInside_trace(variable : Variable) {
+    Variable(variable);
+    find containerOf(variable, container);
+    NamedEntity.name(container, "Implies");
+    find referrerOf(variable, referrer);
+    find fileOf(referrer, "BecomesTrueInside.trace");
+}
+
+// ---- CheckOver
+
+// Its class, and whether it is partial (it is when a variable it has, own or inherited, is unbound).
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Model_CheckOver_referrers_TraceLink_modelica_file_is_CheckOver_mo(n : java Integer) {
+    n == count find Model_CheckOver_referrers_TraceLink_modelica_file_is_CheckOver_mo_matches(_);
+    check(n != 1);
+}
+
+pattern Model_CheckOver_referrers_TraceLink_modelica_file_is_CheckOver_mo_matches(checkOver : Model) {
+    Model.name(checkOver, "CheckOver");
+    find traceLinkOf(checkOver, traceLink);
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    find fileOf(modelica, "CheckOver.mo");
+    1 == count find Model_CheckOver_referrers_TraceLink_modelica_file_is_CheckOver_mo_path(checkOver, _);
+}
+
+pattern Model_CheckOver_referrers_TraceLink_modelica_file_is_CheckOver_mo_path(o : Model, v) {
+    find traceLinkOf(o, traceLink);
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    find fileOf(modelica, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern TraceLink_MODEL_TO_CLASS_modelica_name_is_CheckOver(n : java Integer) {
+    n == count find TraceLink_MODEL_TO_CLASS_modelica_name_is_CheckOver_matches(_);
+    check(n != 1);
+}
+
+pattern TraceLink_MODEL_TO_CLASS_modelica_name_is_CheckOver_matches(traceLink : TraceLink) {
+    TraceLink(traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, "CheckOver");
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern TraceLink_MODEL_TO_CLASS_modelica_partial_is_true_2(n : java Integer) {
+    n == count find TraceLink_MODEL_TO_CLASS_modelica_partial_is_true_2_matches(_);
+    check(n != 1);
+}
+
+pattern TraceLink_MODEL_TO_CLASS_modelica_partial_is_true_2_matches(traceLink : TraceLink) {
+    TraceLink(traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    find partialOf(modelica, true);
+}
+
+// Nothing dropped, at any depth; no unresolved name, no reference into another model's class.
+@Constraint(key = {traceLink}, severity = "error", message = "must not exist")
+pattern count_TraceLink_UNSUPPORTED_is_0_2(traceLink) {
+    TraceLink(traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::UNSUPPORTED);
+}
+
+@Constraint(key = {placeholder}, severity = "error", message = "must not exist")
+pattern count_Placeholder_is_0_2(placeholder) {
+    Placeholder(placeholder);
+    find fileOf(placeholder, "CheckOver.mo");
+}
+
+@Constraint(key = {reference}, severity = "error", message = "must not exist")
+pattern count_Reference_UNRESOLVED_not_empty_is_0_2(reference) {
+    Reference(reference);
+    find fileOf(reference, "CheckOver.mo");
+    Reference.reason(reference, RawReason::UNRESOLVED);
+    Reference.rawText(reference, rawText);
+    rawText != "";
+}
+
+@Constraint(key = {reference}, severity = "error", message = "must not exist")
+pattern count_Reference_not_CheckOver_mo_is_0(reference) {
+    Reference(reference);
+    find fileOf(reference, "CheckOver.mo");
+    Reference.target(reference, target);
+    find fileOf(target, file);
+    file != "CheckOver.mo";
+}
+
+// Exactly one generated class per model, operator and class it reaches: nothing twice, nothing extra.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected 16")
+pattern count_ClassDefinition_is_16_2(n : java Integer) {
+    n == count find count_ClassDefinition_is_16_2_matches(_);
+    check(n != 16);
+}
+
+pattern count_ClassDefinition_is_16_2_matches(classDefinition) {
+    ClassDefinition(classDefinition);
+    find fileOf(classDefinition, "CheckOver.mo");
+}
+
+// CheckOver (own): each element once, of the right kind, directly in CheckOver's class.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected 3")
+pattern count_Variable_CheckOver_referrers_TraceLink_is_3(n : java Integer) {
+    n == count find count_Variable_CheckOver_referrers_TraceLink_is_3_matches(_);
+    check(n != 3);
+}
+
+pattern count_Variable_CheckOver_referrers_TraceLink_is_3_matches(traceLink) {
+    Variable(variable);
+    find containerOf(variable, container);
+    NamedEntity.name(container, "CheckOver");
+    find traceLinkOf(variable, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+}
+
+@Constraint(key = {variable}, severity = "error", message = "counterexample")
+pattern all_Variable_CheckOver_referrers_TraceLink_modelica_container_is_TraceLink_MODEL(variable : Variable) {
+    Variable(variable);
+    find containerOf(variable, container);
+    NamedEntity.name(container, "CheckOver");
+    TraceLink(traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    find traceLinkOf(variable, traceLink2);
+    find fileOf(traceLink2, "CheckOver.trace");
+    TraceLink.kind(traceLink2, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink2, modelica2);
+    find containerOf(modelica2, container2);
+    container2 != modelica;
+} or {
+    Variable(variable);
+    find containerOf(variable, container);
+    NamedEntity.name(container, "CheckOver");
+    TraceLink(traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    neg find all_Variable_CheckOver_referrers_TraceLink_modelica_container_is_TraceLink_MODEL_path(variable, modelica);
+}
+
+pattern all_Variable_CheckOver_referrers_TraceLink_modelica_container_is_TraceLink_MODEL_path(o : Variable, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find containerOf(modelica, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_CheckOver_phi1_referrers_TraceLink_modelica_name_is_phi1(n : java Integer) {
+    n == count find Variable_CheckOver_phi1_referrers_TraceLink_modelica_name_is_phi1_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_CheckOver_phi1_referrers_TraceLink_modelica_name_is_phi1_matches(phi1 : Variable) {
+    Variable(phi1);
+    find containerOf(phi1, container);
+    NamedEntity.name(container, "CheckOver");
+    Variable.name(phi1, "phi1");
+    find traceLinkOf(phi1, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, "phi1");
+    1 == count find Variable_CheckOver_phi1_referrers_TraceLink_modelica_name_is_phi1_path(phi1, _);
+}
+
+pattern Variable_CheckOver_phi1_referrers_TraceLink_modelica_name_is_phi1_path(o : Variable, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_CheckOver_P1_referrers_TraceLink_modelica_name_is_P1(n : java Integer) {
+    n == count find Variable_CheckOver_P1_referrers_TraceLink_modelica_name_is_P1_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_CheckOver_P1_referrers_TraceLink_modelica_name_is_P1_matches(p1 : Variable) {
+    Variable(p1);
+    find containerOf(p1, container);
+    NamedEntity.name(container, "CheckOver");
+    Variable.name(p1, "P1");
+    find traceLinkOf(p1, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, "P1");
+    1 == count find Variable_CheckOver_P1_referrers_TraceLink_modelica_name_is_P1_path(p1, _);
+}
+
+pattern Variable_CheckOver_P1_referrers_TraceLink_modelica_name_is_P1_path(o : Variable, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_CheckOver_b_check_over_referrers_TraceLink_modelica_name_is_b_check_ove(n : java Integer) {
+    n == count find Variable_CheckOver_b_check_over_referrers_TraceLink_modelica_name_is_b_check_ove_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_CheckOver_b_check_over_referrers_TraceLink_modelica_name_is_b_check_ove_matches(b_check_over : Variable) {
+    Variable(b_check_over);
+    find containerOf(b_check_over, container);
+    NamedEntity.name(container, "CheckOver");
+    Variable.name(b_check_over, "b_check_over");
+    find traceLinkOf(b_check_over, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, "b_check_over");
+    1 == count find Variable_CheckOver_b_check_over_referrers_TraceLink_modelica_name_is_b_check_ove_path(b_check_over, _);
+}
+
+pattern Variable_CheckOver_b_check_over_referrers_TraceLink_modelica_name_is_b_check_ove_path(o : Variable, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, v);
+}
+
+// ETL: each element once, of the right kind, directly in CheckOver's class.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected 7")
+pattern count_CustomOperator_ETL_referrers_TraceLink_is_7_2(n : java Integer) {
+    n == count find count_CustomOperator_ETL_referrers_TraceLink_is_7_2_matches(_);
+    check(n != 7);
+}
+
+pattern count_CustomOperator_ETL_referrers_TraceLink_is_7_2_matches(traceLink) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_FUNCTION);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected 8")
+pattern count_CustomOperator_ETL_referrers_TraceLink_is_8_2(n : java Integer) {
+    n == count find count_CustomOperator_ETL_referrers_TraceLink_is_8_2_matches(_);
+    check(n != 8);
+}
+
+pattern count_CustomOperator_ETL_referrers_TraceLink_is_8_2_matches(traceLink) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_BLOCK);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_or_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_2(n : java Integer) {
+    n == count find CustomOperator_ETL_or_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_2_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_or_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_2_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'or'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_FUNCTION);
+    1 == count find CustomOperator_ETL_or_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_2_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_or_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_2_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_xor_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_2(n : java Integer) {
+    n == count find CustomOperator_ETL_xor_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_2_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_xor_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_2_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'xor'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_FUNCTION);
+    1 == count find CustomOperator_ETL_xor_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_2_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_xor_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_2_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_implies_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_2(n : java Integer) {
+    n == count find CustomOperator_ETL_implies_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_2_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_implies_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_2_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'implies'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_FUNCTION);
+    1 == count find CustomOperator_ETL_implies_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_2_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_implies_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_2_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_inside_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_2(n : java Integer) {
+    n == count find CustomOperator_ETL_inside_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_2_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_inside_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_2_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'inside'");
+    1 == count find CustomOperator_ETL_inside_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_2_path(customOperator, _);
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_BLOCK);
+    1 == count find CustomOperator_ETL_inside_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_2_path2(customOperator, _);
+}
+
+pattern CustomOperator_ETL_inside_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_2_path(o : CustomOperator, v) {
+    CustomOperator.header(o, header);
+    Keyword(header);
+    Keyword.keyword(header, v);
+}
+
+pattern CustomOperator_ETL_inside_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_2_path2(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_count_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_2(n : java Integer) {
+    n == count find CustomOperator_ETL_count_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_2_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_count_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_2_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'count'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_BLOCK);
+    1 == count find CustomOperator_ETL_count_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_2_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_count_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_2_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_becomes_true_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_2(n : java Integer) {
+    n == count find CustomOperator_ETL_becomes_true_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_2_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_becomes_true_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_2_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'becomes true'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_BLOCK);
+    1 == count find CustomOperator_ETL_becomes_true_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_2_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_becomes_true_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_2_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_becomes_false_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_2(n : java Integer) {
+    n == count find CustomOperator_ETL_becomes_false_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_2_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_becomes_false_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_2_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'becomes false'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_BLOCK);
+    1 == count find CustomOperator_ETL_becomes_false_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_2_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_becomes_false_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_2_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_becomes_true_inside_referrers_TraceLink_kind_is_OPERATOR_TO_B_2(n : java Integer) {
+    n == count find CustomOperator_ETL_becomes_true_inside_referrers_TraceLink_kind_is_OPERATOR_TO_B_2_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_becomes_true_inside_referrers_TraceLink_kind_is_OPERATOR_TO_B_2_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'becomes true inside'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_BLOCK);
+    1 == count find CustomOperator_ETL_becomes_true_inside_referrers_TraceLink_kind_is_OPERATOR_TO_B_2_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_becomes_true_inside_referrers_TraceLink_kind_is_OPERATOR_TO_B_2_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_becomes_false_inside_referrers_TraceLink_kind_is_OPERATOR_TO_2(n : java Integer) {
+    n == count find CustomOperator_ETL_becomes_false_inside_referrers_TraceLink_kind_is_OPERATOR_TO_2_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_becomes_false_inside_referrers_TraceLink_kind_is_OPERATOR_TO_2_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'becomes false inside'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_BLOCK);
+    1 == count find CustomOperator_ETL_becomes_false_inside_referrers_TraceLink_kind_is_OPERATOR_TO_2_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_becomes_false_inside_referrers_TraceLink_kind_is_OPERATOR_TO_2_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_check_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_2(n : java Integer) {
+    n == count find CustomOperator_ETL_check_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_2_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_check_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_2_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'check'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_BLOCK);
+    1 == count find CustomOperator_ETL_check_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_2_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_check_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_2_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_evaluate_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_2(n : java Integer) {
+    n == count find CustomOperator_ETL_evaluate_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_2_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_evaluate_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_2_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'evaluate'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_BLOCK);
+    1 == count find CustomOperator_ETL_evaluate_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_2_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_evaluate_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_2_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_decide_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_2(n : java Integer) {
+    n == count find CustomOperator_ETL_decide_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_2_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_decide_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_2_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'decide'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_FUNCTION);
+    1 == count find CustomOperator_ETL_decide_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_2_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_decide_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_2_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_id_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_2(n : java Integer) {
+    n == count find CustomOperator_ETL_id_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_2_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_id_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_2_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'id'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_FUNCTION);
+    1 == count find CustomOperator_ETL_id_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_2_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_id_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_2_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_cte_false_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_2(n : java Integer) {
+    n == count find CustomOperator_ETL_cte_false_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_2_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_cte_false_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_2_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'cte_false'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_FUNCTION);
+    1 == count find CustomOperator_ETL_cte_false_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_2_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_cte_false_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_2_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_cte_true_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_2(n : java Integer) {
+    n == count find CustomOperator_ETL_cte_true_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_2_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_cte_true_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_2_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'cte_true'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_FUNCTION);
+    1 == count find CustomOperator_ETL_cte_true_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_2_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_cte_true_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_2_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {customOperator}, severity = "error", message = "counterexample")
+pattern all_CustomOperator_ETL_referrers_TraceLink_modelica_container_is_TraceLink_MODEL_2(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    TraceLink(traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    find traceLinkOf(customOperator, traceLink2);
+    find fileOf(traceLink2, "CheckOver.trace");
+    TraceLink.modelica(traceLink2, modelica2);
+    find containerOf(modelica2, container2);
+    container2 != modelica;
+} or {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    TraceLink(traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    neg find all_CustomOperator_ETL_referrers_TraceLink_modelica_container_is_TraceLink_MODEL_2_path(customOperator, modelica);
+}
+
+pattern all_CustomOperator_ETL_referrers_TraceLink_modelica_container_is_TraceLink_MODEL_2_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.modelica(traceLink, modelica);
+    find containerOf(modelica, v);
+}
+
+// What CheckOver does not reach is not in it: scope flows one way only.
+@Constraint(key = {customOperator}, severity = "error", message = "counterexample")
+pattern all_CustomOperator_BecomesTrueInside_referrers_file_lacks_CheckOver_trace(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "BecomesTrueInside");
+    find referrerOf(customOperator, referrer);
+    find fileOf(referrer, "CheckOver.trace");
+}
+
+@Constraint(key = {class}, severity = "error", message = "counterexample")
+pattern all_Class_BecomesTrueInside_referrers_file_lacks_CheckOver_trace(class : Class) {
+    Class(class);
+    find containerOf(class, container);
+    Library.name(container, "BecomesTrueInside");
+    find referrerOf(class, referrer);
+    find fileOf(referrer, "CheckOver.trace");
+}
+
+@Constraint(key = {variable}, severity = "error", message = "counterexample")
+pattern all_Variable_BecomesTrueInside_referrers_file_lacks_CheckOver_trace(variable : Variable) {
+    Variable(variable);
+    find containerOf(variable, container);
+    NamedEntity.name(container, "BecomesTrueInside");
+    find referrerOf(variable, referrer);
+    find fileOf(referrer, "CheckOver.trace");
+}
+
+@Constraint(key = {customOperator}, severity = "error", message = "counterexample")
+pattern all_CustomOperator_CountInside_referrers_file_lacks_CheckOver_trace(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "CountInside");
+    find referrerOf(customOperator, referrer);
+    find fileOf(referrer, "CheckOver.trace");
+}
+
+@Constraint(key = {class}, severity = "error", message = "counterexample")
+pattern all_Class_CountInside_referrers_file_lacks_CheckOver_trace(class : Class) {
+    Class(class);
+    find containerOf(class, container);
+    Library.name(container, "CountInside");
+    find referrerOf(class, referrer);
+    find fileOf(referrer, "CheckOver.trace");
+}
+
+@Constraint(key = {variable}, severity = "error", message = "counterexample")
+pattern all_Variable_CountInside_referrers_file_lacks_CheckOver_trace(variable : Variable) {
+    Variable(variable);
+    find containerOf(variable, container);
+    NamedEntity.name(container, "CountInside");
+    find referrerOf(variable, referrer);
+    find fileOf(referrer, "CheckOver.trace");
+}
+
+@Constraint(key = {customOperator}, severity = "error", message = "counterexample")
+pattern all_CustomOperator_Implies_referrers_file_lacks_CheckOver_trace(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "Implies");
+    find referrerOf(customOperator, referrer);
+    find fileOf(referrer, "CheckOver.trace");
+}
+
+@Constraint(key = {class}, severity = "error", message = "counterexample")
+pattern all_Class_Implies_referrers_file_lacks_CheckOver_trace(class : Class) {
+    Class(class);
+    find containerOf(class, container);
+    Library.name(container, "Implies");
+    find referrerOf(class, referrer);
+    find fileOf(referrer, "CheckOver.trace");
+}
+
+@Constraint(key = {variable}, severity = "error", message = "counterexample")
+pattern all_Variable_Implies_referrers_file_lacks_CheckOver_trace(variable : Variable) {
+    Variable(variable);
+    find containerOf(variable, container);
+    NamedEntity.name(container, "Implies");
+    find referrerOf(variable, referrer);
+    find fileOf(referrer, "CheckOver.trace");
+}
+
+// ---- CountInside
+
+// Its class, and whether it is partial (it is when a variable it has, own or inherited, is unbound).
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Model_CountInside_referrers_TraceLink_modelica_file_is_CountInside_mo(n : java Integer) {
+    n == count find Model_CountInside_referrers_TraceLink_modelica_file_is_CountInside_mo_matches(_);
+    check(n != 1);
+}
+
+pattern Model_CountInside_referrers_TraceLink_modelica_file_is_CountInside_mo_matches(countInside : Model) {
+    Model.name(countInside, "CountInside");
+    find traceLinkOf(countInside, traceLink);
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    find fileOf(modelica, "CountInside.mo");
+    1 == count find Model_CountInside_referrers_TraceLink_modelica_file_is_CountInside_mo_path(countInside, _);
+}
+
+pattern Model_CountInside_referrers_TraceLink_modelica_file_is_CountInside_mo_path(o : Model, v) {
+    find traceLinkOf(o, traceLink);
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    find fileOf(modelica, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern TraceLink_MODEL_TO_CLASS_modelica_name_is_CountInside(n : java Integer) {
+    n == count find TraceLink_MODEL_TO_CLASS_modelica_name_is_CountInside_matches(_);
+    check(n != 1);
+}
+
+pattern TraceLink_MODEL_TO_CLASS_modelica_name_is_CountInside_matches(traceLink : TraceLink) {
+    TraceLink(traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, "CountInside");
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern TraceLink_MODEL_TO_CLASS_modelica_partial_is_true_3(n : java Integer) {
+    n == count find TraceLink_MODEL_TO_CLASS_modelica_partial_is_true_3_matches(_);
+    check(n != 1);
+}
+
+pattern TraceLink_MODEL_TO_CLASS_modelica_partial_is_true_3_matches(traceLink : TraceLink) {
+    TraceLink(traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    find partialOf(modelica, true);
+}
+
+// Nothing dropped, at any depth; no unresolved name, no reference into another model's class.
+@Constraint(key = {traceLink}, severity = "error", message = "must not exist")
+pattern count_TraceLink_UNSUPPORTED_is_0_3(traceLink) {
+    TraceLink(traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::UNSUPPORTED);
+}
+
+@Constraint(key = {placeholder}, severity = "error", message = "must not exist")
+pattern count_Placeholder_is_0_3(placeholder) {
+    Placeholder(placeholder);
+    find fileOf(placeholder, "CountInside.mo");
+}
+
+@Constraint(key = {reference}, severity = "error", message = "must not exist")
+pattern count_Reference_UNRESOLVED_not_empty_is_0_3(reference) {
+    Reference(reference);
+    find fileOf(reference, "CountInside.mo");
+    Reference.reason(reference, RawReason::UNRESOLVED);
+    Reference.rawText(reference, rawText);
+    rawText != "";
+}
+
+@Constraint(key = {reference}, severity = "error", message = "must not exist")
+pattern count_Reference_not_CountInside_mo_is_0(reference) {
+    Reference(reference);
+    find fileOf(reference, "CountInside.mo");
+    Reference.target(reference, target);
+    find fileOf(target, file);
+    file != "CountInside.mo";
+}
+
+// Exactly one generated class per model, operator and class it reaches: nothing twice, nothing extra.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected 16")
+pattern count_ClassDefinition_is_16_3(n : java Integer) {
+    n == count find count_ClassDefinition_is_16_3_matches(_);
+    check(n != 16);
+}
+
+pattern count_ClassDefinition_is_16_3_matches(classDefinition) {
+    ClassDefinition(classDefinition);
+    find fileOf(classDefinition, "CountInside.mo");
+}
+
+// CountInside (own): each element once, of the right kind, directly in CountInside's class.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected 5")
+pattern count_Variable_CountInside_referrers_TraceLink_is_5(n : java Integer) {
+    n == count find count_Variable_CountInside_referrers_TraceLink_is_5_matches(_);
+    check(n != 5);
+}
+
+pattern count_Variable_CountInside_referrers_TraceLink_is_5_matches(traceLink) {
+    Variable(variable);
+    find containerOf(variable, container);
+    NamedEntity.name(container, "CountInside");
+    find traceLinkOf(variable, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+}
+
+@Constraint(key = {variable}, severity = "error", message = "counterexample")
+pattern all_Variable_CountInside_referrers_TraceLink_modelica_container_is_TraceLink_MOD(variable : Variable) {
+    Variable(variable);
+    find containerOf(variable, container);
+    NamedEntity.name(container, "CountInside");
+    TraceLink(traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    find traceLinkOf(variable, traceLink2);
+    find fileOf(traceLink2, "CountInside.trace");
+    TraceLink.kind(traceLink2, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink2, modelica2);
+    find containerOf(modelica2, container2);
+    container2 != modelica;
+} or {
+    Variable(variable);
+    find containerOf(variable, container);
+    NamedEntity.name(container, "CountInside");
+    TraceLink(traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    neg find all_Variable_CountInside_referrers_TraceLink_modelica_container_is_TraceLink_MOD_path(variable, modelica);
+}
+
+pattern all_Variable_CountInside_referrers_TraceLink_modelica_container_is_TraceLink_MOD_path(o : Variable, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find containerOf(modelica, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_CountInside_b1_referrers_TraceLink_modelica_name_is_b1(n : java Integer) {
+    n == count find Variable_CountInside_b1_referrers_TraceLink_modelica_name_is_b1_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_CountInside_b1_referrers_TraceLink_modelica_name_is_b1_matches(b1 : Variable) {
+    Variable(b1);
+    find containerOf(b1, container);
+    NamedEntity.name(container, "CountInside");
+    Variable.name(b1, "b1");
+    find traceLinkOf(b1, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, "b1");
+    1 == count find Variable_CountInside_b1_referrers_TraceLink_modelica_name_is_b1_path(b1, _);
+}
+
+pattern Variable_CountInside_b1_referrers_TraceLink_modelica_name_is_b1_path(o : Variable, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_CountInside_P1_referrers_TraceLink_modelica_name_is_P1(n : java Integer) {
+    n == count find Variable_CountInside_P1_referrers_TraceLink_modelica_name_is_P1_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_CountInside_P1_referrers_TraceLink_modelica_name_is_P1_matches(p1 : Variable) {
+    Variable(p1);
+    find containerOf(p1, container);
+    NamedEntity.name(container, "CountInside");
+    Variable.name(p1, "P1");
+    find traceLinkOf(p1, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, "P1");
+    1 == count find Variable_CountInside_P1_referrers_TraceLink_modelica_name_is_P1_path(p1, _);
+}
+
+pattern Variable_CountInside_P1_referrers_TraceLink_modelica_name_is_P1_path(o : Variable, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_CountInside_b2_referrers_TraceLink_modelica_name_is_b2(n : java Integer) {
+    n == count find Variable_CountInside_b2_referrers_TraceLink_modelica_name_is_b2_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_CountInside_b2_referrers_TraceLink_modelica_name_is_b2_matches(b2 : Variable) {
+    Variable(b2);
+    find containerOf(b2, container);
+    NamedEntity.name(container, "CountInside");
+    Variable.name(b2, "b2");
+    find traceLinkOf(b2, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, "b2");
+    1 == count find Variable_CountInside_b2_referrers_TraceLink_modelica_name_is_b2_path(b2, _);
+}
+
+pattern Variable_CountInside_b2_referrers_TraceLink_modelica_name_is_b2_path(o : Variable, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_CountInside_C1_referrers_TraceLink_modelica_name_is_C1(n : java Integer) {
+    n == count find Variable_CountInside_C1_referrers_TraceLink_modelica_name_is_C1_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_CountInside_C1_referrers_TraceLink_modelica_name_is_C1_matches(c1 : Variable) {
+    Variable(c1);
+    find containerOf(c1, container);
+    NamedEntity.name(container, "CountInside");
+    Variable.name(c1, "C1");
+    find traceLinkOf(c1, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, "C1");
+    1 == count find Variable_CountInside_C1_referrers_TraceLink_modelica_name_is_C1_path(c1, _);
+}
+
+pattern Variable_CountInside_C1_referrers_TraceLink_modelica_name_is_C1_path(o : Variable, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_CountInside_i_count_ticks_of_c1_inside_p1_referrers_TraceLink_modelica(n : java Integer) {
+    n == count find Variable_CountInside_i_count_ticks_of_c1_inside_p1_referrers_TraceLink_modelica_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_CountInside_i_count_ticks_of_c1_inside_p1_referrers_TraceLink_modelica_matches(i_count_ticks_of_c1_inside_p1 : Variable) {
+    Variable(i_count_ticks_of_c1_inside_p1);
+    find containerOf(i_count_ticks_of_c1_inside_p1, container);
+    NamedEntity.name(container, "CountInside");
+    Variable.name(i_count_ticks_of_c1_inside_p1, "i_count_ticks_of_c1_inside_p1");
+    find traceLinkOf(i_count_ticks_of_c1_inside_p1, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, "i_count_ticks_of_c1_inside_p1");
+    1 == count find Variable_CountInside_i_count_ticks_of_c1_inside_p1_referrers_TraceLink_modelica_path(i_count_ticks_of_c1_inside_p1, _);
+}
+
+pattern Variable_CountInside_i_count_ticks_of_c1_inside_p1_referrers_TraceLink_modelica_path(o : Variable, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, v);
+}
+
+// ETL: each element once, of the right kind, directly in CountInside's class.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected 7")
+pattern count_CustomOperator_ETL_referrers_TraceLink_is_7_3(n : java Integer) {
+    n == count find count_CustomOperator_ETL_referrers_TraceLink_is_7_3_matches(_);
+    check(n != 7);
+}
+
+pattern count_CustomOperator_ETL_referrers_TraceLink_is_7_3_matches(traceLink) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_FUNCTION);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected 8")
+pattern count_CustomOperator_ETL_referrers_TraceLink_is_8_3(n : java Integer) {
+    n == count find count_CustomOperator_ETL_referrers_TraceLink_is_8_3_matches(_);
+    check(n != 8);
+}
+
+pattern count_CustomOperator_ETL_referrers_TraceLink_is_8_3_matches(traceLink) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_BLOCK);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_or_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_3(n : java Integer) {
+    n == count find CustomOperator_ETL_or_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_3_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_or_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_3_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'or'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_FUNCTION);
+    1 == count find CustomOperator_ETL_or_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_3_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_or_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_3_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_xor_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_3(n : java Integer) {
+    n == count find CustomOperator_ETL_xor_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_3_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_xor_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_3_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'xor'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_FUNCTION);
+    1 == count find CustomOperator_ETL_xor_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_3_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_xor_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_3_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_implies_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_3(n : java Integer) {
+    n == count find CustomOperator_ETL_implies_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_3_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_implies_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_3_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'implies'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_FUNCTION);
+    1 == count find CustomOperator_ETL_implies_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_3_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_implies_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_3_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_inside_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_3(n : java Integer) {
+    n == count find CustomOperator_ETL_inside_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_3_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_inside_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_3_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'inside'");
+    1 == count find CustomOperator_ETL_inside_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_3_path(customOperator, _);
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_BLOCK);
+    1 == count find CustomOperator_ETL_inside_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_3_path2(customOperator, _);
+}
+
+pattern CustomOperator_ETL_inside_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_3_path(o : CustomOperator, v) {
+    CustomOperator.header(o, header);
+    Keyword(header);
+    Keyword.keyword(header, v);
+}
+
+pattern CustomOperator_ETL_inside_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_3_path2(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_count_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_3(n : java Integer) {
+    n == count find CustomOperator_ETL_count_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_3_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_count_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_3_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'count'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_BLOCK);
+    1 == count find CustomOperator_ETL_count_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_3_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_count_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_3_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_becomes_true_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_3(n : java Integer) {
+    n == count find CustomOperator_ETL_becomes_true_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_3_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_becomes_true_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_3_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'becomes true'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_BLOCK);
+    1 == count find CustomOperator_ETL_becomes_true_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_3_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_becomes_true_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_3_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_becomes_false_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_3(n : java Integer) {
+    n == count find CustomOperator_ETL_becomes_false_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_3_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_becomes_false_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_3_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'becomes false'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_BLOCK);
+    1 == count find CustomOperator_ETL_becomes_false_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_3_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_becomes_false_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_3_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_becomes_true_inside_referrers_TraceLink_kind_is_OPERATOR_TO_B_3(n : java Integer) {
+    n == count find CustomOperator_ETL_becomes_true_inside_referrers_TraceLink_kind_is_OPERATOR_TO_B_3_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_becomes_true_inside_referrers_TraceLink_kind_is_OPERATOR_TO_B_3_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'becomes true inside'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_BLOCK);
+    1 == count find CustomOperator_ETL_becomes_true_inside_referrers_TraceLink_kind_is_OPERATOR_TO_B_3_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_becomes_true_inside_referrers_TraceLink_kind_is_OPERATOR_TO_B_3_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_becomes_false_inside_referrers_TraceLink_kind_is_OPERATOR_TO_3(n : java Integer) {
+    n == count find CustomOperator_ETL_becomes_false_inside_referrers_TraceLink_kind_is_OPERATOR_TO_3_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_becomes_false_inside_referrers_TraceLink_kind_is_OPERATOR_TO_3_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'becomes false inside'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_BLOCK);
+    1 == count find CustomOperator_ETL_becomes_false_inside_referrers_TraceLink_kind_is_OPERATOR_TO_3_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_becomes_false_inside_referrers_TraceLink_kind_is_OPERATOR_TO_3_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_check_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_3(n : java Integer) {
+    n == count find CustomOperator_ETL_check_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_3_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_check_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_3_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'check'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_BLOCK);
+    1 == count find CustomOperator_ETL_check_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_3_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_check_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_3_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_evaluate_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_3(n : java Integer) {
+    n == count find CustomOperator_ETL_evaluate_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_3_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_evaluate_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_3_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'evaluate'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_BLOCK);
+    1 == count find CustomOperator_ETL_evaluate_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_3_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_evaluate_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_3_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_decide_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_3(n : java Integer) {
+    n == count find CustomOperator_ETL_decide_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_3_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_decide_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_3_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'decide'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_FUNCTION);
+    1 == count find CustomOperator_ETL_decide_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_3_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_decide_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_3_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_id_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_3(n : java Integer) {
+    n == count find CustomOperator_ETL_id_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_3_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_id_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_3_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'id'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_FUNCTION);
+    1 == count find CustomOperator_ETL_id_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_3_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_id_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_3_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_cte_false_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_3(n : java Integer) {
+    n == count find CustomOperator_ETL_cte_false_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_3_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_cte_false_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_3_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'cte_false'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_FUNCTION);
+    1 == count find CustomOperator_ETL_cte_false_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_3_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_cte_false_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_3_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_cte_true_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_3(n : java Integer) {
+    n == count find CustomOperator_ETL_cte_true_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_3_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_cte_true_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_3_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'cte_true'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_FUNCTION);
+    1 == count find CustomOperator_ETL_cte_true_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_3_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_cte_true_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_3_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {customOperator}, severity = "error", message = "counterexample")
+pattern all_CustomOperator_ETL_referrers_TraceLink_modelica_container_is_TraceLink_MODEL_3(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    TraceLink(traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    find traceLinkOf(customOperator, traceLink2);
+    find fileOf(traceLink2, "CountInside.trace");
+    TraceLink.modelica(traceLink2, modelica2);
+    find containerOf(modelica2, container2);
+    container2 != modelica;
+} or {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    TraceLink(traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    neg find all_CustomOperator_ETL_referrers_TraceLink_modelica_container_is_TraceLink_MODEL_3_path(customOperator, modelica);
+}
+
+pattern all_CustomOperator_ETL_referrers_TraceLink_modelica_container_is_TraceLink_MODEL_3_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.modelica(traceLink, modelica);
+    find containerOf(modelica, v);
+}
+
+// What CountInside does not reach is not in it: scope flows one way only.
+@Constraint(key = {customOperator}, severity = "error", message = "counterexample")
+pattern all_CustomOperator_BecomesTrueInside_referrers_file_lacks_CountInside_trace(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "BecomesTrueInside");
+    find referrerOf(customOperator, referrer);
+    find fileOf(referrer, "CountInside.trace");
+}
+
+@Constraint(key = {class}, severity = "error", message = "counterexample")
+pattern all_Class_BecomesTrueInside_referrers_file_lacks_CountInside_trace(class : Class) {
+    Class(class);
+    find containerOf(class, container);
+    Library.name(container, "BecomesTrueInside");
+    find referrerOf(class, referrer);
+    find fileOf(referrer, "CountInside.trace");
+}
+
+@Constraint(key = {variable}, severity = "error", message = "counterexample")
+pattern all_Variable_BecomesTrueInside_referrers_file_lacks_CountInside_trace(variable : Variable) {
+    Variable(variable);
+    find containerOf(variable, container);
+    NamedEntity.name(container, "BecomesTrueInside");
+    find referrerOf(variable, referrer);
+    find fileOf(referrer, "CountInside.trace");
+}
+
+@Constraint(key = {customOperator}, severity = "error", message = "counterexample")
+pattern all_CustomOperator_CheckOver_referrers_file_lacks_CountInside_trace(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "CheckOver");
+    find referrerOf(customOperator, referrer);
+    find fileOf(referrer, "CountInside.trace");
+}
+
+@Constraint(key = {class}, severity = "error", message = "counterexample")
+pattern all_Class_CheckOver_referrers_file_lacks_CountInside_trace(class : Class) {
+    Class(class);
+    find containerOf(class, container);
+    Library.name(container, "CheckOver");
+    find referrerOf(class, referrer);
+    find fileOf(referrer, "CountInside.trace");
+}
+
+@Constraint(key = {variable}, severity = "error", message = "counterexample")
+pattern all_Variable_CheckOver_referrers_file_lacks_CountInside_trace(variable : Variable) {
+    Variable(variable);
+    find containerOf(variable, container);
+    NamedEntity.name(container, "CheckOver");
+    find referrerOf(variable, referrer);
+    find fileOf(referrer, "CountInside.trace");
+}
+
+@Constraint(key = {customOperator}, severity = "error", message = "counterexample")
+pattern all_CustomOperator_Implies_referrers_file_lacks_CountInside_trace(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "Implies");
+    find referrerOf(customOperator, referrer);
+    find fileOf(referrer, "CountInside.trace");
+}
+
+@Constraint(key = {class}, severity = "error", message = "counterexample")
+pattern all_Class_Implies_referrers_file_lacks_CountInside_trace(class : Class) {
+    Class(class);
+    find containerOf(class, container);
+    Library.name(container, "Implies");
+    find referrerOf(class, referrer);
+    find fileOf(referrer, "CountInside.trace");
+}
+
+@Constraint(key = {variable}, severity = "error", message = "counterexample")
+pattern all_Variable_Implies_referrers_file_lacks_CountInside_trace(variable : Variable) {
+    Variable(variable);
+    find containerOf(variable, container);
+    NamedEntity.name(container, "Implies");
+    find referrerOf(variable, referrer);
+    find fileOf(referrer, "CountInside.trace");
+}
+
+// ---- Implies
+
+// Its class, and whether it is partial (it is when a variable it has, own or inherited, is unbound).
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Model_Implies_referrers_TraceLink_modelica_file_is_Implies_mo(n : java Integer) {
+    n == count find Model_Implies_referrers_TraceLink_modelica_file_is_Implies_mo_matches(_);
+    check(n != 1);
+}
+
+pattern Model_Implies_referrers_TraceLink_modelica_file_is_Implies_mo_matches(implies : Model) {
+    Model.name(implies, "Implies");
+    find traceLinkOf(implies, traceLink);
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    find fileOf(modelica, "Implies.mo");
+    1 == count find Model_Implies_referrers_TraceLink_modelica_file_is_Implies_mo_path(implies, _);
+}
+
+pattern Model_Implies_referrers_TraceLink_modelica_file_is_Implies_mo_path(o : Model, v) {
+    find traceLinkOf(o, traceLink);
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    find fileOf(modelica, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern TraceLink_MODEL_TO_CLASS_modelica_name_is_Implies(n : java Integer) {
+    n == count find TraceLink_MODEL_TO_CLASS_modelica_name_is_Implies_matches(_);
+    check(n != 1);
+}
+
+pattern TraceLink_MODEL_TO_CLASS_modelica_name_is_Implies_matches(traceLink : TraceLink) {
+    TraceLink(traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, "Implies");
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern TraceLink_MODEL_TO_CLASS_modelica_partial_is_true_4(n : java Integer) {
+    n == count find TraceLink_MODEL_TO_CLASS_modelica_partial_is_true_4_matches(_);
+    check(n != 1);
+}
+
+pattern TraceLink_MODEL_TO_CLASS_modelica_partial_is_true_4_matches(traceLink : TraceLink) {
+    TraceLink(traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    find partialOf(modelica, true);
+}
+
+// Nothing dropped, at any depth; no unresolved name, no reference into another model's class.
+@Constraint(key = {traceLink}, severity = "error", message = "must not exist")
+pattern count_TraceLink_UNSUPPORTED_is_0_4(traceLink) {
+    TraceLink(traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::UNSUPPORTED);
+}
+
+@Constraint(key = {placeholder}, severity = "error", message = "must not exist")
+pattern count_Placeholder_is_0_4(placeholder) {
+    Placeholder(placeholder);
+    find fileOf(placeholder, "Implies.mo");
+}
+
+@Constraint(key = {reference}, severity = "error", message = "must not exist")
+pattern count_Reference_UNRESOLVED_not_empty_is_0_4(reference) {
+    Reference(reference);
+    find fileOf(reference, "Implies.mo");
+    Reference.reason(reference, RawReason::UNRESOLVED);
+    Reference.rawText(reference, rawText);
+    rawText != "";
+}
+
+@Constraint(key = {reference}, severity = "error", message = "must not exist")
+pattern count_Reference_not_Implies_mo_is_0(reference) {
+    Reference(reference);
+    find fileOf(reference, "Implies.mo");
+    Reference.target(reference, target);
+    find fileOf(target, file);
+    file != "Implies.mo";
+}
+
+// Exactly one generated class per model, operator and class it reaches: nothing twice, nothing extra.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected 16")
+pattern count_ClassDefinition_is_16_4(n : java Integer) {
+    n == count find count_ClassDefinition_is_16_4_matches(_);
+    check(n != 16);
+}
+
+pattern count_ClassDefinition_is_16_4_matches(classDefinition) {
+    ClassDefinition(classDefinition);
+    find fileOf(classDefinition, "Implies.mo");
+}
+
+// Implies (own): each element once, of the right kind, directly in Implies's class.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected 3")
+pattern count_Variable_Implies_referrers_TraceLink_is_3(n : java Integer) {
+    n == count find count_Variable_Implies_referrers_TraceLink_is_3_matches(_);
+    check(n != 3);
+}
+
+pattern count_Variable_Implies_referrers_TraceLink_is_3_matches(traceLink) {
+    Variable(variable);
+    find containerOf(variable, container);
+    NamedEntity.name(container, "Implies");
+    find traceLinkOf(variable, traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+}
+
+@Constraint(key = {variable}, severity = "error", message = "counterexample")
+pattern all_Variable_Implies_referrers_TraceLink_modelica_container_is_TraceLink_MODEL_T(variable : Variable) {
+    Variable(variable);
+    find containerOf(variable, container);
+    NamedEntity.name(container, "Implies");
+    TraceLink(traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    find traceLinkOf(variable, traceLink2);
+    find fileOf(traceLink2, "Implies.trace");
+    TraceLink.kind(traceLink2, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink2, modelica2);
+    find containerOf(modelica2, container2);
+    container2 != modelica;
+} or {
+    Variable(variable);
+    find containerOf(variable, container);
+    NamedEntity.name(container, "Implies");
+    TraceLink(traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    neg find all_Variable_Implies_referrers_TraceLink_modelica_container_is_TraceLink_MODEL_T_path(variable, modelica);
+}
+
+pattern all_Variable_Implies_referrers_TraceLink_modelica_container_is_TraceLink_MODEL_T_path(o : Variable, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find containerOf(modelica, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_Implies_b1_referrers_TraceLink_modelica_name_is_b1(n : java Integer) {
+    n == count find Variable_Implies_b1_referrers_TraceLink_modelica_name_is_b1_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_Implies_b1_referrers_TraceLink_modelica_name_is_b1_matches(b1 : Variable) {
+    Variable(b1);
+    find containerOf(b1, container);
+    NamedEntity.name(container, "Implies");
+    Variable.name(b1, "b1");
+    find traceLinkOf(b1, traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, "b1");
+    1 == count find Variable_Implies_b1_referrers_TraceLink_modelica_name_is_b1_path(b1, _);
+}
+
+pattern Variable_Implies_b1_referrers_TraceLink_modelica_name_is_b1_path(o : Variable, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_Implies_b2_referrers_TraceLink_modelica_name_is_b2(n : java Integer) {
+    n == count find Variable_Implies_b2_referrers_TraceLink_modelica_name_is_b2_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_Implies_b2_referrers_TraceLink_modelica_name_is_b2_matches(b2 : Variable) {
+    Variable(b2);
+    find containerOf(b2, container);
+    NamedEntity.name(container, "Implies");
+    Variable.name(b2, "b2");
+    find traceLinkOf(b2, traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, "b2");
+    1 == count find Variable_Implies_b2_referrers_TraceLink_modelica_name_is_b2_path(b2, _);
+}
+
+pattern Variable_Implies_b2_referrers_TraceLink_modelica_name_is_b2_path(o : Variable, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_Implies_b1_implies_b2_referrers_TraceLink_modelica_name_is_b1_implies_b(n : java Integer) {
+    n == count find Variable_Implies_b1_implies_b2_referrers_TraceLink_modelica_name_is_b1_implies_b_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_Implies_b1_implies_b2_referrers_TraceLink_modelica_name_is_b1_implies_b_matches(b1_implies_b2 : Variable) {
+    Variable(b1_implies_b2);
+    find containerOf(b1_implies_b2, container);
+    NamedEntity.name(container, "Implies");
+    Variable.name(b1_implies_b2, "b1_implies_b2");
+    find traceLinkOf(b1_implies_b2, traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, "b1_implies_b2");
+    1 == count find Variable_Implies_b1_implies_b2_referrers_TraceLink_modelica_name_is_b1_implies_b_path(b1_implies_b2, _);
+}
+
+pattern Variable_Implies_b1_implies_b2_referrers_TraceLink_modelica_name_is_b1_implies_b_path(o : Variable, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    find nameOf(modelica, v);
+}
+
+// ETL: each element once, of the right kind, directly in Implies's class.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected 7")
+pattern count_CustomOperator_ETL_referrers_TraceLink_is_7_4(n : java Integer) {
+    n == count find count_CustomOperator_ETL_referrers_TraceLink_is_7_4_matches(_);
+    check(n != 7);
+}
+
+pattern count_CustomOperator_ETL_referrers_TraceLink_is_7_4_matches(traceLink) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_FUNCTION);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected 8")
+pattern count_CustomOperator_ETL_referrers_TraceLink_is_8_4(n : java Integer) {
+    n == count find count_CustomOperator_ETL_referrers_TraceLink_is_8_4_matches(_);
+    check(n != 8);
+}
+
+pattern count_CustomOperator_ETL_referrers_TraceLink_is_8_4_matches(traceLink) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_BLOCK);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_or_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_4(n : java Integer) {
+    n == count find CustomOperator_ETL_or_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_4_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_or_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_4_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'or'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_FUNCTION);
+    1 == count find CustomOperator_ETL_or_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_4_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_or_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_4_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_xor_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_4(n : java Integer) {
+    n == count find CustomOperator_ETL_xor_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_4_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_xor_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_4_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'xor'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_FUNCTION);
+    1 == count find CustomOperator_ETL_xor_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_4_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_xor_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_4_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_implies_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_4(n : java Integer) {
+    n == count find CustomOperator_ETL_implies_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_4_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_implies_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_4_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'implies'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_FUNCTION);
+    1 == count find CustomOperator_ETL_implies_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_4_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_implies_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_4_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_inside_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_4(n : java Integer) {
+    n == count find CustomOperator_ETL_inside_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_4_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_inside_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_4_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'inside'");
+    1 == count find CustomOperator_ETL_inside_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_4_path(customOperator, _);
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_BLOCK);
+    1 == count find CustomOperator_ETL_inside_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_4_path2(customOperator, _);
+}
+
+pattern CustomOperator_ETL_inside_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_4_path(o : CustomOperator, v) {
+    CustomOperator.header(o, header);
+    Keyword(header);
+    Keyword.keyword(header, v);
+}
+
+pattern CustomOperator_ETL_inside_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_4_path2(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_count_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_4(n : java Integer) {
+    n == count find CustomOperator_ETL_count_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_4_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_count_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_4_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'count'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_BLOCK);
+    1 == count find CustomOperator_ETL_count_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_4_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_count_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_4_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_becomes_true_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_4(n : java Integer) {
+    n == count find CustomOperator_ETL_becomes_true_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_4_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_becomes_true_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_4_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'becomes true'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_BLOCK);
+    1 == count find CustomOperator_ETL_becomes_true_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_4_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_becomes_true_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_4_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_becomes_false_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_4(n : java Integer) {
+    n == count find CustomOperator_ETL_becomes_false_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_4_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_becomes_false_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_4_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'becomes false'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_BLOCK);
+    1 == count find CustomOperator_ETL_becomes_false_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_4_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_becomes_false_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_4_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_becomes_true_inside_referrers_TraceLink_kind_is_OPERATOR_TO_B_4(n : java Integer) {
+    n == count find CustomOperator_ETL_becomes_true_inside_referrers_TraceLink_kind_is_OPERATOR_TO_B_4_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_becomes_true_inside_referrers_TraceLink_kind_is_OPERATOR_TO_B_4_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'becomes true inside'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_BLOCK);
+    1 == count find CustomOperator_ETL_becomes_true_inside_referrers_TraceLink_kind_is_OPERATOR_TO_B_4_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_becomes_true_inside_referrers_TraceLink_kind_is_OPERATOR_TO_B_4_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_becomes_false_inside_referrers_TraceLink_kind_is_OPERATOR_TO_4(n : java Integer) {
+    n == count find CustomOperator_ETL_becomes_false_inside_referrers_TraceLink_kind_is_OPERATOR_TO_4_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_becomes_false_inside_referrers_TraceLink_kind_is_OPERATOR_TO_4_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'becomes false inside'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_BLOCK);
+    1 == count find CustomOperator_ETL_becomes_false_inside_referrers_TraceLink_kind_is_OPERATOR_TO_4_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_becomes_false_inside_referrers_TraceLink_kind_is_OPERATOR_TO_4_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_check_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_4(n : java Integer) {
+    n == count find CustomOperator_ETL_check_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_4_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_check_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_4_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'check'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_BLOCK);
+    1 == count find CustomOperator_ETL_check_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_4_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_check_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_4_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_evaluate_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_4(n : java Integer) {
+    n == count find CustomOperator_ETL_evaluate_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_4_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_evaluate_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_4_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'evaluate'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_BLOCK);
+    1 == count find CustomOperator_ETL_evaluate_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_4_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_evaluate_referrers_TraceLink_kind_is_OPERATOR_TO_BLOCK_4_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_decide_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_4(n : java Integer) {
+    n == count find CustomOperator_ETL_decide_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_4_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_decide_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_4_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'decide'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_FUNCTION);
+    1 == count find CustomOperator_ETL_decide_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_4_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_decide_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_4_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_id_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_4(n : java Integer) {
+    n == count find CustomOperator_ETL_id_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_4_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_id_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_4_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'id'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_FUNCTION);
+    1 == count find CustomOperator_ETL_id_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_4_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_id_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_4_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_cte_false_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_4(n : java Integer) {
+    n == count find CustomOperator_ETL_cte_false_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_4_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_cte_false_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_4_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'cte_false'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_FUNCTION);
+    1 == count find CustomOperator_ETL_cte_false_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_4_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_cte_false_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_4_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_cte_true_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_4(n : java Integer) {
+    n == count find CustomOperator_ETL_cte_true_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_4_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_cte_true_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_4_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'cte_true'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::OPERATOR_TO_FUNCTION);
+    1 == count find CustomOperator_ETL_cte_true_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_4_path(customOperator, _);
+}
+
+pattern CustomOperator_ETL_cte_true_referrers_TraceLink_kind_is_OPERATOR_TO_FUNCTION_4_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, v);
+}
+
+@Constraint(key = {customOperator}, severity = "error", message = "counterexample")
+pattern all_CustomOperator_ETL_referrers_TraceLink_modelica_container_is_TraceLink_MODEL_4(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    TraceLink(traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    find traceLinkOf(customOperator, traceLink2);
+    find fileOf(traceLink2, "Implies.trace");
+    TraceLink.modelica(traceLink2, modelica2);
+    find containerOf(modelica2, container2);
+    container2 != modelica;
+} or {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    TraceLink(traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::MODEL_TO_CLASS);
+    TraceLink.modelica(traceLink, modelica);
+    neg find all_CustomOperator_ETL_referrers_TraceLink_modelica_container_is_TraceLink_MODEL_4_path(customOperator, modelica);
+}
+
+pattern all_CustomOperator_ETL_referrers_TraceLink_modelica_container_is_TraceLink_MODEL_4_path(o : CustomOperator, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.modelica(traceLink, modelica);
+    find containerOf(modelica, v);
+}
+
+// What Implies does not reach is not in it: scope flows one way only.
+@Constraint(key = {customOperator}, severity = "error", message = "counterexample")
+pattern all_CustomOperator_BecomesTrueInside_referrers_file_lacks_Implies_trace(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "BecomesTrueInside");
+    find referrerOf(customOperator, referrer);
+    find fileOf(referrer, "Implies.trace");
+}
+
+@Constraint(key = {class}, severity = "error", message = "counterexample")
+pattern all_Class_BecomesTrueInside_referrers_file_lacks_Implies_trace(class : Class) {
+    Class(class);
+    find containerOf(class, container);
+    Library.name(container, "BecomesTrueInside");
+    find referrerOf(class, referrer);
+    find fileOf(referrer, "Implies.trace");
+}
+
+@Constraint(key = {variable}, severity = "error", message = "counterexample")
+pattern all_Variable_BecomesTrueInside_referrers_file_lacks_Implies_trace(variable : Variable) {
+    Variable(variable);
+    find containerOf(variable, container);
+    NamedEntity.name(container, "BecomesTrueInside");
+    find referrerOf(variable, referrer);
+    find fileOf(referrer, "Implies.trace");
+}
+
+@Constraint(key = {customOperator}, severity = "error", message = "counterexample")
+pattern all_CustomOperator_CheckOver_referrers_file_lacks_Implies_trace(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "CheckOver");
+    find referrerOf(customOperator, referrer);
+    find fileOf(referrer, "Implies.trace");
+}
+
+@Constraint(key = {class}, severity = "error", message = "counterexample")
+pattern all_Class_CheckOver_referrers_file_lacks_Implies_trace(class : Class) {
+    Class(class);
+    find containerOf(class, container);
+    Library.name(container, "CheckOver");
+    find referrerOf(class, referrer);
+    find fileOf(referrer, "Implies.trace");
+}
+
+@Constraint(key = {variable}, severity = "error", message = "counterexample")
+pattern all_Variable_CheckOver_referrers_file_lacks_Implies_trace(variable : Variable) {
+    Variable(variable);
+    find containerOf(variable, container);
+    NamedEntity.name(container, "CheckOver");
+    find referrerOf(variable, referrer);
+    find fileOf(referrer, "Implies.trace");
+}
+
+@Constraint(key = {customOperator}, severity = "error", message = "counterexample")
+pattern all_CustomOperator_CountInside_referrers_file_lacks_Implies_trace(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "CountInside");
+    find referrerOf(customOperator, referrer);
+    find fileOf(referrer, "Implies.trace");
+}
+
+@Constraint(key = {class}, severity = "error", message = "counterexample")
+pattern all_Class_CountInside_referrers_file_lacks_Implies_trace(class : Class) {
+    Class(class);
+    find containerOf(class, container);
+    Library.name(container, "CountInside");
+    find referrerOf(class, referrer);
+    find fileOf(referrer, "Implies.trace");
+}
+
+@Constraint(key = {variable}, severity = "error", message = "counterexample")
+pattern all_Variable_CountInside_referrers_file_lacks_Implies_trace(variable : Variable) {
+    Variable(variable);
+    find containerOf(variable, container);
+    NamedEntity.name(container, "CountInside");
+    find referrerOf(variable, referrer);
+    find fileOf(referrer, "Implies.trace");
+}
+
+// ---- Call sites and structure
+// Each model's variable calls ETL's function, or instantiates ETL's block.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_Implies_b1_implies_b2_referrers_TraceLink_modelica_binding_function_tar(n : java Integer) {
+    n == count find Variable_Implies_b1_implies_b2_referrers_TraceLink_modelica_binding_function_tar_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_Implies_b1_implies_b2_referrers_TraceLink_modelica_binding_function_tar_matches(b1_implies_b2 : Variable) {
+    Variable(b1_implies_b2);
+    find containerOf(b1_implies_b2, container);
+    NamedEntity.name(container, "Implies");
+    Variable.name(b1_implies_b2, "b1_implies_b2");
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container2);
+    Library.name(container2, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'implies'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.modelica(traceLink, modelica);
+    find traceLinkOf(b1_implies_b2, traceLink2);
+    find fileOf(traceLink2, "Implies.trace");
+    TraceLink.kind(traceLink2, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink2, modelica2);
+    ComponentDeclaration.binding(modelica2, binding);
+    FunctionCall.function(binding, function);
+    Reference.target(function, modelica);
+    1 == count find Variable_Implies_b1_implies_b2_referrers_TraceLink_modelica_binding_function_tar_path(b1_implies_b2, _);
+}
+
+pattern Variable_Implies_b1_implies_b2_referrers_TraceLink_modelica_binding_function_tar_path(o : Variable, v) {
+    find traceLinkOf(o, traceLink);
+    find fileOf(traceLink, "Implies.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VARIABLE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    ComponentDeclaration.binding(modelica, binding);
+    FunctionCall.function(binding, function);
+    Reference.target(function, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_BecomesTrueInside_c_b1_becomes_true_inside_p1_definition_referrers_Trac(n : java Integer) {
+    n == count find Variable_BecomesTrueInside_c_b1_becomes_true_inside_p1_definition_referrers_Trac_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_BecomesTrueInside_c_b1_becomes_true_inside_p1_definition_referrers_Trac_matches(c_b1_becomes_true_inside_p1 : Variable) {
+    Variable(c_b1_becomes_true_inside_p1);
+    find containerOf(c_b1_becomes_true_inside_p1, container);
+    NamedEntity.name(container, "BecomesTrueInside");
+    Variable.name(c_b1_becomes_true_inside_p1, "c_b1_becomes_true_inside_p1");
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container2);
+    Library.name(container2, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'becomes true inside'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.modelica(traceLink, modelica);
+    Variable.definition(c_b1_becomes_true_inside_p1, definition);
+    find traceLinkOf(definition, traceLink2);
+    find fileOf(traceLink2, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink2, TraceLinkKind::VALUE_TO_COMPONENT);
+    TraceLink.modelica(traceLink2, modelica2);
+    ComponentDeclaration.declaredType(modelica2, declaredType);
+    Reference.target(declaredType, modelica);
+    1 == count find Variable_BecomesTrueInside_c_b1_becomes_true_inside_p1_definition_referrers_Trac_path(c_b1_becomes_true_inside_p1, _);
+}
+
+pattern Variable_BecomesTrueInside_c_b1_becomes_true_inside_p1_definition_referrers_Trac_path(o : Variable, v) {
+    Variable.definition(o, definition);
+    find traceLinkOf(definition, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VALUE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    ComponentDeclaration.declaredType(modelica, declaredType);
+    Reference.target(declaredType, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_CheckOver_b_check_over_definition_referrers_TraceLink_modelica_declared(n : java Integer) {
+    n == count find Variable_CheckOver_b_check_over_definition_referrers_TraceLink_modelica_declared_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_CheckOver_b_check_over_definition_referrers_TraceLink_modelica_declared_matches(b_check_over : Variable) {
+    Variable(b_check_over);
+    find containerOf(b_check_over, container);
+    NamedEntity.name(container, "CheckOver");
+    Variable.name(b_check_over, "b_check_over");
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container2);
+    Library.name(container2, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'check'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.modelica(traceLink, modelica);
+    Variable.definition(b_check_over, definition);
+    find traceLinkOf(definition, traceLink2);
+    find fileOf(traceLink2, "CheckOver.trace");
+    TraceLink.kind(traceLink2, TraceLinkKind::VALUE_TO_COMPONENT);
+    TraceLink.modelica(traceLink2, modelica2);
+    ComponentDeclaration.declaredType(modelica2, declaredType);
+    Reference.target(declaredType, modelica);
+    1 == count find Variable_CheckOver_b_check_over_definition_referrers_TraceLink_modelica_declared_path(b_check_over, _);
+}
+
+pattern Variable_CheckOver_b_check_over_definition_referrers_TraceLink_modelica_declared_path(o : Variable, v) {
+    Variable.definition(o, definition);
+    find traceLinkOf(definition, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VALUE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    ComponentDeclaration.declaredType(modelica, declaredType);
+    Reference.target(declaredType, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_CountInside_i_count_ticks_of_c1_inside_p1_definition_referrers_TraceLin(n : java Integer) {
+    n == count find Variable_CountInside_i_count_ticks_of_c1_inside_p1_definition_referrers_TraceLin_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_CountInside_i_count_ticks_of_c1_inside_p1_definition_referrers_TraceLin_matches(i_count_ticks_of_c1_inside_p1 : Variable) {
+    Variable(i_count_ticks_of_c1_inside_p1);
+    find containerOf(i_count_ticks_of_c1_inside_p1, container);
+    NamedEntity.name(container, "CountInside");
+    Variable.name(i_count_ticks_of_c1_inside_p1, "i_count_ticks_of_c1_inside_p1");
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container2);
+    Library.name(container2, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'count'");
+    find traceLinkOf(customOperator, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.modelica(traceLink, modelica);
+    Variable.definition(i_count_ticks_of_c1_inside_p1, definition);
+    find traceLinkOf(definition, traceLink2);
+    find fileOf(traceLink2, "CountInside.trace");
+    TraceLink.kind(traceLink2, TraceLinkKind::VALUE_TO_COMPONENT);
+    TraceLink.modelica(traceLink2, modelica2);
+    ComponentDeclaration.declaredType(modelica2, declaredType);
+    Reference.target(declaredType, modelica);
+    1 == count find Variable_CountInside_i_count_ticks_of_c1_inside_p1_definition_referrers_TraceLin_path(i_count_ticks_of_c1_inside_p1, _);
+}
+
+pattern Variable_CountInside_i_count_ticks_of_c1_inside_p1_definition_referrers_TraceLin_path(o : Variable, v) {
+    Variable.definition(o, definition);
+    find traceLinkOf(definition, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.kind(traceLink, TraceLinkKind::VALUE_TO_COMPONENT);
+    TraceLink.modelica(traceLink, modelica);
+    ComponentDeclaration.declaredType(modelica, declaredType);
+    Reference.target(declaredType, v);
+}
+
+// Operators calling operators of the same library.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_becomes_true_inside_referrers_TraceLink_modelica_components_d(n : java Integer) {
+    n == count find CustomOperator_ETL_becomes_true_inside_referrers_TraceLink_modelica_components_d_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_becomes_true_inside_referrers_TraceLink_modelica_components_d_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'becomes true inside'");
+    CustomOperator(customOperator2);
+    find containerOf(customOperator2, container2);
+    Library.name(container2, "ETL");
+    CustomOperator.header(customOperator2, header2);
+    Keyword(header2);
+    Keyword.keyword(header2, "'inside'");
+    1 == count find CustomOperator_ETL_becomes_true_inside_referrers_TraceLink_modelica_components_d_path(customOperator2, _);
+    find traceLinkOf(customOperator2, traceLink);
+    find fileOf(traceLink, "BecomesTrueInside.trace");
+    TraceLink.modelica(traceLink, modelica);
+    find traceLinkOf(customOperator, traceLink2);
+    find fileOf(traceLink2, "BecomesTrueInside.trace");
+    TraceLink.modelica(traceLink2, modelica2);
+    ClassDefinition.components(modelica2, components);
+    ComponentDeclaration.declaredType(components, declaredType);
+    Reference.target(declaredType, target);
+    find nameOf2(target, name);
+    name != "";
+    Reference.target(declaredType, modelica);
+}
+
+pattern CustomOperator_ETL_becomes_true_inside_referrers_TraceLink_modelica_components_d_path(o : CustomOperator, v) {
+    CustomOperator.header(o, header);
+    Keyword(header);
+    Keyword.keyword(header, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_count_referrers_TraceLink_modelica_components_declaredType_Re(n : java Integer) {
+    n == count find CustomOperator_ETL_count_referrers_TraceLink_modelica_components_declaredType_Re_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_count_referrers_TraceLink_modelica_components_declaredType_Re_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'count'");
+    CustomOperator(customOperator2);
+    find containerOf(customOperator2, container2);
+    Library.name(container2, "ETL");
+    CustomOperator.header(customOperator2, header2);
+    Keyword(header2);
+    Keyword.keyword(header2, "'inside'");
+    1 == count find CustomOperator_ETL_count_referrers_TraceLink_modelica_components_declaredType_Re_path(customOperator2, _);
+    find traceLinkOf(customOperator2, traceLink);
+    find fileOf(traceLink, "CountInside.trace");
+    TraceLink.modelica(traceLink, modelica);
+    find traceLinkOf(customOperator, traceLink2);
+    find fileOf(traceLink2, "CountInside.trace");
+    TraceLink.modelica(traceLink2, modelica2);
+    ClassDefinition.components(modelica2, components);
+    ComponentDeclaration.declaredType(components, declaredType);
+    Reference.target(declaredType, target);
+    find nameOf2(target, name);
+    name != "";
+    Reference.target(declaredType, modelica);
+}
+
+pattern CustomOperator_ETL_count_referrers_TraceLink_modelica_components_declaredType_Re_path(o : CustomOperator, v) {
+    CustomOperator.header(o, header);
+    Keyword(header);
+    Keyword.keyword(header, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_ETL_check_referrers_TraceLink_modelica_components_declaredType_Re(n : java Integer) {
+    n == count find CustomOperator_ETL_check_referrers_TraceLink_modelica_components_declaredType_Re_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_ETL_check_referrers_TraceLink_modelica_components_declaredType_Re_matches(customOperator : CustomOperator) {
+    CustomOperator(customOperator);
+    find containerOf(customOperator, container);
+    Library.name(container, "ETL");
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'check'");
+    CustomOperator(customOperator2);
+    find containerOf(customOperator2, container2);
+    Library.name(container2, "ETL");
+    CustomOperator.header(customOperator2, header2);
+    Keyword(header2);
+    Keyword.keyword(header2, "'evaluate'");
+    find traceLinkOf(customOperator2, traceLink);
+    find fileOf(traceLink, "CheckOver.trace");
+    TraceLink.modelica(traceLink, modelica);
+    find traceLinkOf(customOperator, traceLink2);
+    find fileOf(traceLink2, "CheckOver.trace");
+    TraceLink.modelica(traceLink2, modelica2);
+    ClassDefinition.components(modelica2, components);
+    ComponentDeclaration.declaredType(components, declaredType);
+    Reference.target(declaredType, target);
+    find nameOf2(target, name);
+    name != "";
+    Reference.target(declaredType, modelica);
+}
+
+// Steps that features of several classes answer.
+
+pattern traceLinkOf(o : EObject, value : EObject) {
+    TraceLink.crml(value, o);
+} or {
+    TraceLink.modelica(value, o);
+}
+
+pattern nameOf(o : EObject, value) {
+    NamedEntity.name(o, value);
+} or {
+    LibraryDependency.name(o, value);
+} or {
+    ClassDefinition.name(o, value);
+} or {
+    ComponentDeclaration.name(o, value);
+} or {
+    ModificationElement.name(o, value);
+} or {
+    ReferencePart.name(o, value);
+}
+
+pattern partialOf(o : EObject, value) {
+    Domain.partial(o, value);
+} or {
+    ClassDefinition.partial(o, value);
+}
+
+pattern nameOf2(o : EObject, value) {
+    ClassDefinition.name(o, value);
+} or {
+    ComponentDeclaration.name(o, value);
+} or {
+    ModificationElement.name(o, value);
+} or {
+    ReferencePart.name(o, value);
+}

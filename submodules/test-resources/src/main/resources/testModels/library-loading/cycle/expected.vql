@@ -1,0 +1,25 @@
+package expectations;
+
+import "http://www.eclipse.org/emf/2002/Ecore";
+import "org.openmodelica.crml.model.metamodel" as metamodel;
+
+// Both libraries of the cycle are loaded, each once.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern count_Library_A_is_1(n : java Integer) {
+    n == count find count_Library_A_is_1_matches(_);
+    check(n != 1);
+}
+
+pattern count_Library_A_is_1_matches(a) {
+    Library.name(a, "A");
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern count_Library_B_is_1(n : java Integer) {
+    n == count find count_Library_B_is_1_matches(_);
+    check(n != 1);
+}
+
+pattern count_Library_B_is_1_matches(b) {
+    Library.name(b, "B");
+}

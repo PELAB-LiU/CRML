@@ -1,0 +1,79 @@
+package expectations;
+
+import "http://www.eclipse.org/emf/2002/Ecore";
+import "org.openmodelica.crml.model.metamodel" as metamodel;
+
+// Derived uses the operator and the variables of the model Base.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_x_or_y_definition_operator_root_name_is_Base(n : java Integer) {
+    n == count find Variable_x_or_y_definition_operator_root_name_is_Base_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_x_or_y_definition_operator_root_name_is_Base_matches(x_or_y : Variable) {
+    Variable.name(x_or_y, "x_or_y");
+    Variable.definition(x_or_y, definition);
+    ComputedValue.operator(definition, operator);
+    find rootOf(operator, root);
+    find nameOf(root, "Base");
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_x_or_y_definition_bindings_value_variable_root_name_is_Base(n : java Integer) {
+    n == count find Variable_x_or_y_definition_bindings_value_variable_root_name_is_Base_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_x_or_y_definition_bindings_value_variable_root_name_is_Base_matches(x_or_y : Variable) {
+    Variable.name(x_or_y, "x_or_y");
+    Variable.definition(x_or_y, definition);
+    find bindingsOf(definition, bindings);
+    Binding.value(bindings, value);
+    VariableReference.variable(value, variable);
+    find rootOf(variable, root);
+    find nameOf(root, "Base");
+    1 == count find Variable_x_or_y_definition_bindings_value_variable_root_name_is_Base_path(x_or_y, _);
+}
+
+pattern Variable_x_or_y_definition_bindings_value_variable_root_name_is_Base_path(o : Variable, v) {
+    Variable.definition(o, definition);
+    find bindingsOf(definition, bindings);
+    Binding.value(bindings, value);
+    VariableReference.variable(value, variable);
+    find rootOf(variable, root);
+    find nameOf(root, v);
+}
+
+// The dependency itself is recorded in the DOM.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Model_Derived_superlibs_library_is_Model_Base(n : java Integer) {
+    n == count find Model_Derived_superlibs_library_is_Model_Base_matches(_);
+    check(n != 1);
+}
+
+pattern Model_Derived_superlibs_library_is_Model_Base_matches(derived : Model) {
+    Model.name(derived, "Derived");
+    Model.name(base, "Base");
+    Model.superlibs(derived, superlibs);
+    LibraryDependency.library(superlibs, base);
+    1 == count find Model_Derived_superlibs_library_is_Model_Base_path(derived, _);
+}
+
+pattern Model_Derived_superlibs_library_is_Model_Base_path(o : Model, v) {
+    Model.superlibs(o, superlibs);
+    LibraryDependency.library(superlibs, v);
+}
+
+// Steps that features of several classes answer.
+
+pattern nameOf(o : EObject, value) {
+    NamedEntity.name(o, value);
+} or {
+    LibraryDependency.name(o, value);
+}
+
+pattern bindingsOf(o : EObject, value : EObject) {
+    ComputedValue.bindings(o, value);
+} or {
+    ConstructorValue.bindings(o, value);
+}

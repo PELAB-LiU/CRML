@@ -1,2 +1,0 @@
-count [Model::name == "UnclosedModel"] / [Variable] == 2
-[Variable::name == "y"].definition.variable.name == "x"

@@ -1,0 +1,39 @@
+package expectations;
+
+import "http://www.eclipse.org/emf/2002/Ecore";
+import "org.openmodelica.crml.model.metamodel" as metamodel;
+
+// Both models call the one 'or' of the one Logic library.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Second_Variable_a_or_b_definition_operator_file_is_Logic_crml(n : java Integer) {
+    n == count find Second_Variable_a_or_b_definition_operator_file_is_Logic_crml_matches(_);
+    check(n != 1);
+}
+
+pattern Second_Variable_a_or_b_definition_operator_file_is_Logic_crml_matches(a_or_b : Variable) {
+    Model.name(second, "Second");
+    Variable.name(a_or_b, "a_or_b");
+    find containerOf+(a_or_b, second);
+    Variable.definition(a_or_b, definition);
+    ComputedValue.operator(definition, operator);
+    find fileOf(operator, "Logic.crml");
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern First_Variable_x_or_y_definition_operator_is_Variable_a_or_b(n : java Integer) {
+    n == count find First_Variable_x_or_y_definition_operator_is_Variable_a_or_b_matches(_);
+    check(n != 1);
+}
+
+pattern First_Variable_x_or_y_definition_operator_is_Variable_a_or_b_matches(x_or_y : Variable) {
+    Model.name(first, "First");
+    Variable.name(x_or_y, "x_or_y");
+    find containerOf+(x_or_y, first);
+    Model.name(second, "Second");
+    Variable.name(a_or_b, "a_or_b");
+    find containerOf+(a_or_b, second);
+    Variable.definition(a_or_b, definition);
+    ComputedValue.operator(definition, operator);
+    Variable.definition(x_or_y, definition2);
+    ComputedValue.operator(definition2, operator);
+}

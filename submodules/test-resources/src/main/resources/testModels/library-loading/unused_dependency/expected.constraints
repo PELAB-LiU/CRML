@@ -1,3 +1,0 @@
-# Logic is loaded although nothing uses it; the model links as usual.
-count [Library::name == "Logic"] == 1
-[Variable::name == "y"].definition.variable == [Variable::name == "x"]

@@ -1,0 +1,49 @@
+package expectations;
+
+import "http://www.eclipse.org/emf/2002/Ecore";
+import "org.openmodelica.crml.model.metamodel" as metamodel;
+
+// The empty library is loaded, with nothing in it.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Library_Empty_classes_empty(n : java Integer) {
+    n == count find Library_Empty_classes_empty_matches(_);
+    check(n != 1);
+}
+
+pattern Library_Empty_classes_empty_matches(empty : Library) {
+    Library.name(empty, "Empty");
+    neg find Library_Empty_classes_empty_path(empty, _);
+}
+
+pattern Library_Empty_classes_empty_path(o : Library, v) {
+    Library.classes(o, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Library_Empty_operators_empty(n : java Integer) {
+    n == count find Library_Empty_operators_empty_matches(_);
+    check(n != 1);
+}
+
+pattern Library_Empty_operators_empty_matches(empty : Library) {
+    Library.name(empty, "Empty");
+    neg find Library_Empty_operators_empty_path(empty, _);
+}
+
+pattern Library_Empty_operators_empty_path(o : Library, v) {
+    Library.operators(o, v);
+}
+
+// The model itself is unaffected.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern UseEmpty_Variable_x_domain_notEmpty(n : java Integer) {
+    n == count find UseEmpty_Variable_x_domain_notEmpty_matches(_);
+    check(n != 1);
+}
+
+pattern UseEmpty_Variable_x_domain_notEmpty_matches(x : Variable) {
+    Model.name(useEmpty, "UseEmpty");
+    Variable.name(x, "x");
+    find containerOf+(x, useEmpty);
+    Variable.domain(x, _);
+}

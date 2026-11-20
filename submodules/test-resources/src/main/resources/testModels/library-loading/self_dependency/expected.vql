@@ -1,0 +1,27 @@
+package expectations;
+
+import "http://www.eclipse.org/emf/2002/Ecore";
+import "org.openmodelica.crml.model.metamodel" as metamodel;
+
+// Lib is loaded once, however it refers to itself.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern count_Library_Lib_is_1(n : java Integer) {
+    n == count find count_Library_Lib_is_1_matches(_);
+    check(n != 1);
+}
+
+pattern count_Library_Lib_is_1_matches(lib) {
+    Library.name(lib, "Lib");
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern count_Template_or_is_1(n : java Integer) {
+    n == count find count_Template_or_is_1_matches(_);
+    check(n != 1);
+}
+
+pattern count_Template_or_is_1_matches(template) {
+    Template.header(template, header);
+    Keyword(header);
+    Keyword.keyword(header, "'or'");
+}

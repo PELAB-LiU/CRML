@@ -1,0 +1,38 @@
+package expectations;
+
+import "http://www.eclipse.org/emf/2002/Ecore";
+import "org.openmodelica.crml.model.metamodel" as metamodel;
+
+// Logic has a syntax error (a missing ';'). It is still loaded, partially:
+// its operator is used; depending on it is a validation error (not checked here).
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern count_Library_Logic_is_1(n : java Integer) {
+    n == count find count_Library_Logic_is_1_matches(_);
+    check(n != 1);
+}
+
+pattern count_Library_Logic_is_1_matches(logic) {
+    Library.name(logic, "Logic");
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_x_or_y_definition_operator_root_name_is_Logic(n : java Integer) {
+    n == count find Variable_x_or_y_definition_operator_root_name_is_Logic_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_x_or_y_definition_operator_root_name_is_Logic_matches(x_or_y : Variable) {
+    Variable.name(x_or_y, "x_or_y");
+    Variable.definition(x_or_y, definition);
+    ComputedValue.operator(definition, operator);
+    find rootOf(operator, root);
+    find nameOf(root, "Logic");
+}
+
+// Steps that features of several classes answer.
+
+pattern nameOf(o : EObject, value) {
+    NamedEntity.name(o, value);
+} or {
+    LibraryDependency.name(o, value);
+}

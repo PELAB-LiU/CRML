@@ -31,10 +31,9 @@ import org.openmodelica.crml.model.metamodel.CRMLPackage;
 import org.openmodelica.crml.testutil.CustomHtmlReporter;
 import org.openmodelica.crml.testutil.ModelExpectation;
 import org.openmodelica.crml.testutil.ReportedTest;
-import org.openmodelica.crml.testutil.constraints.ConstraintEngine;
-import org.openmodelica.crml.testutil.constraints.ConstraintFile;
-import org.openmodelica.crml.testutil.constraints.ConstraintResult;
-import org.openmodelica.crml.testutil.constraints.ConstraintTable;
+import org.openmodelica.crml.testutil.vql.ExpectationResult;
+import org.openmodelica.crml.testutil.vql.ExpectationTable;
+import org.openmodelica.crml.testutil.vql.VqlEngine;
 import org.openmodelica.crml.util.NaturalCompare;
 
 /**
@@ -53,10 +52,11 @@ import org.openmodelica.crml.util.NaturalCompare;
  * <li><b>Fixture completeness:</b> every dependency ({@code L union}) of a file
  *     expected to be correct is declared by a file of the case, so the case
  *     really provides all the models it needs;</li>
- * <li><b>Constraints:</b> if the case has an {@code expected.constraints} file,
- *     every line of it holds on the linked DOM (see {@code CONSTRAINT_LANGUAGE.md}
- *     in {@code :util-test}). This is where a case states what each reference
- *     must point to, e.g. that a call resolves to an operator of a library.</li>
+ * <li><b>Expectations:</b> if the case has an {@code expected.vql} file, no
+ *     {@code @Constraint} pattern of severity error in it has a violation (a match)
+ *     in the linked DOM (see {@code EXPECTATIONS.md} in {@code :util-test}). This is where a case
+ *     states what each reference must point to, e.g. that a call resolves to an
+ *     operator of a library.</li>
  * </ol>
  *
  * <p>Linking and operator-call resolution are run as well and reported, but not
@@ -69,10 +69,10 @@ import org.openmodelica.crml.util.NaturalCompare;
  */
 public abstract class CaseFolderTest extends ReportedTest {
 
-    /** The optional constraint file of a case. */
-    static final String CONSTRAINTS = "expected.constraints";
+    /** The optional expectation file of a case: VQL patterns over the linked DOM. */
+    static final String EXPECTATIONS = "expected.vql";
 
-    private static final ConstraintEngine ENGINE = new ConstraintEngine(CRMLPackage.eINSTANCE);
+    private static final VqlEngine ENGINE = new VqlEngine(CRMLPackage.eINSTANCE);
 
     /** One argument set per case folder of {@code cases}: {@code (case name, folder)}. */
     static List<Arguments> casesIn(Path cases) throws IOException {
@@ -158,7 +158,7 @@ public abstract class CaseFolderTest extends ReportedTest {
         }
         CrmlWorkspace workspace = new CrmlWorkspace();
         ResourceSet resourceSet = workspace.getResourceSet();
-        List<ConstraintResult> constraints = null;
+        List<ExpectationResult> expectations = null;
 
         try {
             // 1. Grammar, and 2. DOM building: one Resource per file, one ResourceSet.
@@ -202,18 +202,18 @@ public abstract class CaseFolderTest extends ReportedTest {
             // Run after every Resource exists, as a cross-resource linker will need.
             workspace.resolve();
 
-            // 4. The case's own constraints on the linked DOM.
-            Path constraintFile = caseDir.resolve(CONSTRAINTS);
-            if (Files.isRegularFile(constraintFile)) {
-                constraints = ENGINE.evaluate(ConstraintFile.parse(constraintFile), resourceSet);
-                for (ConstraintResult result : constraints) {
+            // 4. The case's own expectations on the linked DOM.
+            Path expectationFile = caseDir.resolve(EXPECTATIONS);
+            if (Files.isRegularFile(expectationFile)) {
+                expectations = ENGINE.evaluate(expectationFile, resourceSet);
+                for (ExpectationResult result : expectations) {
                     if (result.failed()) {
-                        failures.add(CONSTRAINTS + " " + result);
+                        failures.add(EXPECTATIONS + " " + result);
                     }
                 }
             }
         } finally {
-            report(caseDir, inputs, resourceSet, constraints);
+            report(caseDir, inputs, resourceSet, expectations);
         }
 
         assertTrue(failures.isEmpty(), String.join("\n", failures));
@@ -221,15 +221,15 @@ public abstract class CaseFolderTest extends ReportedTest {
 
     /**
      * Emits the report of a case: the case folder, the resource set and the
-     * constraint results first, then per file its CRML source, syntax errors,
+     * expectation results first, then per file its CRML source, syntax errors,
      * AST, DOM and DOM errors. Sections with nothing to show are left out.
      */
     private void report(Path caseDir, List<Input> inputs, ResourceSet resourceSet,
-            List<ConstraintResult> constraints) {
+            List<ExpectationResult> expectations) {
         emit(caseDir, "Case folder");
         emit(text(summary(inputs, resourceSet)), "Resource set");
-        if (constraints != null) {
-            emit(ConstraintTable.of(constraints), "Constraints");
+        if (expectations != null) {
+            emit(ExpectationTable.of(expectations), "Expectations");
         }
         for (Input input : inputs) {
             emit(input.file, input.label + ": CRML model");

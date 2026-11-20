@@ -1,0 +1,37 @@
+package expectations;
+
+import "http://www.eclipse.org/emf/2002/Ecore";
+import "org.openmodelica.crml.model.metamodel" as metamodel;
+
+// The dependency on a model is the error; Lib itself is still loaded with its own content.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern count_Library_Lib_is_1(n : java Integer) {
+    n == count find count_Library_Lib_is_1_matches(_);
+    check(n != 1);
+}
+
+pattern count_Library_Lib_is_1_matches(lib) {
+    Library.name(lib, "Lib");
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Template_or_root_name_is_Lib(n : java Integer) {
+    n == count find Template_or_root_name_is_Lib_matches(_);
+    check(n != 1);
+}
+
+pattern Template_or_root_name_is_Lib_matches(template : Template) {
+    Template.header(template, header);
+    Keyword(header);
+    Keyword.keyword(header, "'or'");
+    find rootOf(template, root);
+    find nameOf(root, "Lib");
+}
+
+// Steps that features of several classes answer.
+
+pattern nameOf(o : EObject, value) {
+    NamedEntity.name(o, value);
+} or {
+    LibraryDependency.name(o, value);
+}

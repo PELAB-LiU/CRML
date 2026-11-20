@@ -1,0 +1,26 @@
+package expectations;
+
+import "http://www.eclipse.org/emf/2002/Ecore";
+import "org.openmodelica.crml.model.metamodel" as metamodel;
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected 2")
+pattern count_Ops_CustomOperator_is_2(n : java Integer) {
+    n == count find count_Ops_CustomOperator_is_2_matches(_);
+    check(n != 2);
+}
+
+pattern count_Ops_CustomOperator_is_2_matches(customOperator) {
+    Library.name(ops, "Ops");
+    CustomOperator(customOperator);
+    find containerOf+(customOperator, ops);
+}
+
+// 'twice' has no definition: it contains no value.
+@Constraint(key = {value}, severity = "error", message = "must not exist")
+pattern count_twice_Value_is_0(value) {
+    UserOperator.header(userOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'twice'");
+    Value(value);
+    find containerOf+(value, userOperator);
+}

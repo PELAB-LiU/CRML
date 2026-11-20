@@ -1,0 +1,25 @@
+package expectations;
+
+import "http://www.eclipse.org/emf/2002/Ecore";
+import "org.openmodelica.crml.model.metamodel" as metamodel;
+
+// x has no definition: it contains no value.
+@Constraint(key = {value}, severity = "error", message = "must not exist")
+pattern count_x_Value_is_0(value) {
+    Variable.name(x, "x");
+    Value(value);
+    find containerOf+(value, x);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_y_definition_variable_name_is_x(n : java Integer) {
+    n == count find Variable_y_definition_variable_name_is_x_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_y_definition_variable_name_is_x_matches(y : Variable) {
+    Variable.name(y, "y");
+    Variable.definition(y, definition);
+    VariableReference.variable(definition, variable);
+    Variable.name(variable, "x");
+}

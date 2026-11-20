@@ -1,0 +1,27 @@
+package expectations;
+
+import "http://www.eclipse.org/emf/2002/Ecore";
+import "org.openmodelica.crml.model.metamodel" as metamodel;
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern count_MissingName_Variable_is_1(n : java Integer) {
+    n == count find count_MissingName_Variable_is_1_matches(_);
+    check(n != 1);
+}
+
+pattern count_MissingName_Variable_is_1_matches(variable) {
+    Model.name(missingName, "MissingName");
+    Variable(variable);
+    find containerOf+(variable, missingName);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_y_definition_notEmpty(n : java Integer) {
+    n == count find Variable_y_definition_notEmpty_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_y_definition_notEmpty_matches(y : Variable) {
+    Variable.name(y, "y");
+    Variable.definition(y, _);
+}

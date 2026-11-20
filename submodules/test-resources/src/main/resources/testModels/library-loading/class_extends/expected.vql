@@ -1,0 +1,45 @@
+package expectations;
+
+import "http://www.eclipse.org/emf/2002/Ecore";
+import "org.openmodelica.crml.model.metamodel" as metamodel;
+
+// The model class Pump extends Machine, which lives in the library Equipment.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Class_Pump_superClasses_has_Class_Machine(n : java Integer) {
+    n == count find Class_Pump_superClasses_has_Class_Machine_matches(_);
+    check(n != 1);
+}
+
+pattern Class_Pump_superClasses_has_Class_Machine_matches(pump : Class) {
+    Class.name(pump, "Pump");
+    Class.name(machine, "Machine");
+    Class.superClasses(pump, machine);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Class_Pump_superClasses_root_name_is_Equipment(n : java Integer) {
+    n == count find Class_Pump_superClasses_root_name_is_Equipment_matches(_);
+    check(n != 1);
+}
+
+pattern Class_Pump_superClasses_root_name_is_Equipment_matches(pump : Class) {
+    Class.name(pump, "Pump");
+    Class.superClasses(pump, superClasses);
+    find rootOf(superClasses, root);
+    find nameOf(root, "Equipment");
+    1 == count find Class_Pump_superClasses_root_name_is_Equipment_path(pump, _);
+}
+
+pattern Class_Pump_superClasses_root_name_is_Equipment_path(o : Class, v) {
+    Class.superClasses(o, superClasses);
+    find rootOf(superClasses, root);
+    find nameOf(root, v);
+}
+
+// Steps that features of several classes answer.
+
+pattern nameOf(o : EObject, value) {
+    NamedEntity.name(o, value);
+} or {
+    LibraryDependency.name(o, value);
+}

@@ -1,0 +1,18 @@
+package expectations;
+
+import "http://www.eclipse.org/emf/2002/Ecore";
+import "org.openmodelica.crml.model.metamodel" as metamodel;
+
+// Found by its declared name, Logic, in the file operators.crml.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_x_or_y_definition_operator_file_is_operators_crml(n : java Integer) {
+    n == count find Variable_x_or_y_definition_operator_file_is_operators_crml_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_x_or_y_definition_operator_file_is_operators_crml_matches(x_or_y : Variable) {
+    Variable.name(x_or_y, "x_or_y");
+    Variable.definition(x_or_y, definition);
+    ComputedValue.operator(definition, operator);
+    find fileOf(operator, "operators.crml");
+}

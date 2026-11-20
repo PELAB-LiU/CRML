@@ -1,0 +1,76 @@
+package expectations;
+
+import "http://www.eclipse.org/emf/2002/Ecore";
+import "org.openmodelica.crml.model.metamodel" as metamodel;
+
+// Both libraries of the flatten set are in scope; "(x 'or' y)" is a SUBEXPRESSION, hence .value.value.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_nor_definition_operator_root_name_is_Negation(n : java Integer) {
+    n == count find Variable_nor_definition_operator_root_name_is_Negation_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_nor_definition_operator_root_name_is_Negation_matches(nor : Variable) {
+    Variable.name(nor, "nor");
+    Variable.definition(nor, definition);
+    ComputedValue.operator(definition, operator);
+    find rootOf(operator, root);
+    find nameOf(root, "Negation");
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_nor_definition_bindings_value_value_operator_root_name_is_Logic(n : java Integer) {
+    n == count find Variable_nor_definition_bindings_value_value_operator_root_name_is_Logic_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_nor_definition_bindings_value_value_operator_root_name_is_Logic_matches(nor : Variable) {
+    Variable.name(nor, "nor");
+    Variable.definition(nor, definition);
+    find bindingsOf(definition, bindings);
+    Binding.value(bindings, value);
+    find valueOf(value, value2);
+    ComputedValue.operator(value2, operator);
+    find rootOf(operator, root);
+    find nameOf(root, "Logic");
+    1 == count find Variable_nor_definition_bindings_value_value_operator_root_name_is_Logic_path(nor, _);
+}
+
+pattern Variable_nor_definition_bindings_value_value_operator_root_name_is_Logic_path(o : Variable, v) {
+    Variable.definition(o, definition);
+    find bindingsOf(definition, bindings);
+    Binding.value(bindings, value);
+    find valueOf(value, value2);
+    ComputedValue.operator(value2, operator);
+    find rootOf(operator, root);
+    find nameOf(root, v);
+}
+
+@Constraint(key = {sequence}, severity = "error", message = "must not exist")
+pattern count_UseFlatten_Sequence_is_0(sequence) {
+    Model.name(useFlatten, "UseFlatten");
+    Sequence(sequence);
+    find containerOf+(sequence, useFlatten);
+}
+
+// Steps that features of several classes answer.
+
+pattern nameOf(o : EObject, value) {
+    NamedEntity.name(o, value);
+} or {
+    LibraryDependency.name(o, value);
+}
+
+pattern bindingsOf(o : EObject, value : EObject) {
+    ComputedValue.bindings(o, value);
+} or {
+    ConstructorValue.bindings(o, value);
+}
+
+pattern valueOf(o : EObject, value : EObject) {
+    UnaryOperator.value(o, value);
+} or {
+    ConstructorValue.value(o, value);
+} or {
+    SequenceValue.value(o, value);
+}

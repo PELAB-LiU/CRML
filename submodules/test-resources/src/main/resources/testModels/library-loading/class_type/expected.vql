@@ -1,0 +1,57 @@
+package expectations;
+
+import "http://www.eclipse.org/emf/2002/Ecore";
+import "org.openmodelica.crml.model.metamodel" as metamodel;
+
+// The variable's type and the constructor binding point into the library.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_pump1_domain_domain_root_name_is_Equipment(n : java Integer) {
+    n == count find Variable_pump1_domain_domain_root_name_is_Equipment_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_pump1_domain_domain_root_name_is_Equipment_matches(pump1 : Variable) {
+    Variable.name(pump1, "pump1");
+    Variable.domain(pump1, domain);
+    UserTypereference.domain(domain, domain2);
+    find rootOf(domain2, root);
+    find nameOf(root, "Equipment");
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_pump1_definition_bindings_element_root_name_is_Equipment(n : java Integer) {
+    n == count find Variable_pump1_definition_bindings_element_root_name_is_Equipment_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_pump1_definition_bindings_element_root_name_is_Equipment_matches(pump1 : Variable) {
+    Variable.name(pump1, "pump1");
+    Variable.definition(pump1, definition);
+    find bindingsOf(definition, bindings);
+    Binding.element(bindings, element);
+    find rootOf(element, root);
+    find nameOf(root, "Equipment");
+    1 == count find Variable_pump1_definition_bindings_element_root_name_is_Equipment_path(pump1, _);
+}
+
+pattern Variable_pump1_definition_bindings_element_root_name_is_Equipment_path(o : Variable, v) {
+    Variable.definition(o, definition);
+    find bindingsOf(definition, bindings);
+    Binding.element(bindings, element);
+    find rootOf(element, root);
+    find nameOf(root, v);
+}
+
+// Steps that features of several classes answer.
+
+pattern nameOf(o : EObject, value) {
+    NamedEntity.name(o, value);
+} or {
+    LibraryDependency.name(o, value);
+}
+
+pattern bindingsOf(o : EObject, value : EObject) {
+    ComputedValue.bindings(o, value);
+} or {
+    ConstructorValue.bindings(o, value);
+}

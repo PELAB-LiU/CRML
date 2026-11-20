@@ -1,0 +1,50 @@
+package expectations;
+
+import "http://www.eclipse.org/emf/2002/Ecore";
+import "org.openmodelica.crml.model.metamodel" as metamodel;
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_x_implies_y_definition_operator_root_name_is_Implication(n : java Integer) {
+    n == count find Variable_x_implies_y_definition_operator_root_name_is_Implication_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_x_implies_y_definition_operator_root_name_is_Implication_matches(x_implies_y : Variable) {
+    Variable.name(x_implies_y, "x_implies_y");
+    Variable.definition(x_implies_y, definition);
+    ComputedValue.operator(definition, operator);
+    find rootOf(operator, root);
+    find nameOf(root, "Implication");
+}
+
+// Implication's own 'implies' calls the 'or' of Logic, which it depends on.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Template_implies_definition_operator_root_name_is_Logic(n : java Integer) {
+    n == count find Template_implies_definition_operator_root_name_is_Logic_matches(_);
+    check(n != 1);
+}
+
+pattern Template_implies_definition_operator_root_name_is_Logic_matches(template : Template) {
+    Template.header(template, header);
+    Keyword(header);
+    Keyword.keyword(header, "'implies'");
+    Template.definition(template, definition);
+    ComputedValue.operator(definition, operator);
+    find rootOf(operator, root);
+    find nameOf(root, "Logic");
+}
+
+@Constraint(key = {sequence}, severity = "error", message = "must not exist")
+pattern count_Implication_Sequence_is_0(sequence) {
+    Library.name(implication, "Implication");
+    Sequence(sequence);
+    find containerOf+(sequence, implication);
+}
+
+// Steps that features of several classes answer.
+
+pattern nameOf(o : EObject, value) {
+    NamedEntity.name(o, value);
+} or {
+    LibraryDependency.name(o, value);
+}

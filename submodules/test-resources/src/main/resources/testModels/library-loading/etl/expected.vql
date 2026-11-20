@@ -1,0 +1,175 @@
+package expectations;
+
+import "http://www.eclipse.org/emf/2002/Ecore";
+import "org.openmodelica.crml.model.metamodel" as metamodel;
+
+// ETL is loaded once for the four models.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern count_Library_ETL_is_1(n : java Integer) {
+    n == count find count_Library_ETL_is_1_matches(_);
+    check(n != 1);
+}
+
+pattern count_Library_ETL_is_1_matches(eTL) {
+    Library.name(eTL, "ETL");
+}
+
+// Each model's call resolves to the ETL operator, and no call is left unresolved.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_b1_implies_b2_definition_operator_root_name_is_ETL(n : java Integer) {
+    n == count find Variable_b1_implies_b2_definition_operator_root_name_is_ETL_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_b1_implies_b2_definition_operator_root_name_is_ETL_matches(b1_implies_b2 : Variable) {
+    Variable.name(b1_implies_b2, "b1_implies_b2");
+    Variable.definition(b1_implies_b2, definition);
+    ComputedValue.operator(definition, operator);
+    find rootOf(operator, root);
+    find nameOf(root, "ETL");
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_c_b1_becomes_true_inside_p1_definition_operator_root_name_is_ETL(n : java Integer) {
+    n == count find Variable_c_b1_becomes_true_inside_p1_definition_operator_root_name_is_ETL_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_c_b1_becomes_true_inside_p1_definition_operator_root_name_is_ETL_matches(c_b1_becomes_true_inside_p1 : Variable) {
+    Variable.name(c_b1_becomes_true_inside_p1, "c_b1_becomes_true_inside_p1");
+    Variable.definition(c_b1_becomes_true_inside_p1, definition);
+    ComputedValue.operator(definition, operator);
+    find rootOf(operator, root);
+    find nameOf(root, "ETL");
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_i_count_ticks_of_c1_inside_p1_definition_operator_root_name_is_ETL(n : java Integer) {
+    n == count find Variable_i_count_ticks_of_c1_inside_p1_definition_operator_root_name_is_ETL_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_i_count_ticks_of_c1_inside_p1_definition_operator_root_name_is_ETL_matches(i_count_ticks_of_c1_inside_p1 : Variable) {
+    Variable.name(i_count_ticks_of_c1_inside_p1, "i_count_ticks_of_c1_inside_p1");
+    Variable.definition(i_count_ticks_of_c1_inside_p1, definition);
+    ComputedValue.operator(definition, operator);
+    find rootOf(operator, root);
+    find nameOf(root, "ETL");
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_b_check_over_definition_operator_root_name_is_ETL(n : java Integer) {
+    n == count find Variable_b_check_over_definition_operator_root_name_is_ETL_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_b_check_over_definition_operator_root_name_is_ETL_matches(b_check_over : Variable) {
+    Variable.name(b_check_over, "b_check_over");
+    Variable.definition(b_check_over, definition);
+    ComputedValue.operator(definition, operator);
+    find rootOf(operator, root);
+    find nameOf(root, "ETL");
+}
+
+@Constraint(key = {sequence}, severity = "error", message = "must not exist")
+pattern count_Implies_Sequence_is_0(sequence) {
+    Model.name(implies, "Implies");
+    Sequence(sequence);
+    find containerOf+(sequence, implies);
+}
+
+@Constraint(key = {sequence}, severity = "error", message = "must not exist")
+pattern count_BecomesTrueInside_Sequence_is_0(sequence) {
+    Model.name(becomesTrueInside, "BecomesTrueInside");
+    Sequence(sequence);
+    find containerOf+(sequence, becomesTrueInside);
+}
+
+@Constraint(key = {sequence}, severity = "error", message = "must not exist")
+pattern count_CountInside_Sequence_is_0(sequence) {
+    Model.name(countInside, "CountInside");
+    Sequence(sequence);
+    find containerOf+(sequence, countInside);
+}
+
+@Constraint(key = {sequence}, severity = "error", message = "must not exist")
+pattern count_CheckOver_Sequence_is_0(sequence) {
+    Model.name(checkOver, "CheckOver");
+    Sequence(sequence);
+    find containerOf+(sequence, checkOver);
+}
+
+// ETL resolves its own calls: 'check' aggregates ("and" over a set, a BinaryOperator with
+// only a right operand) calls to 'evaluate' (in parentheses: a SUBEXPRESSION
+// UnaryOperator around the call), lifted over P.element.
+@Constraint(key = {sequence}, severity = "error", message = "must not exist")
+pattern count_ETL_Sequence_is_0(sequence) {
+    Library.name(eTL, "ETL");
+    Sequence(sequence);
+    find containerOf+(sequence, eTL);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_check_definition_rhs_value_operator_keywords_keyword_has_evaluate(n : java Integer) {
+    n == count find CustomOperator_check_definition_rhs_value_operator_keywords_keyword_has_evaluate_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_check_definition_rhs_value_operator_keywords_keyword_has_evaluate_matches(customOperator : CustomOperator) {
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'check'");
+    CustomOperator.definition(customOperator, definition);
+    BinaryOperator.rhs(definition, rhs);
+    find valueOf(rhs, value);
+    ComputedValue.operator(value, operator);
+    CustomOperator.header(operator, header2);
+    Keyword(header2);
+    Keyword.keyword(header2, "'evaluate'");
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_check_definition_rhs_value_lifts_data_variable_name_is_P(n : java Integer) {
+    n == count find CustomOperator_check_definition_rhs_value_lifts_data_variable_name_is_P_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_check_definition_rhs_value_lifts_data_variable_name_is_P_matches(customOperator : CustomOperator) {
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'check'");
+    CustomOperator.definition(customOperator, definition);
+    BinaryOperator.rhs(definition, rhs);
+    find valueOf(rhs, value);
+    Liftable.lifts(value, lifts);
+    ScatteredValue.data(lifts, data);
+    VariableReference.variable(data, variable);
+    Variable.name(variable, "P");
+    1 == count find CustomOperator_check_definition_rhs_value_lifts_data_variable_name_is_P_path(customOperator, _);
+}
+
+pattern CustomOperator_check_definition_rhs_value_lifts_data_variable_name_is_P_path(o : CustomOperator, v) {
+    CustomOperator.definition(o, definition);
+    BinaryOperator.rhs(definition, rhs);
+    find valueOf(rhs, value);
+    Liftable.lifts(value, lifts);
+    ScatteredValue.data(lifts, data);
+    VariableReference.variable(data, variable);
+    Variable.name(variable, v);
+}
+
+// Steps that features of several classes answer.
+
+pattern nameOf(o : EObject, value) {
+    NamedEntity.name(o, value);
+} or {
+    LibraryDependency.name(o, value);
+}
+
+pattern valueOf(o : EObject, value : EObject) {
+    UnaryOperator.value(o, value);
+} or {
+    ConstructorValue.value(o, value);
+} or {
+    SequenceValue.value(o, value);
+}

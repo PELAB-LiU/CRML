@@ -1,0 +1,56 @@
+package expectations;
+
+import "http://www.eclipse.org/emf/2002/Ecore";
+import "org.openmodelica.crml.model.metamodel" as metamodel;
+
+// In 'b and undefinedName', b is the operator's parameter; undefinedName resolves to nothing.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_broken_definition_lhs_variable_name_is_b(n : java Integer) {
+    n == count find CustomOperator_broken_definition_lhs_variable_name_is_b_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_broken_definition_lhs_variable_name_is_b_matches(customOperator : CustomOperator) {
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'broken'");
+    CustomOperator.definition(customOperator, definition);
+    BinaryOperator.lhs(definition, lhs);
+    VariableReference.variable(lhs, variable);
+    Variable.name(variable, "b");
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_broken_definition_rhs_isA_VariableReference(n : java Integer) {
+    n == count find CustomOperator_broken_definition_rhs_isA_VariableReference_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_broken_definition_rhs_isA_VariableReference_matches(customOperator : CustomOperator) {
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'broken'");
+    CustomOperator.definition(customOperator, definition);
+    BinaryOperator.rhs(definition, rhs);
+    VariableReference(rhs);
+}
+
+@Constraint(key = {variableReference}, severity = "error", message = "must not exist")
+pattern count_Lib_VariableReference_undefinedName_is_0(variableReference) {
+    Library.name(lib, "Lib");
+    VariableReference.variable(variableReference, variable);
+    Variable.name(variable, "undefinedName");
+    find containerOf+(variableReference, lib);
+}
+
+// The model is unaffected.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_x_domain_notEmpty(n : java Integer) {
+    n == count find Variable_x_domain_notEmpty_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_x_domain_notEmpty_matches(x : Variable) {
+    Variable.name(x, "x");
+    Variable.domain(x, _);
+}

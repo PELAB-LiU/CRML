@@ -1,0 +1,33 @@
+package expectations;
+
+import "http://www.eclipse.org/emf/2002/Ecore";
+import "org.openmodelica.crml.model.metamodel" as metamodel;
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_not_x_definition_operator_root_name_is_Negation(n : java Integer) {
+    n == count find Variable_not_x_definition_operator_root_name_is_Negation_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_not_x_definition_operator_root_name_is_Negation_matches(not_x : Variable) {
+    Variable.name(not_x, "not_x");
+    Variable.definition(not_x, definition);
+    ComputedValue.operator(definition, operator);
+    find rootOf(operator, root);
+    find nameOf(root, "Negation");
+}
+
+@Constraint(key = {sequence}, severity = "error", message = "must not exist")
+pattern count_UseOperator_Sequence_is_0(sequence) {
+    Model.name(useOperator, "UseOperator");
+    Sequence(sequence);
+    find containerOf+(sequence, useOperator);
+}
+
+// Steps that features of several classes answer.
+
+pattern nameOf(o : EObject, value) {
+    NamedEntity.name(o, value);
+} or {
+    LibraryDependency.name(o, value);
+}

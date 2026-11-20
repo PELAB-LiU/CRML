@@ -26,12 +26,15 @@ val antlr4Version     by extra("4.9.2")    // org.antlr:antlr4
 allprojects {
     repositories {
         mavenCentral()
-       /* maven {
-            url = uri("https://repo.eclipse.org/content/repositories/viatra2-releases/")
-        }
+        // VIATRA (used by :util-test for model queries in tests) is published only to
+        // Eclipse's own repository. Every project needs it, since the tests of
+        // :language and :compiler resolve :util-test's dependencies. The content
+        // filter keeps Gradle from looking anything else up there.
         maven {
-            url = uri("https://repo.eclipse.org/content/groups/releases/")
-        }*/
+            name = "viatra"
+            url = uri("https://repo.eclipse.org/content/repositories/viatra2-releases/")
+            content { includeGroup("org.eclipse.viatra") }
+        }
     }
 }
 

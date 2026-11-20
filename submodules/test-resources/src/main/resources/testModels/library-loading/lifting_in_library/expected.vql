@@ -1,0 +1,92 @@
+package expectations;
+
+import "http://www.eclipse.org/emf/2002/Ecore";
+import "org.openmodelica.crml.model.metamodel" as metamodel;
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_r_definition_operator_root_name_is_Temporal(n : java Integer) {
+    n == count find Variable_r_definition_operator_root_name_is_Temporal_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_r_definition_operator_root_name_is_Temporal_matches(r : Variable) {
+    Variable.name(r, "r");
+    Variable.definition(r, definition);
+    ComputedValue.operator(definition, operator);
+    find rootOf(operator, root);
+    find nameOf(root, "Temporal");
+}
+
+@Constraint(key = {sequence}, severity = "error", message = "must not exist")
+pattern count_UseLifting_Sequence_is_0(sequence) {
+    Model.name(useLifting, "UseLifting");
+    Sequence(sequence);
+    find containerOf+(sequence, useLifting);
+}
+
+// Inside the library, P.element is linked to the 'holds ... during' call it lifts.
+// The call is the operand of the aggregator "and" (rhs), wrapped in parentheses (.value).
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_during_all_definition_rhs_value_operator_keywords_keyword_has_dur(n : java Integer) {
+    n == count find CustomOperator_during_all_definition_rhs_value_operator_keywords_keyword_has_dur_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_during_all_definition_rhs_value_operator_keywords_keyword_has_dur_matches(customOperator : CustomOperator) {
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'during all'");
+    CustomOperator.definition(customOperator, definition);
+    BinaryOperator.rhs(definition, rhs);
+    find valueOf(rhs, value);
+    ComputedValue.operator(value, operator);
+    CustomOperator.header(operator, header2);
+    Keyword(header2);
+    Keyword.keyword(header2, "'during'");
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern CustomOperator_during_all_definition_rhs_value_lifts_data_variable_name_is_P(n : java Integer) {
+    n == count find CustomOperator_during_all_definition_rhs_value_lifts_data_variable_name_is_P_matches(_);
+    check(n != 1);
+}
+
+pattern CustomOperator_during_all_definition_rhs_value_lifts_data_variable_name_is_P_matches(customOperator : CustomOperator) {
+    CustomOperator.header(customOperator, header);
+    Keyword(header);
+    Keyword.keyword(header, "'during all'");
+    CustomOperator.definition(customOperator, definition);
+    BinaryOperator.rhs(definition, rhs);
+    find valueOf(rhs, value);
+    Liftable.lifts(value, lifts);
+    ScatteredValue.data(lifts, data);
+    VariableReference.variable(data, variable);
+    Variable.name(variable, "P");
+    1 == count find CustomOperator_during_all_definition_rhs_value_lifts_data_variable_name_is_P_path(customOperator, _);
+}
+
+pattern CustomOperator_during_all_definition_rhs_value_lifts_data_variable_name_is_P_path(o : CustomOperator, v) {
+    CustomOperator.definition(o, definition);
+    BinaryOperator.rhs(definition, rhs);
+    find valueOf(rhs, value);
+    Liftable.lifts(value, lifts);
+    ScatteredValue.data(lifts, data);
+    VariableReference.variable(data, variable);
+    Variable.name(variable, v);
+}
+
+// Steps that features of several classes answer.
+
+pattern nameOf(o : EObject, value) {
+    NamedEntity.name(o, value);
+} or {
+    LibraryDependency.name(o, value);
+}
+
+pattern valueOf(o : EObject, value : EObject) {
+    UnaryOperator.value(o, value);
+} or {
+    ConstructorValue.value(o, value);
+} or {
+    SequenceValue.value(o, value);
+}

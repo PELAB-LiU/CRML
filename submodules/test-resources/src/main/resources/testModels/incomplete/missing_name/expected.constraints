@@ -1,2 +1,0 @@
-count [Model::name == "MissingName"] / [Variable] == 1
-[Variable::name == "y"].definition is not empty

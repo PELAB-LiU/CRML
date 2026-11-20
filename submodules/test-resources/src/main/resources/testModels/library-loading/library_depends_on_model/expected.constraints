@@ -1,3 +1,0 @@
-# The dependency on a model is the error; Lib itself is still loaded with its own content.
-count [Library::name == "Lib"] == 1
-[Template::keywords.keyword contains "'or'"].@root.name == "Lib"

@@ -1,0 +1,101 @@
+package expectations;
+
+import "http://www.eclipse.org/emf/2002/Ecore";
+import "org.openmodelica.crml.model.metamodel" as metamodel;
+
+// Every variable of UseTwo has a type, and there are variables to check.
+@Constraint(key = {variable}, severity = "error", message = "counterexample")
+pattern all_UseTwo_Variable_domain_notEmpty(variable : Variable) {
+    Model.name(useTwo, "UseTwo");
+    Variable(variable);
+    find containerOf+(variable, useTwo);
+    neg find all_UseTwo_Variable_domain_notEmpty_path(variable, _);
+}
+
+pattern all_UseTwo_Variable_domain_notEmpty_path(o : Variable, v) {
+    Variable.domain(o, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected at least 1")
+pattern count_UseTwo_Variable_atLeast_1(n : java Integer) {
+    n == count find count_UseTwo_Variable_atLeast_1_matches(_);
+    check(n < 1);
+}
+
+pattern count_UseTwo_Variable_atLeast_1_matches(variable) {
+    Model.name(useTwo, "UseTwo");
+    Variable(variable);
+    find containerOf+(variable, useTwo);
+}
+
+// Operators of both libraries in one expression; "(x 'or' y)" is a SUBEXPRESSION, hence .value.value.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_nor_definition_operator_root_name_is_Negation(n : java Integer) {
+    n == count find Variable_nor_definition_operator_root_name_is_Negation_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_nor_definition_operator_root_name_is_Negation_matches(nor : Variable) {
+    Variable.name(nor, "nor");
+    Variable.definition(nor, definition);
+    ComputedValue.operator(definition, operator);
+    find rootOf(operator, root);
+    find nameOf(root, "Negation");
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_nor_definition_bindings_value_value_operator_root_name_is_Logic(n : java Integer) {
+    n == count find Variable_nor_definition_bindings_value_value_operator_root_name_is_Logic_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_nor_definition_bindings_value_value_operator_root_name_is_Logic_matches(nor : Variable) {
+    Variable.name(nor, "nor");
+    Variable.definition(nor, definition);
+    find bindingsOf(definition, bindings);
+    Binding.value(bindings, value);
+    find valueOf(value, value2);
+    ComputedValue.operator(value2, operator);
+    find rootOf(operator, root);
+    find nameOf(root, "Logic");
+    1 == count find Variable_nor_definition_bindings_value_value_operator_root_name_is_Logic_path(nor, _);
+}
+
+pattern Variable_nor_definition_bindings_value_value_operator_root_name_is_Logic_path(o : Variable, v) {
+    Variable.definition(o, definition);
+    find bindingsOf(definition, bindings);
+    Binding.value(bindings, value);
+    find valueOf(value, value2);
+    ComputedValue.operator(value2, operator);
+    find rootOf(operator, root);
+    find nameOf(root, v);
+}
+
+@Constraint(key = {sequence}, severity = "error", message = "must not exist")
+pattern count_UseTwo_Sequence_is_0(sequence) {
+    Model.name(useTwo, "UseTwo");
+    Sequence(sequence);
+    find containerOf+(sequence, useTwo);
+}
+
+// Steps that features of several classes answer.
+
+pattern nameOf(o : EObject, value) {
+    NamedEntity.name(o, value);
+} or {
+    LibraryDependency.name(o, value);
+}
+
+pattern bindingsOf(o : EObject, value : EObject) {
+    ComputedValue.bindings(o, value);
+} or {
+    ConstructorValue.bindings(o, value);
+}
+
+pattern valueOf(o : EObject, value : EObject) {
+    UnaryOperator.value(o, value);
+} or {
+    ConstructorValue.value(o, value);
+} or {
+    SequenceValue.value(o, value);
+}

@@ -20,18 +20,20 @@ on through `L union` / `flatten { A, B } union`. Each case tests one thing.
     are validation errors, not exceptions.
 - Each error file starts with an `// Expected:` comment that says which error
   is meant.
-- **`expected.constraints`** in each case folder states what the linked DOM must
+- **`expected.vql`** in each case folder states what the linked DOM must
   look like: which library each call and type resolves to, what is loaded and
-  how often, and what must stay unresolved. The language is described in
-  `CONSTRAINT_LANGUAGE.md` in `:util-test`. `LibraryLoadingTest` evaluates the
-  file and shows the results as a table in the report; any line that is not
-  `pass` fails the case. For error cases, the constraints only describe the DOM;
+  how often, and what must stay unresolved. It is a VIATRA query file for VIATRA's
+  validation framework: each pattern annotated `@Constraint` describes
+  violations, and a case passes when none of severity error has a match (see
+  `EXPECTATIONS.md` in `:util-test`). `LibraryLoadingTest` evaluates the
+  file and shows the results as a table in the report; any constraint that is
+  `fail` or `error` fails the case. For error cases, the expectations only describe the DOM;
   which validation error is reported cannot be stated yet.
-- **`translation.constraints`**, in every case with a valid model, states what
+- **`translation.vql`**, in every case with a valid model, states what
   the generated Modelica must look like. `LibraryLoading` in `:compiler`
   translates all valid models of the case in one run, adds each result as
   `<Model>.mo` and `<Model>.trace`, and evaluates the file over the CRML, Modelica
-  and trace metamodels; see "Checking a translation" in `CONSTRAINT_LANGUAGE.md`.
+  and trace metamodels; see "Checking a translation" in `EXPECTATIONS.md`.
   Per model it checks:
   - the class: its name, and `partial` exactly when a variable it has, own or
     inherited, is unbound;

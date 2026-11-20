@@ -1,0 +1,29 @@
+package expectations;
+
+import "http://www.eclipse.org/emf/2002/Ecore";
+import "org.openmodelica.crml.model.metamodel" as metamodel;
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected 2")
+pattern count_UnclosedModel_Variable_is_2(n : java Integer) {
+    n == count find count_UnclosedModel_Variable_is_2_matches(_);
+    check(n != 2);
+}
+
+pattern count_UnclosedModel_Variable_is_2_matches(variable) {
+    Model.name(unclosedModel, "UnclosedModel");
+    Variable(variable);
+    find containerOf+(variable, unclosedModel);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_y_definition_variable_name_is_x(n : java Integer) {
+    n == count find Variable_y_definition_variable_name_is_x_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_y_definition_variable_name_is_x_matches(y : Variable) {
+    Variable.name(y, "y");
+    Variable.definition(y, definition);
+    VariableReference.variable(definition, variable);
+    Variable.name(variable, "x");
+}

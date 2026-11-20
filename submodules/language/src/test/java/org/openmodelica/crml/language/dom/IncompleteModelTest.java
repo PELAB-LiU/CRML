@@ -12,7 +12,7 @@ import org.openmodelica.crml.testresources.TestResourcesRoot;
 /**
  * Models with syntax errors, as an editor sees them while they are being
  * written: the cases of {@code testModels/incomplete} in
- * {@code :test-resources}. Each case states in its {@code expected.constraints}
+ * {@code :test-resources}. Each case states in its {@code expected.vql}
  * what of the partial DOM must be there, checked as described in
  * {@link CaseFolderTest}.
  */

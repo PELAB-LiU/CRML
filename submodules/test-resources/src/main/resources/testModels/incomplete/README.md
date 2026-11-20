@@ -3,8 +3,8 @@
 Models as an editor sees them while they are being written: most have a syntax
 error. A file with syntax or build errors still gets a partial DOM, built from
 the text the parser recovered; what cannot be built is left out. Each case
-states in `expected.constraints` what of the partial DOM must be there (see
-`CONSTRAINT_LANGUAGE.md` in `:util-test`).
+states in `expected.vql` what of the partial DOM must be there (see
+`EXPECTATIONS.md` in `:util-test`).
 
 Run by `IncompleteModelTest` (checks as for `library-loading`, see
 `CaseFolderTest`) and `PartialDomTest` (no stage fails with an exception on

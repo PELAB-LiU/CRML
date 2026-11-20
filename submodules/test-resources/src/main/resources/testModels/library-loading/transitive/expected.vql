@@ -1,0 +1,48 @@
+package expectations;
+
+import "http://www.eclipse.org/emf/2002/Ecore";
+import "org.openmodelica.crml.model.metamodel" as metamodel;
+
+// 'or' comes from Logic through Extended; 'negation of' from Extended itself.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_x_or_y_definition_operator_root_name_is_Logic(n : java Integer) {
+    n == count find Variable_x_or_y_definition_operator_root_name_is_Logic_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_x_or_y_definition_operator_root_name_is_Logic_matches(x_or_y : Variable) {
+    Variable.name(x_or_y, "x_or_y");
+    Variable.definition(x_or_y, definition);
+    ComputedValue.operator(definition, operator);
+    find rootOf(operator, root);
+    find nameOf(root, "Logic");
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_not_x_definition_operator_root_name_is_Extended(n : java Integer) {
+    n == count find Variable_not_x_definition_operator_root_name_is_Extended_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_not_x_definition_operator_root_name_is_Extended_matches(not_x : Variable) {
+    Variable.name(not_x, "not_x");
+    Variable.definition(not_x, definition);
+    ComputedValue.operator(definition, operator);
+    find rootOf(operator, root);
+    find nameOf(root, "Extended");
+}
+
+@Constraint(key = {sequence}, severity = "error", message = "must not exist")
+pattern count_UseTransitive_Sequence_is_0(sequence) {
+    Model.name(useTransitive, "UseTransitive");
+    Sequence(sequence);
+    find containerOf+(sequence, useTransitive);
+}
+
+// Steps that features of several classes answer.
+
+pattern nameOf(o : EObject, value) {
+    NamedEntity.name(o, value);
+} or {
+    LibraryDependency.name(o, value);
+}

@@ -1,0 +1,74 @@
+package expectations;
+
+import "http://www.eclipse.org/emf/2002/Ecore";
+import "org.openmodelica.crml.model.metamodel" as metamodel;
+
+// Logic's 'or' exists once in the whole resource set, and the model uses it.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern count_Template_or_is_1(n : java Integer) {
+    n == count find count_Template_or_is_1_matches(_);
+    check(n != 1);
+}
+
+pattern count_Template_or_is_1_matches(template) {
+    Template.header(template, header);
+    Keyword(header);
+    Keyword.keyword(header, "'or'");
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_x_or_y_definition_operator_root_name_is_Logic(n : java Integer) {
+    n == count find Variable_x_or_y_definition_operator_root_name_is_Logic_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_x_or_y_definition_operator_root_name_is_Logic_matches(x_or_y : Variable) {
+    Variable.name(x_or_y, "x_or_y");
+    Variable.definition(x_or_y, definition);
+    ComputedValue.operator(definition, operator);
+    find rootOf(operator, root);
+    find nameOf(root, "Logic");
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_x_xor_y_definition_operator_root_name_is_Right(n : java Integer) {
+    n == count find Variable_x_xor_y_definition_operator_root_name_is_Right_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_x_xor_y_definition_operator_root_name_is_Right_matches(x_xor_y : Variable) {
+    Variable.name(x_xor_y, "x_xor_y");
+    Variable.definition(x_xor_y, definition);
+    ComputedValue.operator(definition, operator);
+    find rootOf(operator, root);
+    find nameOf(root, "Right");
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_not_x_definition_operator_root_name_is_Left(n : java Integer) {
+    n == count find Variable_not_x_definition_operator_root_name_is_Left_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_not_x_definition_operator_root_name_is_Left_matches(not_x : Variable) {
+    Variable.name(not_x, "not_x");
+    Variable.definition(not_x, definition);
+    ComputedValue.operator(definition, operator);
+    find rootOf(operator, root);
+    find nameOf(root, "Left");
+}
+
+@Constraint(key = {sequence}, severity = "error", message = "must not exist")
+pattern count_UseDiamond_Sequence_is_0(sequence) {
+    Model.name(useDiamond, "UseDiamond");
+    Sequence(sequence);
+    find containerOf+(sequence, useDiamond);
+}
+
+// Steps that features of several classes answer.
+
+pattern nameOf(o : EObject, value) {
+    NamedEntity.name(o, value);
+} or {
+    LibraryDependency.name(o, value);
+}

@@ -1,0 +1,65 @@
+package expectations;
+
+import "http://www.eclipse.org/emf/2002/Ecore";
+import "org.openmodelica.crml.model.metamodel" as metamodel;
+
+// M -> C -> B -> A: 'or' comes from A, three levels down.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_x_or_y_definition_operator_root_name_is_A(n : java Integer) {
+    n == count find Variable_x_or_y_definition_operator_root_name_is_A_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_x_or_y_definition_operator_root_name_is_A_matches(x_or_y : Variable) {
+    Variable.name(x_or_y, "x_or_y");
+    Variable.definition(x_or_y, definition);
+    ComputedValue.operator(definition, operator);
+    find rootOf(operator, root);
+    find nameOf(root, "A");
+}
+
+@Constraint(key = {sequence}, severity = "error", message = "must not exist")
+pattern count_UseChain_Sequence_is_0(sequence) {
+    Model.name(useChain, "UseChain");
+    Sequence(sequence);
+    find containerOf+(sequence, useChain);
+}
+
+// B and C are empty; they only pass A on.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Library_B_operators_empty(n : java Integer) {
+    n == count find Library_B_operators_empty_matches(_);
+    check(n != 1);
+}
+
+pattern Library_B_operators_empty_matches(b : Library) {
+    Library.name(b, "B");
+    neg find Library_B_operators_empty_path(b, _);
+}
+
+pattern Library_B_operators_empty_path(o : Library, v) {
+    Library.operators(o, v);
+}
+
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Library_C_operators_empty(n : java Integer) {
+    n == count find Library_C_operators_empty_matches(_);
+    check(n != 1);
+}
+
+pattern Library_C_operators_empty_matches(c : Library) {
+    Library.name(c, "C");
+    neg find Library_C_operators_empty_path(c, _);
+}
+
+pattern Library_C_operators_empty_path(o : Library, v) {
+    Library.operators(o, v);
+}
+
+// Steps that features of several classes answer.
+
+pattern nameOf(o : EObject, value) {
+    NamedEntity.name(o, value);
+} or {
+    LibraryDependency.name(o, value);
+}

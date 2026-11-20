@@ -1,0 +1,36 @@
+package expectations;
+
+import "http://www.eclipse.org/emf/2002/Ecore";
+import "org.openmodelica.crml.model.metamodel" as metamodel;
+
+// Linked inside the library itself, before any model uses it.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Class_Pump_superClasses_is_Class_Machine(n : java Integer) {
+    n == count find Class_Pump_superClasses_is_Class_Machine_matches(_);
+    check(n != 1);
+}
+
+pattern Class_Pump_superClasses_is_Class_Machine_matches(pump : Class) {
+    Class.name(pump, "Pump");
+    Class.name(machine, "Machine");
+    Class.superClasses(pump, machine);
+    1 == count find Class_Pump_superClasses_is_Class_Machine_path(pump, _);
+}
+
+pattern Class_Pump_superClasses_is_Class_Machine_path(o : Class, v) {
+    Class.superClasses(o, v);
+}
+
+// The model's variable is typed by the library class.
+@Constraint(key = {n}, severity = "error", message = "found $n$, expected exactly 1")
+pattern Variable_pump1_domain_domain_is_Class_Pump(n : java Integer) {
+    n == count find Variable_pump1_domain_domain_is_Class_Pump_matches(_);
+    check(n != 1);
+}
+
+pattern Variable_pump1_domain_domain_is_Class_Pump_matches(pump1 : Variable) {
+    Variable.name(pump1, "pump1");
+    Class.name(pump, "Pump");
+    Variable.domain(pump1, domain);
+    UserTypereference.domain(domain, pump);
+}

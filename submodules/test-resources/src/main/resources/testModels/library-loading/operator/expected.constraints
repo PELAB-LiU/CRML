@@ -1,2 +1,0 @@
-[Variable::name == "not_x"].definition.operator.@root.name == "Negation"
-count [Model::name == "UseOperator"] / [Sequence] == 0
