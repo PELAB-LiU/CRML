@@ -1,0 +1,409 @@
+/*
+ * The syntax tree of a CQL file, as the parser produces it
+ * (QUERY_LANGUAGE_SPEC.md, section 4.4).
+ * <p>
+ * The tree keeps what was written: {@code contains} and {@code in} stay apart, as
+ * do {@code -} and {@code ->}, the built-in names and a missing relation name.
+ * Parentheses leave no node. Names are strings; they are resolved when the tree is
+ * turned into the IR.
+ * A statement that does not parse has no node; the parser reports it beside the
+ * tree.
+ * <p>
+ * Positions are not part of the tree. The parser returns them beside it, as a map
+ * from each node to the span of its text, so that the tree stays independent of the
+ * text it was read from.
+ * <p>
+ * There are no operation bodies here, so that the generated code needs only EMF at
+ * run time.
+ */
+@GenModel(
+    bundleManifest="false",
+    modelDirectory="cql/src-gen",
+    complianceLevel="8.0",
+    prefix="Syntax"
+)
+package org.openmodelica.crml.cql.syntax
+
+// ─────────────────────────────────────────────
+//  Files and declarations
+// ─────────────────────────────────────────────
+
+/*
+ * A CQL file: its statements in order.
+ */
+class CqlFile {
+    contains Statement[] statements
+}
+
+/*
+ * A statement, with an optional companion {@code ! severity "message"}.
+ */
+abstract class Statement {
+    contains Companion[?] companion
+}
+
+/*
+ * The companion of a statement: {@code ! severity "message"}, {@code ! severity} or
+ * {@code ! "message"}. Without a severity, the severity is ERROR.
+ */
+class Companion {
+    Severity severity
+    /*
+     * The message, or null when none is given.
+     */
+    String message
+}
+
+enum Severity {
+    ERROR
+    WARNING
+    INFO
+}
+
+/*
+ * {@code resource("uri") as name}.
+ */
+class ResourceDecl extends Statement {
+    String uri
+    String name
+}
+
+/*
+ * {@code let name = value}.
+ */
+class LetDecl extends Statement {
+    String name
+    contains SetExpr[1] value
+}
+
+/*
+ * {@code [default] source -[name]-> target := body}, or with {@code -} for a
+ * bidirectional relation.
+ */
+class RelationDecl extends Statement {
+    boolean ^default
+    String name
+    boolean bidirectional
+    contains SetExpr[1] source
+    contains SetExpr[1] target
+    contains Pairs[1] body
+}
+
+/*
+ * The body of a relation declaration: {@code set/<source, target> /[...] ...}.
+ */
+class Pairs {
+    contains SetExpr[1] ^set
+    contains PairComponent[1] source
+    contains PairComponent[1] target
+    contains FilterStep[] filters
+}
+
+/*
+ * A component of a pair: {@code value} or {@code value as name}.
+ */
+class PairComponent {
+    /*
+     * The name given with {@code as}, or null when none is given; the component is then
+     * called {@code source} or {@code target}.
+     */
+    String name
+    contains SetExpr[1] value
+}
+
+/*
+ * A condition as a statement.
+ */
+class Assertion extends Statement {
+    contains Condition[1] condition
+}
+
+// ─────────────────────────────────────────────
+//  Conditions
+// ─────────────────────────────────────────────
+
+abstract class Condition {
+}
+
+/*
+ * {@code a | b | ...}. A single operand is not wrapped.
+ */
+class Or extends Condition {
+    contains Condition[2..*] operands
+}
+
+/*
+ * {@code a, b, ...}. A single operand is not wrapped.
+ */
+class And extends Condition {
+    contains Condition[2..*] operands
+}
+
+/*
+ * {@code !condition}.
+ */
+class Not extends Condition {
+    contains Condition[1] operand
+}
+
+/*
+ * A clause of a filter that names a type: {@code T} alone, or {@code T :: condition}.
+ */
+class TypedClause extends Condition {
+    contains TypeRef[1] ^type
+    /*
+     * The condition after {@code ::}, or null for a type test alone.
+     */
+    contains Condition[?] condition
+}
+
+/*
+ * {@code all|some|no variable in range : body}.
+ */
+class Quantified extends Condition {
+    Quantifier quantifier
+    String variable
+    contains SetExpr[1] range
+    contains Condition[1] body
+}
+
+enum Quantifier {
+    ALL
+    SOME
+    NO
+}
+
+/*
+ * {@code left op right} for the comparisons and the subset tests, with the operator as
+ * written.
+ */
+class Comparison extends Condition {
+    ComparisonOp ^op
+    contains SetExpr[1] left
+    contains SetExpr[1] right
+}
+
+enum ComparisonOp {
+    /* {@code ==} */
+    EQ
+    /* {@code !=} */
+    NE
+    /* {@code <} */
+    LT
+    /* {@code <=} */
+    LE
+    /* {@code >} */
+    GT
+    /* {@code >=} */
+    GE
+    /* {@code in} */
+    IN
+    /* {@code !in} */
+    NOT_IN
+    /* {@code contains} */
+    CONTAINS
+    /* {@code !contains} */
+    NOT_CONTAINS
+}
+
+/*
+ * {@code set is T}.
+ */
+class IsType extends Condition {
+    contains SetExpr[1] ^set
+    contains TypeRef[1] ^type
+}
+
+/*
+ * {@code no set} or {@code some set}.
+ */
+class Emptiness extends Condition {
+    EmptinessOp ^op
+    contains SetExpr[1] ^set
+}
+
+enum EmptinessOp {
+    NO
+    SOME
+}
+
+/*
+ * A set used as a condition: it holds when the set is {true}.
+ */
+class BooleanSet extends Condition {
+    contains SetExpr[1] ^set
+}
+
+/*
+ * {@code source -[relation m:n]-> target}, or with {@code -} (bidirectional).
+ */
+class LinkConstraint extends Condition {
+    /*
+     * The relation's name, or null for the union of the declared relations.
+     */
+    String relation
+    /*
+     * True for {@code -}, false for {@code ->}.
+     */
+    boolean bidirectional
+    contains SetExpr[1] source
+    contains SetExpr[1] target
+    /*
+     * {@code m} of {@code m:n}, or null when only {@code n} is written.
+     */
+    contains Range[?] sourceRange
+    /*
+     * {@code n} of {@code m:n}, or the single range.
+     */
+    contains Range[1] targetRange
+}
+
+/*
+ * A range of counts: {@code k} is (k, k), {@code j..k} is (j, k), {@code j..*} is
+ * (j, -1), {@code *} is (0, -1).
+ */
+class Range {
+    int low
+    /*
+     * The upper bound, or -1 for {@code *}.
+     */
+    int high
+}
+
+/*
+ * A type name: {@code T} or {@code pkg::T}.
+ */
+class TypeRef {
+    /*
+     * The EPackage name before {@code ::}, or null.
+     */
+    String packageName
+    String name
+}
+
+// ─────────────────────────────────────────────
+//  Sets
+// ─────────────────────────────────────────────
+
+abstract class SetExpr {
+}
+
+/*
+ * {@code left union|intersect|except right}; a chain nests to the left.
+ */
+class SetOperation extends SetExpr {
+    SetOperator ^op
+    contains SetExpr[1] left
+    contains SetExpr[1] right
+}
+
+enum SetOperator {
+    UNION
+    INTERSECT
+    EXCEPT
+}
+
+/*
+ * A start followed by steps: {@code S.f/[...].g}. Without a head, the path starts at
+ * the current element ({@code .f}, {@code @x}). A start without steps is not wrapped.
+ */
+class Path extends SetExpr {
+    contains SetExpr[?] head
+    contains Step[+] steps
+}
+
+/*
+ * A bare name: a variable, a {@code let}, a resource or an unqualified enum literal.
+ */
+class NameRef extends SetExpr {
+    String name
+}
+
+/*
+ * {@code *}: every object of every resource.
+ */
+class Universe extends SetExpr {
+}
+
+/*
+ * {@code it}: the current element.
+ */
+class It extends SetExpr {
+}
+
+/*
+ * {@code count(set)}.
+ */
+class Count extends SetExpr {
+    contains SetExpr[1] ^set
+}
+
+/*
+ * {@code {l1, l2, ...}}.
+ */
+class LiteralSet extends SetExpr {
+    contains Literal[+] values
+}
+
+abstract class Literal extends SetExpr {
+}
+
+class StringLiteral extends Literal {
+    /*
+     * The value, unescaped.
+     */
+    String value
+}
+
+class IntLiteral extends Literal {
+    long value
+}
+
+class RealLiteral extends Literal {
+    double value
+}
+
+class BooleanLiteral extends Literal {
+    boolean value
+}
+
+/*
+ * A qualified enum literal: {@code E::L}.
+ */
+class EnumLiteral extends Literal {
+    String enumName
+    String ^literal
+}
+
+abstract class Step {
+}
+
+/*
+ * {@code .f}, {@code .~f}, {@code .f+}, {@code .@x}, {@code @x}: a feature, a
+ * declared relation or a built-in relation.
+ */
+class Navigation extends Step {
+    /*
+     * The name, without {@code @} for a built-in.
+     */
+    String name
+    /*
+     * True for {@code @x}.
+     */
+    boolean builtin
+    /*
+     * True for {@code ~}.
+     */
+    boolean inverse
+    /*
+     * True for {@code +}.
+     */
+    boolean transitive
+}
+
+/*
+ * {@code /[condition]}.
+ */
+class FilterStep extends Step {
+    contains Condition[1] condition
+}

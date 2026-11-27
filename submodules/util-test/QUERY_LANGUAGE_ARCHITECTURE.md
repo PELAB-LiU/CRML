@@ -18,7 +18,7 @@ The structure follows arc42, cut down to what a library of this size needs.
 | Q2 | **Extensible** | A backend (native Java, VQL, OCL, later SPARQL, Cypher, generated Java) is a module that implements one interface and passes one conformance suite. Nothing else changes. |
 | Q3 | **Useful failures** | Every problem is a diagnostic with a span in the `.cql` text. One bad statement does not hide the results of the others (§6.5). |
 | Q4 | **Independent of the metamodel** | The engine knows `EPackage`s, `EClass`es and features, nothing about CRML (spec goal 4). |
-| Q5 | **Light where it must be** | The frontend and the reference interpreter run on Java 8 with EMF as their only dependency. Each other backend picks its own JVM level and dependencies, and they reach a classpath only when that backend is chosen. |
+| Q5 | **Light where it must be** | The frontend and the reference interpreter run on Java 8 with EMF (and, for the frontend's parser, the ANTLR runtime) as their only dependencies. Each other backend picks its own JVM level and dependencies, and they reach a classpath only when that backend is chosen. |
 
 ### 1.2 Constraints
 
@@ -75,7 +75,7 @@ small typed IR, and each backend translates or interprets only that IR.
 ```mermaid
 flowchart BT
     subgraph j8["Java 8"]
-        cql[":cql<br/>frontend, API, SPI<br/>deps: EMF"]
+        cql[":cql<br/>frontend, API, SPI<br/>deps: EMF, ANTLR runtime"]
         java[":cql-java<br/>reference interpreter<br/>deps: EMF"]
         ut[":util-test<br/>report adapter, case helpers"]
         model[":model, :modelica<br/>(metamodels)"]
@@ -109,7 +109,7 @@ flowchart BT
 
 | Project | Contents | Java | Depends on |
 |---|---|---|---|
-| `:cql` (`submodules/cql`) | the **frontend**: syntax tree, parser, IR, semantic analysis, `ModelScope`; the API (`CqlFrontend`, `CqlEngine`, results); the backend SPI | 8 | EMF; `org.xtext.builder` at build time only |
+| `:cql` (`submodules/cql`) | the **frontend**: syntax tree, parser, IR, semantic analysis, `ModelScope`; the API (`CqlFrontend`, `CqlEngine`, results); the backend SPI | 8 | EMF, `antlr4-runtime`; `org.xtext.builder` and the ANTLR tool at build time only |
 | `:cql` test fixtures | the conformance suite (TCK, section 8): harness, test metamodel, cases | 8 | `:cql`, JUnit 5 |
 | `:cql-java` | the **reference interpreter**, backend id `java` | 8 | `:cql`, EMF |
 | `:cql-vql` | the VQL backend | 11 or later | `:cql`, current VIATRA |
@@ -141,7 +141,7 @@ later be published or moved out of the repository without touching the tests.
 |---|---|---|
 | `api` | `CqlFrontend`, `CqlEngine`, `Backends`, `Source`, `CqlReport`, `StatementResult`, `Violation`, `Diagnostic` | tests |
 | `spi` | `Backend`, `Executable`, `Feature`, `BackendContext` | backends |
-| `syntax` | the syntax tree (Xcore, §4.4), `Lexer`, `Parser`, `Span` | frontend; read-only for others |
+| `syntax` | the syntax tree (Xcore, §4.4), `Lexer`, `Parser`, `Span`, `SourceMap` (positions beside the tree) | frontend; read-only for others |
 | `ir` | the IR (Xcore, §8), `IrPrinter`, `IrSwitch` (generated) | backends |
 | `ir.lowering` | shared rewritings for generating backends: negation normal form, violation queries (§9.2), `let` inlining | generating backends |
 | `sema` | `Linker` (§5.5), `TypeChecker` (D3), `Desugarer` (§8 table), `DependencyGraph` (§5.2 cycles), `Lints` (§7 warnings) | internal |
@@ -571,7 +571,7 @@ any disagreement in status, so the real corpus is an extra conformance test. Wit
 | # | Decision | Why | Alternatives rejected |
 |---|---|---|---|
 | A1 | Backends get only the checked IR. | One implementation of name resolution, typing and desugaring; backends stay small (spec §8). | Backends translating the syntax tree: each would re-implement §5.5 and D3, and they would drift. |
-| A2 | One Gradle project per backend; `:cql` depends on EMF only. | Backends bring VIATRA, Eclipse OCL and their Xtext versions; users load only what they choose (Q5). | One project with all backends: every classpath carries all engines, at the highest Java level any of them needs. |
+| A2 | One Gradle project per backend; `:cql` depends on EMF and the ANTLR runtime only. | Backends bring VIATRA, Eclipse OCL and their Xtext versions; users load only what they choose (Q5). | One project with all backends: every classpath carries all engines, at the highest Java level any of them needs. |
 | A3 | An engine is a frontend plus one backend, both given at construction; `:cql` has no default backend. Backends are given by instance or loaded by id with `ServiceLoader`. | The frontend cannot default to a backend it does not contain (A11); the choice is visible where it is made; one frontend serves several engines. | A default backend found on the classpath: which one runs would depend on the classpath, silently. A mutable `setBackend`: an engine's results would depend on when it was asked. |
 | A4 | Backends declare features; the engine refuses statements that need a missing one. | A backend never gives a wrong answer for something it cannot express (Q1); partial backends are usable early. | Backends failing at run time: the failure would look like a bug, not a limit. |
 | A5 | The reference interpreter is the oracle and shares no lowering with the generating backends. | A bug in shared code would make all backends agree on a wrong answer. | Testing each backend against hand-written expectations only: more work, less coverage. |
@@ -612,8 +612,8 @@ any disagreement in status, so the real corpus is an extra conformance test. Wit
 
 Open points:
 
-1. The parser: hand-written as now, ANTLR 4.9.2 (already a dependency of `:util-test`),
-   or Xtext (spec open point 1). The architecture only fixes its output, the syntax tree.
+1. *Settled:* the parser is generated by ANTLR 4.9.2 (frontend plan, F1); a visitor
+   builds the syntax tree from ANTLR's parse tree.
 2. Whether `Feature` should be finer than one flag per construct (e.g. `CLOSURE` only over
    features vs. over declared relations), once real backends show where they differ.
 3. An out-of-process backend host, if 6.2's in-process suites do not work: a

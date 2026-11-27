@@ -257,8 +257,8 @@ keeps what was written, so messages and a pretty-printer can quote it: `contains
 name. Parentheses leave no node. Names stay strings; they are resolved (section 5.5)
 when the tree is turned into the IR (section 8), which is where the sugar goes.
 
-Every class extends an abstract `Node { int offset, int length }`, the span of its text
-in the file; the diagrams leave it out. The metamodel is split into three diagrams. A
+Positions are not part of the tree: the parser returns them beside it, as a map from
+each node to the span of its text. The metamodel is split into three diagrams. A
 class drawn in grey belongs to another diagram.
 
 **Files and declarations**
@@ -774,7 +774,7 @@ relational calculus, in the shape of Kodkod's AST (the core of Alloy). Sketch, a
 ```
 class Spec { contains Statement[] statements }
 
-abstract class Statement { int line int column String text contains Companion companion }
+abstract class Statement { contains Companion companion }
 class Companion { Severity severity String message }
 enum Severity { ERROR WARNING INFO }
 
@@ -841,7 +841,8 @@ class LinkCount extends Formula {
 class Range { int low int high }
 ```
 
-`Range.high` is `-1` for `*`. In `LinkCount`, `targetRange` is `n` (per source element)
+`Range.high` is `-1` for `*`. Positions are not part of the IR: each IR node traces back
+to the syntax node it came from, whose span the parser keeps beside the tree (4.4). In `LinkCount`, `targetRange` is `n` (per source element)
 and `sourceRange` is `m` (per target element).
 
 Desugaring, text to IR:
