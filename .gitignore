@@ -5,7 +5,8 @@
 build
 
 # Ignore translated tests
-generated
+/LLM/generated/**
+!/LLM/generated/results.csv
 generated__old
 
 # Ignore figures
