@@ -12,6 +12,7 @@ rootProject.name = "crml-compiler"
 include(
         "util",
         "util-test",
+        "cql",
         "model",
         "modelica",
         "language",
